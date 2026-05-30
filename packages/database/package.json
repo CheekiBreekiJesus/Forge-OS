@@ -1,0 +1,8 @@
+{
+  "name": "@forgeos/database",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "typecheck": "echo 'SQL migrations only'"
+  }
+}

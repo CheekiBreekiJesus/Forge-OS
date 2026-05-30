@@ -1,0 +1,108 @@
+{
+  "app": {
+    "name": "ForgeOS",
+    "tagline": "Um Sistema Operativo para a Fábrica Moderna"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "crm": "CRM",
+    "customers": "Clientes",
+    "quotations": "Orçamentos",
+    "orders": "Encomendas",
+    "production": "Produção",
+    "inventory": "Inventário",
+    "maintenance": "Manutenção",
+    "molds": "Moldes",
+    "quality": "Qualidade",
+    "purchasing": "Compras",
+    "sales": "Vendas",
+    "invoicing": "Faturação",
+    "reports": "Relatórios",
+    "marketing": "Marketing",
+    "settings": "Configurações",
+    "whatsNew": "Novidades"
+  },
+  "shell": {
+    "searchPlaceholder": "Pesquisar...",
+    "searchShortcut": "Ctrl + K",
+    "notifications": "Notificações",
+    "toggleTheme": "Alternar tema",
+    "tenantPlan": "{tenant} — Plano Profissional"
+  },
+  "dashboard": {
+    "greeting": "Bom dia, {name}! 👋 Aqui está o resumo da sua operação.",
+    "dateRange": "{from} – {to}",
+    "customize": "Personalizar",
+    "kpi": {
+      "oee": "Produção (OEE)",
+      "revenue": "Receita (Semana)",
+      "openQuotations": "Orçamentos Abertos",
+      "overdueOrders": "Encomendas em Atraso",
+      "maintenanceAlerts": "Alertas Manutenção",
+      "vsLastWeek": "vs semana anterior"
+    },
+    "oee": {
+      "title": "Produção — OEE",
+      "availability": "Disponibilidade",
+      "performance": "Performance",
+      "quality": "Qualidade"
+    },
+    "inventory": {
+      "title": "Inventário — Resumo",
+      "minimum": "Mín"
+    },
+    "alerts": {
+      "title": "Alertas e Atividades",
+      "severity": {
+        "high": "Alta",
+        "medium": "Média",
+        "low": "Baixa"
+      },
+      "items": {
+        "preventive_injector": "Manutenção preventiva da {machine}",
+        "order_delayed": "Ordem de produção {order} em atraso",
+        "low_stock": "Stock baixo de {product}",
+        "mold_maintenance": "Molde {mold} necessita manutenção",
+        "quotation_pending": "Orçamento à espera de resposta"
+      }
+    },
+    "production": {
+      "title": "Encomendas de Produção",
+      "columns": {
+        "order": "Ordem",
+        "product": "Produto",
+        "quantity": "Qtd",
+        "progress": "Progresso",
+        "delivery": "Entrega"
+      }
+    },
+    "revenue": {
+      "title": "Receita",
+      "total": "Total: {amount}"
+    }
+  },
+  "copilot": {
+    "title": "Copilot IA",
+    "beta": "Beta",
+    "placeholder": "Pergunte algo...",
+    "userQuestion": "Quais moldes precisam de manutenção no próximo mês?",
+    "responseIntro": "Com base nos contadores de ciclos e planos, estes moldes estão previstos:",
+    "moldItem": "{mold} — {date}",
+    "followUp": "Pretende que crie ordens de manutenção para estes moldes?"
+  },
+  "footer": {
+    "version": "ForgeOS v{version} © {year}",
+    "system": "Sistema",
+    "database": "Base de Dados",
+    "backup": "Backup",
+    "online": "Online",
+    "operational": "Operacional",
+    "backupAgo": "há {hours} horas",
+    "environment": "Ambiente Produção",
+    "support": "Suporte"
+  },
+  "common": {
+    "comingSoon": "Em breve",
+    "loading": "A carregar..."
+  }
+}
