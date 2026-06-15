@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { ModulePageShell } from "@/components/module-page-shell";
+import { ProductCatalogShell } from "@/components/product-catalog-shell";
 import { isSupportedLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import {
@@ -35,6 +36,10 @@ export default async function ModulePage({
   }
 
   const dictionary = await getDictionary(locale);
+
+  if (moduleKey === "products") {
+    return <ProductCatalogShell dictionary={dictionary} locale={locale} />;
+  }
 
   return (
     <ModulePageShell

@@ -79,6 +79,24 @@ export const dictionary: Dictionary = {
         tone: "amber"
       }
     ],
+    demoCards: {
+      leads: "Leads",
+      quotes: "Quotes",
+      productionOrders: "Production orders",
+      pendingArtwork: "Pending artwork",
+      pendingScreens: "Pending screens",
+      inventoryAlerts: "Inventory alerts",
+      todayJobs: "Today's jobs",
+      recentActivity: "Recent activity"
+    },
+    demoSections: {
+      todayJobs: "Today's JH Gomes jobs",
+      inventoryAlerts: "Inventory alerts",
+      productCatalog: "JH Gomes product catalog",
+      recentActivity: "Recent activity",
+      viewCatalog: "Open catalog",
+      noAlerts: "No inventory alerts"
+    },
     production: {
       title: "Production - OEE",
       score: "78.5%",
@@ -461,5 +479,45 @@ export const dictionary: Dictionary = {
         ]
       }
     }
+  },
+  productCatalog: {
+    eyebrow: "JH Gomes demo catalog",
+    title: "Product catalog",
+    description:
+      "Tenant-scoped demo products for personalized cups, packaging, bags, lids, and accessories. These records are synthetic demo data and do not include private customer or supplier data.",
+    sourceNotice:
+      "source_url is present for future public imports. Current demo products are manually seeded and use no scraped private data.",
+    fieldsTitle: "Required product fields",
+    categories: {
+      "personalized-cups": "Personalized cups",
+      "paper-cups": "Paper cups",
+      "reusable-cups": "Reusable cups",
+      "takeaway-packaging": "Takeaway packaging",
+      bags: "Bags",
+      lids: "Lids",
+      accessories: "Accessories"
+    },
+    fields: {
+      sku: "SKU",
+      category: "Category",
+      image: "Image",
+      material: "Material",
+      capacity: "Capacity",
+      color: "Color",
+      unitsPerBox: "Units/box",
+      stacksPerBox: "Stacks/box",
+      unitsPerStack: "Units/stack",
+      compatible: "Compatible lids/accessories",
+      basePrice: "Base price",
+      personalization: "Personalization",
+      printArea: "Print area",
+      setupCost: "Setup cost",
+      screenCost: "Screen cost",
+      leadTime: "Lead time",
+      sourceUrl: "Source URL"
+    },
+    yes: "Yes",
+    no: "No",
+    days: "days"
   }
 };

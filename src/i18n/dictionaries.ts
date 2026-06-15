@@ -1,5 +1,7 @@
 import type { Locale } from "./config";
 import type { ModuleKey } from "@/modules/config";
+import type { DashboardCardKey } from "@/demo/dashboard";
+import type { ProductCategory } from "@/demo/types";
 
 const dictionaries = {
   "pt-PT": () => import("./locales/pt-PT").then((module) => module.dictionary),
@@ -55,6 +57,15 @@ export type Dictionary = {
       trend: string;
       tone: "green" | "blue" | "amber" | "red";
     }>;
+    demoCards: Record<DashboardCardKey, string>;
+    demoSections: {
+      todayJobs: string;
+      inventoryAlerts: string;
+      productCatalog: string;
+      recentActivity: string;
+      viewCatalog: string;
+      noAlerts: string;
+    };
     production: {
       title: string;
       score: string;
@@ -163,6 +174,36 @@ export type Dictionary = {
         }>;
       }
     >;
+  };
+  productCatalog: {
+    eyebrow: string;
+    title: string;
+    description: string;
+    sourceNotice: string;
+    fieldsTitle: string;
+    categories: Record<ProductCategory, string>;
+    fields: {
+      sku: string;
+      category: string;
+      image: string;
+      material: string;
+      capacity: string;
+      color: string;
+      unitsPerBox: string;
+      stacksPerBox: string;
+      unitsPerStack: string;
+      compatible: string;
+      basePrice: string;
+      personalization: string;
+      printArea: string;
+      setupCost: string;
+      screenCost: string;
+      leadTime: string;
+      sourceUrl: string;
+    };
+    yes: string;
+    no: string;
+    days: string;
   };
 };
 

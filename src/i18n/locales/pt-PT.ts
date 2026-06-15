@@ -79,6 +79,24 @@ export const dictionary: Dictionary = {
         tone: "amber"
       }
     ],
+    demoCards: {
+      leads: "Leads",
+      quotes: "Orcamentos",
+      productionOrders: "Ordens de producao",
+      pendingArtwork: "Artes pendentes",
+      pendingScreens: "Quadros pendentes",
+      inventoryAlerts: "Alertas de inventario",
+      todayJobs: "Trabalhos de hoje",
+      recentActivity: "Atividade recente"
+    },
+    demoSections: {
+      todayJobs: "Trabalhos JH Gomes de hoje",
+      inventoryAlerts: "Alertas de inventario",
+      productCatalog: "Catalogo de produtos JH Gomes",
+      recentActivity: "Atividade recente",
+      viewCatalog: "Abrir catalogo",
+      noAlerts: "Sem alertas de inventario"
+    },
     production: {
       title: "Producao - OEE",
       score: "78.5%",
@@ -461,5 +479,45 @@ export const dictionary: Dictionary = {
         ]
       }
     }
+  },
+  productCatalog: {
+    eyebrow: "Catalogo demo JH Gomes",
+    title: "Catalogo de produtos",
+    description:
+      "Produtos demo por empresa para copos personalizados, embalagens, sacos, tampas e acessorios. Estes registos sao dados sinteticos de demonstracao e nao incluem dados privados de clientes ou fornecedores.",
+    sourceNotice:
+      "source_url existe para futuras importacoes publicas. Os produtos demo atuais foram criados manualmente e nao usam dados privados recolhidos.",
+    fieldsTitle: "Campos obrigatorios do produto",
+    categories: {
+      "personalized-cups": "Copos personalizados",
+      "paper-cups": "Copos de papel",
+      "reusable-cups": "Copos reutilizaveis",
+      "takeaway-packaging": "Embalagem takeaway",
+      bags: "Sacos",
+      lids: "Tampas",
+      accessories: "Acessorios"
+    },
+    fields: {
+      sku: "SKU",
+      category: "Categoria",
+      image: "Imagem",
+      material: "Material",
+      capacity: "Capacidade",
+      color: "Cor",
+      unitsPerBox: "Unidades/caixa",
+      stacksPerBox: "Pilhas/caixa",
+      unitsPerStack: "Unidades/pilha",
+      compatible: "Tampas/acessorios compativeis",
+      basePrice: "Preco base",
+      personalization: "Personalizacao",
+      printArea: "Area de impressao",
+      setupCost: "Custo de setup",
+      screenCost: "Custo de quadro",
+      leadTime: "Prazo",
+      sourceUrl: "Source URL"
+    },
+    yes: "Sim",
+    no: "Nao",
+    days: "dias"
   }
 };

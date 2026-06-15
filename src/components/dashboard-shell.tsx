@@ -1,5 +1,11 @@
 import Link from "next/link";
 import { AppFrame, panelClass } from "@/components/app-frame";
+import {
+  getDashboardCards,
+  getInventoryAlerts,
+  getTodayProductionOrders
+} from "@/demo/dashboard";
+import { demoEvents, demoProducts } from "@/demo/seed";
 import type { Dictionary } from "@/i18n/dictionaries";
 import type { Locale } from "@/i18n/config";
 import { getLocalizedModuleHref } from "@/modules/config";
@@ -26,6 +32,11 @@ const progressClasses: Record<Tone, string> = {
 };
 
 export function DashboardShell({ dictionary, locale }: DashboardShellProps) {
+  const dashboardCards = getDashboardCards();
+  const todayOrders = getTodayProductionOrders();
+  const inventoryAlerts = getInventoryAlerts();
+  const catalogPreview = demoProducts.slice(0, 4);
+
   return (
     <AppFrame activeModule="dashboard" dictionary={dictionary} locale={locale}>
       <section className="mb-5">
@@ -39,19 +50,21 @@ export function DashboardShell({ dictionary, locale }: DashboardShellProps) {
       </section>
 
       <section className="grid gap-4 xl:grid-cols-5">
-        {dictionary.dashboard.metrics.map((metric) => (
-          <article className={`${panelClass} p-4`} key={metric.label}>
+        {dashboardCards.map((card) => (
+          <article className={`${panelClass} p-4`} key={card.key}>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm font-medium text-slate-300">{metric.label}</p>
-                <p className="mt-2 text-2xl font-bold">{metric.value}</p>
+                <p className="text-sm font-medium text-slate-300">
+                  {dictionary.dashboard.demoCards[card.key]}
+                </p>
+                <p className="mt-2 text-2xl font-bold">{card.value}</p>
               </div>
-              <span className={`rounded-lg border px-2 py-1 text-xs ${toneClasses[metric.tone]}`}>
+              <span className={`rounded-lg border px-2 py-1 text-xs ${toneClasses[card.tone]}`}>
                 ...
               </span>
             </div>
-            <p className={`mt-4 text-sm font-semibold ${toneClasses[metric.tone]}`}>
-              {metric.trend} <span className="font-normal text-slate-400">{metric.detail}</span>
+            <p className={`mt-4 text-sm font-semibold ${toneClasses[card.tone]}`}>
+              <span className="font-normal text-slate-400">{card.detail}</span>
             </p>
           </article>
         ))}
@@ -67,6 +80,109 @@ export function DashboardShell({ dictionary, locale }: DashboardShellProps) {
         <OrdersPanel dictionary={dictionary} />
         <RevenuePanel dictionary={dictionary} />
         <CopilotPanel dictionary={dictionary} />
+      </section>
+
+      <section className="mt-4 grid gap-4 xl:grid-cols-[1fr_1fr]">
+        <article className={`${panelClass} p-5`}>
+          <PanelHeading
+            title={dictionary.dashboard.demoSections.todayJobs}
+            action={String(todayOrders.length)}
+          />
+          <div className="mt-4 space-y-3">
+            {todayOrders.map((order) => (
+              <div
+                className="grid gap-3 rounded-lg border border-slate-800 bg-slate-950/40 p-4 sm:grid-cols-[1fr_auto]"
+                key={order.id}
+              >
+                <div>
+                  <div className="font-semibold">{order.id}</div>
+                  <div className="mt-1 text-sm text-slate-400">
+                    {order.customerName} · {order.quantity.toLocaleString("en-US")} un
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500">{order.operatorNotes}</div>
+                </div>
+                <div className="text-left sm:text-right">
+                  <StatusBadge locale={locale} status={order.status} />
+                  <div className="mt-2 text-xs text-slate-400">
+                    {order.artworkStatus} / {order.screenStatus}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className={`${panelClass} p-5`}>
+          <PanelHeading
+            title={dictionary.dashboard.demoSections.inventoryAlerts}
+            action={inventoryAlerts.length ? String(inventoryAlerts.length) : dictionary.dashboard.demoSections.noAlerts}
+          />
+          <div className="mt-4 space-y-3">
+            {inventoryAlerts.map((item) => {
+              const available = item.quantityOnHand - item.reservedQuantity;
+
+              return (
+                <div
+                  className="grid gap-3 rounded-lg border border-red-400/20 bg-red-500/10 p-4 sm:grid-cols-[1fr_auto]"
+                  key={item.id}
+                >
+                  <div>
+                    <div className="font-semibold">{item.name}</div>
+                    <div className="mt-1 text-sm text-slate-400">{item.sku}</div>
+                  </div>
+                  <div className="text-left sm:text-right">
+                    <div className="font-bold text-red-300">
+                      {available.toLocaleString("en-US")} {item.unit}
+                    </div>
+                    <div className="text-xs text-slate-400">
+                      min {item.reorderPoint.toLocaleString("en-US")} {item.unit}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </article>
+      </section>
+
+      <section className="mt-4 grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+        <article className={`${panelClass} p-5`}>
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="text-lg font-bold">{dictionary.dashboard.demoSections.productCatalog}</h2>
+            <Link
+              className="text-sm font-semibold text-blue-300"
+              href={getLocalizedModuleHref(locale, "products")}
+            >
+              {dictionary.dashboard.demoSections.viewCatalog}
+            </Link>
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {catalogPreview.map((product) => (
+              <div className="rounded-lg border border-slate-800 bg-slate-950/40 p-4" key={product.id}>
+                <div className="text-sm font-bold">{product.name}</div>
+                <div className="mt-1 text-xs text-slate-500">{product.sku}</div>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-400">
+                  <span>{product.material}</span>
+                  <span>{product.capacity}</span>
+                  <span>{product.unitsPerBox.toLocaleString("en-US")} un/box</span>
+                  <span>{product.leadTimeDays} days</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className={`${panelClass} p-5`}>
+          <h2 className="text-lg font-bold">{dictionary.dashboard.demoSections.recentActivity}</h2>
+          <div className="mt-4 space-y-3">
+            {demoEvents.map((event) => (
+              <div className="rounded-lg border border-slate-800 bg-slate-950/40 p-4" key={event.id}>
+                <div className="text-sm font-semibold">{event.title}</div>
+                <div className="mt-2 text-xs text-slate-500">{event.type}</div>
+              </div>
+            ))}
+          </div>
+        </article>
       </section>
 
       <section className={`${panelClass} mt-4 p-5`} id="modules">
@@ -97,6 +213,20 @@ export function DashboardShell({ dictionary, locale }: DashboardShellProps) {
       </section>
     </AppFrame>
   );
+}
+
+function StatusBadge({ locale, status }: { locale: Locale; status: string }) {
+  const labels: Record<string, { en: string; "pt-PT": string }> = {
+    scheduled: { en: "Scheduled", "pt-PT": "Agendado" },
+    "in-progress": { en: "In progress", "pt-PT": "Em curso" },
+    blocked: { en: "Blocked", "pt-PT": "Bloqueado" },
+    completed: { en: "Completed", "pt-PT": "Concluido" }
+  };
+
+  const label = labels[status]?.[locale] ?? status;
+  const tone = status === "blocked" ? toneClasses.red : toneClasses.blue;
+
+  return <span className={`rounded-md border px-2 py-1 text-xs font-bold ${tone}`}>{label}</span>;
 }
 
 function ProductionPanel({ dictionary }: { dictionary: Dictionary }) {
