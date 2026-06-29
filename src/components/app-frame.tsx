@@ -14,6 +14,7 @@ type AppFrameProps = {
   children: ReactNode;
   dictionary: Dictionary;
   locale: Locale;
+  supplementalRoute?: string;
 };
 
 export const panelClass =
@@ -23,9 +24,12 @@ export function AppFrame({
   activeModule,
   children,
   dictionary,
-  locale
+  locale,
+  supplementalRoute
 }: AppFrameProps) {
-  const activeRoute = moduleRoutes[activeModule];
+  const activeRoute = supplementalRoute ?? moduleRoutes[activeModule];
+  const leadOpsHref = `/${locale}/leadops`;
+  const isLeadOpsActive = activeRoute.startsWith("leadops");
 
   return (
     <main className="min-h-screen bg-[#06111f] text-slate-100">
@@ -50,7 +54,7 @@ export function AppFrame({
             {moduleKeys.map((key, index) => (
               <Link
                 className={
-                  key === activeModule
+                  key === activeModule && !isLeadOpsActive
                     ? "flex items-center gap-3 rounded-lg border-l-2 border-orange-400 bg-orange-500/10 px-3 py-3 text-sm font-semibold text-orange-300"
                     : "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
                 }
@@ -63,6 +67,19 @@ export function AppFrame({
                 {dictionary.navigation[key]}
               </Link>
             ))}
+            <Link
+              className={
+                isLeadOpsActive
+                  ? "flex items-center gap-3 rounded-lg border-l-2 border-orange-400 bg-orange-500/10 px-3 py-3 text-sm font-semibold text-orange-300"
+                  : "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
+              }
+              href={leadOpsHref}
+            >
+              <span className="grid size-6 place-items-center rounded-md border border-slate-700 text-xs">
+                L
+              </span>
+              {dictionary.navigation.leadops}
+            </Link>
           </nav>
 
           <div className="m-4 rounded-lg border border-slate-700 bg-slate-900 px-4 py-4">

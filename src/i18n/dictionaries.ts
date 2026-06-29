@@ -24,6 +24,7 @@ export type Dictionary = {
     machines: string;
     maintenance: string;
     marketing: string;
+    leadops: string;
     settings: string;
   };
   dashboard: {
@@ -303,6 +304,144 @@ export type Dictionary = {
     password: string;
     submit: string;
     note: string;
+  };
+  leadops: {
+    eyebrow: string;
+    title: string;
+    description: string;
+    backToDashboard: string;
+    searchPlaceholder: string;
+    clearFilters: string;
+    resultCount: string;
+    addToCampaign: string;
+    addToCampaignDisabled: string;
+    selectAllVisible: string;
+    emptyTitle: string;
+    emptyDescription: string;
+    noResultsTitle: string;
+    noResultsDescription: string;
+    detailEyebrow: string;
+    detailTitle: string;
+    detailDescription: string;
+    detailPlaceholder: string;
+    sections: {
+      kpis: string;
+      campaigns: string;
+      activity: string;
+      leads: string;
+    };
+    kpis: {
+      totalLeads: string;
+      ready: string;
+      queued: string;
+      contactedSent: string;
+      replies: string;
+      positiveReplies: string;
+      bounceRate: string;
+      bounceRateUnavailable: string;
+      activeCampaigns: string;
+    };
+    filters: {
+      industry: string;
+      status: string;
+      quality: string;
+      sourceDatabase: string;
+      language: string;
+      all: string;
+    };
+    table: {
+      company: string;
+      contact: string;
+      email: string;
+      location: string;
+      industry: string;
+      status: string;
+      quality: string;
+      source: string;
+      language: string;
+      viewLead: string;
+    };
+    statuses: Record<
+      "ready" | "queued" | "contacted" | "replied" | "positive_reply" | "bounced",
+      string
+    >;
+    qualities: Record<"high" | "medium" | "low", string>;
+    campaignStatuses: Record<"active" | "paused" | "completed", string>;
+    activities: Record<
+      | "lead-imported"
+      | "campaign-started"
+      | "reply-received"
+      | "bounce-detected"
+      | "lead-qualified"
+      | "message-generated"
+      | "message-edited"
+      | "message-approved"
+      | "campaign-assigned"
+      | "message-queued"
+      | "message-sent"
+      | "metrics-updated",
+      string
+    >;
+    detailFields: {
+      company: string;
+      contact: string;
+      email: string;
+      location: string;
+      industry: string;
+      status: string;
+      quality: string;
+      source: string;
+      sourceDatabase: string;
+      language: string;
+      website: string;
+    };
+    detailWorkspace: {
+      contactPanel: string;
+      contextPanel: string;
+      productsPanel: string;
+      composerPanel: string;
+      campaignPanel: string;
+      sequencePanel: string;
+      activityPanel: string;
+      importSummary: string;
+      noWebsiteContext: string;
+      websiteContextAvailable: string;
+      personalizationWarning: string;
+      selectedProducts: string;
+      tone: string;
+      professional: string;
+      friendly: string;
+      direct: string;
+      generate: string;
+      subject: string;
+      body: string;
+      method: string;
+      edited: string;
+      approved: string;
+      notApproved: string;
+      approve: string;
+      queue: string;
+      simulateSend: string;
+      campaign: string;
+      providerState: string;
+      queuedAt: string;
+      sentAt: string;
+      success: string;
+      error: string;
+      sequenceDelay: string;
+      importTotal: string;
+      importValid: string;
+      importReview: string;
+      importReady: string;
+      phone: string;
+      hiddenDemoValue: string;
+      noCampaign: string;
+      incompleteMessage: string;
+      queueRequired: string;
+      emptyActivity: string;
+      manualProductReason: string;
+    };
+    providerStates: Record<"not_ready" | "draft" | "approved" | "queued" | "sent" | "blocked", string>;
   };
   jobCard: {
     backToProduction: string;
