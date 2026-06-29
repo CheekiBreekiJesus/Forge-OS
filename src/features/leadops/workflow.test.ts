@@ -54,10 +54,10 @@ describe("LeadOps demo workflow", () => {
     });
 
     expect(message.subject).toContain(leadWithContext.companyName);
-    expect(message.body).toContain("copos de plastico personalizados");
-    expect(message.body).toContain("solucoes de embalagem");
+    expect(message.body).toContain("copos de plástico personalizados");
+    expect(message.body).toContain("soluções de embalagem");
     expect(message.body).toContain("100.000 unidades");
-    expect(message.body).toContain("visualizacao e orcamento");
+    expect(message.body).toContain("visualização e orçamento");
   });
 
   it("does not claim website review when no context exists", () => {

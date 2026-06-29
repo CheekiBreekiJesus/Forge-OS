@@ -178,7 +178,7 @@ export function LeadOpsDetailWorkspace({
 
   return (
     <AppFrame
-      activeModule="customers"
+      activeModule="marketing"
       dictionary={dictionary}
       locale={locale}
       supplementalRoute={`leadops/${lead.id}`}

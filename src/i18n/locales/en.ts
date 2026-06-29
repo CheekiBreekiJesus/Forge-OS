@@ -22,7 +22,7 @@ export const dictionary: Dictionary = {
   dashboard: {
     searchPlaceholder: "Search...",
     searchShortcut: "Ctrl + K",
-    dateRange: "13 - 19 May 2024",
+    dateRange: "Demo",
     customize: "Customize",
     greeting: "Good morning, operator.",
     userRole: "General Director",
@@ -696,7 +696,8 @@ export const dictionary: Dictionary = {
       quality: "Quality",
       source: "Source",
       language: "Language",
-      viewLead: "Open lead"
+      viewLead: "Open lead",
+      selectedCount: "{count} selected"
     },
     statuses: {
       ready: "Ready",

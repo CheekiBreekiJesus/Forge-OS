@@ -253,7 +253,9 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
                 {copy.selectAllVisible}
               </label>
               {selectedLeadIds.length > 0 ? (
-                <span className="text-xs text-slate-500">{selectedLeadIds.length} selected</span>
+                <span className="text-xs text-slate-500">
+                {copy.table.selectedCount.replace("{count}", String(selectedLeadIds.length))}
+              </span>
               ) : null}
             </div>
 

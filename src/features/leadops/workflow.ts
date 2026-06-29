@@ -15,7 +15,7 @@ import type {
 export const leadOpsProductCatalog: Record<LeadOpsProductKey, { label: string; ptLabel: string }> = {
   "customized-plastic-cups": {
     label: "Customized plastic cups",
-    ptLabel: "copos de plastico personalizados"
+    ptLabel: "copos de plástico personalizados"
   },
   "customized-paper-cups": {
     label: "Customized paper cups",
@@ -27,15 +27,15 @@ export const leadOpsProductCatalog: Record<LeadOpsProductKey, { label: string; p
   },
   "biodegradable-cutlery": {
     label: "Biodegradable cutlery",
-    ptLabel: "talheres biodegradaveis"
+    ptLabel: "talheres biodegradáveis"
   },
   "disposable-food-service": {
     label: "Disposable food-service products",
-    ptLabel: "descartaveis para food-service"
+    ptLabel: "descartáveis para food-service"
   },
   "packaging-products": {
     label: "Packaging-related products",
-    ptLabel: "solucoes de embalagem"
+    ptLabel: "soluções de embalagem"
   }
 };
 
@@ -57,7 +57,7 @@ export function getCompanyContext(lead: LeadOpsLead): LeadOpsCompanyContext {
     hasWebsiteContext: true,
     personalizationNotes: [
       `Contexto demo baseado no website registado: ${lead.website}.`,
-      `Localizacao util para personalizar abertura: ${lead.location}.`
+      `Localização útil para personalizar abertura: ${lead.location}.`
     ],
     summary: buildContextSummary(lead)
   };
@@ -101,38 +101,39 @@ export function generatePtPtEmail({
   const hasCupProduct = productKeys.some((key) => key.includes("cups"));
   const greeting = tone === "direct" ? "Bom dia" : `Bom dia ${lead.contactName.split(" ")[0]}`;
   const contextSentence = context.hasWebsiteContext
-    ? `Vi o contexto da ${lead.companyName} associado a ${lead.industry.toLowerCase()} em ${lead.location}, e pareceu-me haver potencial para consumiveis personalizados.`
+    ? `Vi o contexto da ${lead.companyName} associado a ${lead.industry.toLowerCase()} em ${lead.location}, e pareceu-me haver potencial para consumíveis personalizados.`
     : `Estou a contactar porque a ${lead.companyName} aparece na nossa base demo como potencial cliente em ${lead.industry.toLowerCase()} na zona de ${lead.location}.`;
   const toneSentence =
     tone === "friendly"
-      ? "A ideia seria perceber, sem compromisso, se ha espaco para apoiar proximas encomendas."
+      ? "A ideia seria perceber, sem compromisso, se há espaço para apoiar próximas encomendas."
       : tone === "direct"
-        ? "O objetivo e perceber rapidamente se faz sentido preparar uma proposta simples."
-        : "Gostaria de perceber se podemos ser uteis em proximas necessidades de compra.";
+        ? "O objetivo é perceber rapidamente se faz sentido preparar uma proposta simples."
+        : "Gostaria de perceber se podemos ser úteis em próximas necessidades de compra.";
   const cupSentence = hasCupProduct
-    ? "Para copos personalizados, a JH Gomes e competitiva em series abaixo de cerca de 100.000 unidades, e estamos a preparar uma experiencia futura de visualizacao e orcamento mais rapida."
-    : "Tambem podemos apoiar a preparacao de embalagens e descartaveis ajustados ao tipo de utilizacao.";
-  const campaignSentence = campaign.status === "active" ? "" : "Como a campanha esta em modo demo, esta mensagem fica apenas em simulacao.";
+    ? "Para copos personalizados, a JH Gomes é competitiva em séries abaixo de cerca de 100.000 unidades, e estamos a preparar uma experiência futura de visualização e orçamento mais rápida."
+    : "Também podemos apoiar a preparação de embalagens e descartáveis ajustados ao tipo de utilização.";
+
+  const bodyLines = [
+    `${greeting},`,
+    "",
+    contextSentence,
+    `Na JH Gomes podemos ajudar com ${formatPortugueseList(products)}.`,
+    cupSentence,
+    toneSentence,
+    ...(campaign.status !== "active"
+      ? ["Como a campanha está em modo demo, esta mensagem fica apenas em simulação."]
+      : []),
+    "Faria sentido enviar-lhe algumas opções e uma estimativa para as quantidades que costumam utilizar?",
+    "",
+    "Obrigado,"
+  ];
 
   return {
     approved: false,
-    body: [
-      `${greeting},`,
-      "",
-      contextSentence,
-      `Na JH Gomes podemos ajudar com ${formatPortugueseList(products)}.`,
-      cupSentence,
-      toneSentence,
-      campaignSentence,
-      "Faria sentido enviar-lhe algumas opcoes e uma estimativa para as quantidades que costumam utilizar?",
-      "",
-      "Obrigado,"
-    ]
-      .filter(Boolean)
-      .join("\n"),
+    body: bodyLines.join("\n"),
     edited: false,
     generationMethod: "deterministic-template",
-    subject: `Opcoes JH Gomes para ${lead.companyName}`
+    subject: `Opções JH Gomes para ${lead.companyName}`
   };
 }
 
@@ -271,34 +272,34 @@ export function markMessageEdited(message: LeadOpsGeneratedMessage): LeadOpsGene
 
 function buildContextSummary(lead: LeadOpsLead): string {
   if (lead.industry === "Hospitality") {
-    return "Empresa ligada a hotelaria/restauracao, com potencial para copos personalizados e consumiveis de servico.";
+    return "Empresa ligada a hotelaria/restauração, com potencial para copos personalizados e consumíveis de serviço.";
   }
 
   if (lead.industry === "Events") {
-    return "Operacao orientada a eventos, onde copos personalizados e descartaveis podem apoiar equipas e patrocinadores.";
+    return "Operação orientada a eventos, onde copos personalizados e descartáveis podem apoiar equipas e patrocinadores.";
   }
 
   if (lead.industry === "Food & Beverage") {
-    return "Negocio alimentar com uso provavel de copos, embalagens e consumiveis para servico diario.";
+    return "Negócio alimentar com uso provável de copos, embalagens e consumíveis para serviço diário.";
   }
 
-  return "Empresa com potencial de compra B2B para produtos descartaveis, embalagens ou personalizacao.";
+  return "Empresa com potencial de compra B2B para produtos descartáveis, embalagens ou personalização.";
 }
 
 function recommendationReason(key: LeadOpsProductKey, industry: string): string {
   if (key.includes("cups")) {
-    return `Relevante para ${industry} quando ha bebidas, eventos, take-away ou marca propria.`;
+    return `Relevante para ${industry} quando há bebidas, eventos, take-away ou marca própria.`;
   }
 
   if (key === "biodegradable-cutlery") {
-    return "Opcao util para servico alimentar com preocupacao ambiental.";
+    return "Opção útil para serviço alimentar com preocupação ambiental.";
   }
 
   if (key === "packaging-products") {
-    return "Complementa preparacao de encomendas, take-away e kits de cliente.";
+    return "Complementa preparação de encomendas, take-away e kits de cliente.";
   }
 
-  return "Adequado para operacoes com consumo regular de descartaveis.";
+  return "Adequado para operações com consumo regular de descartáveis.";
 }
 
 function formatPortugueseList(items: string[]): string {

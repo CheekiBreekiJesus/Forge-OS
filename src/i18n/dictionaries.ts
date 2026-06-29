@@ -360,6 +360,7 @@ export type Dictionary = {
       source: string;
       language: string;
       viewLead: string;
+      selectedCount: string;
     };
     statuses: Record<
       "ready" | "queued" | "contacted" | "replied" | "positive_reply" | "bounced",
