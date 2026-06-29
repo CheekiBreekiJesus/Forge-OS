@@ -118,8 +118,6 @@ Not yet defined:
 
 ## 9. Testing / Build Rules
 
-Not yet defined.
-
 Recommended default:
 - Add linting.
 - Add type checking.
@@ -127,6 +125,23 @@ Recommended default:
 - Add integration tests for critical flows once backend exists.
 - Ensure `npm run build` or equivalent passes before completing tasks.
 - Add seed/demo data for local development.
+
+### Agent maintenance orchestration
+
+Read-only maintenance commands:
+
+```bash
+npm run agent:health     # lightweight deterministic checks (skips production build)
+npm run agent:maintain   # full maintenance validation including production build
+npm run agent:test       # orchestrator unit and integration tests
+npm run agent:canary     # explicit scoped Codex canary only
+```
+
+Policy file: `agent/maintenance-policy.json`
+Health report: `qa/reports/latest-health.json` (generated locally, gitignored)
+Codex task output: `qa/reports/next-codex-task.md` (generated only when policy allows)
+
+Default maintenance mode is read-only validation. It must not launch Codex, modify application source, commit, push, merge, or deploy unless policy is explicitly changed and approved.
 
 ## 10. Files the Agent Should Read Before Changing Code
 

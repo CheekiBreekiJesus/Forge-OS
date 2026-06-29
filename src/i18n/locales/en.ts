@@ -89,13 +89,26 @@ export const dictionary: Dictionary = {
       todayJobs: "Today's jobs",
       recentActivity: "Recent activity"
     },
+    demoCardDetails: {
+      leads: "new",
+      quotes: "approved",
+      productionOrders: "blocked",
+      pendingArtwork: "Logo/artwork approval",
+      pendingScreens: "Screen preparation",
+      inventoryAlerts: "Below available threshold",
+      todayJobs: "Scheduled for 2026-06-15",
+      recentActivity: "n8n-ready demo events"
+    },
     demoSections: {
       todayJobs: "Today's JH Gomes jobs",
       inventoryAlerts: "Inventory alerts",
       productCatalog: "JH Gomes product catalog",
       recentActivity: "Recent activity",
       viewCatalog: "Open catalog",
-      noAlerts: "No inventory alerts"
+      noAlerts: "No inventory alerts",
+      openJobCard: "Open job card",
+      minimumPrefix: "min",
+      unitsPerBox: "units/box"
     },
     production: {
       title: "Production - OEE",
@@ -519,5 +532,144 @@ export const dictionary: Dictionary = {
     yes: "Yes",
     no: "No",
     days: "days"
+  },
+  demoWorkflow: {
+    eyebrow: "JH Gomes demo flow",
+    title: "CRM to production demo",
+    description:
+      "Run the core demo path locally: lead, customer opportunity, personalized cup quote, artwork, approval, production order, job card, machine assignment, progress, and inventory reservation.",
+    startDemo: "Run full demo path",
+    currentStep: "Current step",
+    reset: "Reset demo",
+    sections: {
+      lead: "Lead and opportunity",
+      quote: "Personalized cup quote",
+      production: "Production order",
+      jobCard: "Machine job card",
+      inventory: "Inventory reservation",
+      events: "Automation events",
+      automation: "Email and n8n hooks",
+      copilot: "AI Copilot shell"
+    },
+    steps: [
+      "Create lead",
+      "Convert to customer/opportunity",
+      "Create quote",
+      "Upload artwork",
+      "Approve quote",
+      "Create production order",
+      "Assign machine",
+      "Update artwork and screen status",
+      "Log production progress",
+      "Reserve inventory"
+    ],
+    fields: {
+      company: "Company",
+      contact: "Contact",
+      product: "Product",
+      quantity: "Quantity",
+      printColors: "Print colors",
+      artwork: "Artwork",
+      subtotal: "Subtotal",
+      vat: "VAT",
+      total: "Total",
+      machine: "Machine",
+      progress: "Progress",
+      available: "Available",
+      reserved: "Reserved",
+      ink: "Ink",
+      personalizationCost: "Personalization",
+      demoArtworkFile: "demo-logo.svg",
+      emptyValue: "-",
+      unitSuffix: "un"
+    },
+    actions: {
+      createLead: "Create lead",
+      convertLead: "Convert lead",
+      createQuote: "Create quote",
+      uploadArtwork: "Upload artwork",
+      approveQuote: "Approve quote",
+      createProduction: "Create production",
+      assignMachine: "Assign machine",
+      updateStatuses: "Update statuses",
+      logProgress: "Log progress",
+      reserveInventory: "Reserve inventory"
+    },
+    status: {
+      waiting: "Waiting",
+      done: "Done",
+      active: "Active"
+    },
+    jobCardLabels: {
+      orderId: "Order ID",
+      customer: "Customer",
+      cupCapacity: "Cup capacity",
+      material: "Material",
+      artworkStatus: "Artwork status",
+      screenStatus: "Screen status",
+      predictedInk: "Predicted ink",
+      loading: "Stack/loading",
+      loadingBay: "Loading bay",
+      assignedMachine: "Assigned machine",
+      operatorNotes: "Operator notes",
+      logoPreview: "Logo preview",
+      label: "Label/sticker",
+      qrUrl: "QR-ready job URL"
+    },
+    automationLabels: {
+      quoteRequest: "Quote request form model",
+      emailTemplates: "Email templates",
+      webhookQueue: "n8n webhook queue",
+      destination: "Destination",
+      payload: "Payload",
+      status: "Status"
+    },
+    copilotLabels: {
+      suggestedPrompts: "Suggested prompts",
+      answer: "Demo answer",
+      actionRegistry: "Placeholder action registry"
+    }
+  },
+  login: {
+    eyebrow: "Demo access",
+    title: "Sign in to ForgeOS",
+    description: "Use the seeded JH Gomes demo workspace. This screen is a local demo shell and does not enable real authentication yet.",
+    tenant: "Tenant",
+    user: "Demo user",
+    password: "Password",
+    submit: "Enter dashboard",
+    note: "Supabase Auth will replace this placeholder in the persistent MVP."
+  },
+  jobCard: {
+    backToProduction: "Back to production",
+    eyebrow: "Operator job card",
+    title: "Production job card",
+    description:
+      "Read-only demo job instructions for the shop floor. Real approval, quality, and stock movements are still pending.",
+    status: "Status",
+    scheduledDate: "Scheduled date",
+    progress: "Progress",
+    sections: {
+      production: "Production context",
+      machine: "Machine setup",
+      artwork: "Artwork and print",
+      packing: "Packing",
+      notes: "Operator notes"
+    },
+    fields: {
+      customer: "Customer",
+      product: "Product",
+      quantity: "Quantity",
+      machine: "Machine",
+      speed: "Speed/hour",
+      loadingBay: "Loading bay",
+      artworkStatus: "Artwork status",
+      screenStatus: "Screen status",
+      capacity: "Capacity",
+      material: "Material",
+      ink: "Predicted ink",
+      loading: "Stacks/boxes",
+      qrUrl: "QR URL"
+    }
   }
 };

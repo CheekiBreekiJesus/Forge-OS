@@ -46,7 +46,15 @@ export function DashboardShell({ dictionary, locale }: DashboardShellProps) {
         <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
           {dictionary.dashboard.greeting}
         </h1>
-        <p className="mt-1 text-sm text-slate-400">{dictionary.dashboard.title}</p>
+        <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-slate-400">{dictionary.dashboard.title}</p>
+          <Link
+            className="w-fit rounded-lg bg-orange-500 px-4 py-2 text-sm font-bold text-white"
+            href={`/${locale}/demo`}
+          >
+            {dictionary.demoWorkflow.startDemo}
+          </Link>
+        </div>
       </section>
 
       <section className="grid gap-4 xl:grid-cols-5">
@@ -63,8 +71,9 @@ export function DashboardShell({ dictionary, locale }: DashboardShellProps) {
                 ...
               </span>
             </div>
-            <p className={`mt-4 text-sm font-semibold ${toneClasses[card.tone]}`}>
-              <span className="font-normal text-slate-400">{card.detail}</span>
+            <p className="mt-4 text-sm text-slate-400">
+              {card.detailValue ? `${card.detailValue} ` : ""}
+              {dictionary.dashboard.demoCardDetails[card.key]}
             </p>
           </article>
         ))}
@@ -97,7 +106,8 @@ export function DashboardShell({ dictionary, locale }: DashboardShellProps) {
                 <div>
                   <div className="font-semibold">{order.id}</div>
                   <div className="mt-1 text-sm text-slate-400">
-                    {order.customerName} · {order.quantity.toLocaleString("en-US")} un
+                    {order.customerName} - {order.quantity.toLocaleString(locale)}{" "}
+                    {dictionary.demoWorkflow.fields.unitSuffix}
                   </div>
                   <div className="mt-1 text-xs text-slate-500">{order.operatorNotes}</div>
                 </div>
@@ -106,6 +116,12 @@ export function DashboardShell({ dictionary, locale }: DashboardShellProps) {
                   <div className="mt-2 text-xs text-slate-400">
                     {order.artworkStatus} / {order.screenStatus}
                   </div>
+                  <Link
+                    className="mt-3 inline-block text-xs font-semibold text-blue-300 hover:text-blue-200"
+                    href={`/${locale}/jobs/${order.id}`}
+                  >
+                    {dictionary.dashboard.demoSections.openJobCard}
+                  </Link>
                 </div>
               </div>
             ))}
@@ -132,10 +148,11 @@ export function DashboardShell({ dictionary, locale }: DashboardShellProps) {
                   </div>
                   <div className="text-left sm:text-right">
                     <div className="font-bold text-red-300">
-                      {available.toLocaleString("en-US")} {item.unit}
+                      {available.toLocaleString(locale)} {item.unit}
                     </div>
                     <div className="text-xs text-slate-400">
-                      min {item.reorderPoint.toLocaleString("en-US")} {item.unit}
+                      {dictionary.dashboard.demoSections.minimumPrefix}{" "}
+                      {item.reorderPoint.toLocaleString(locale)} {item.unit}
                     </div>
                   </div>
                 </div>
@@ -164,8 +181,11 @@ export function DashboardShell({ dictionary, locale }: DashboardShellProps) {
                 <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-400">
                   <span>{product.material}</span>
                   <span>{product.capacity}</span>
-                  <span>{product.unitsPerBox.toLocaleString("en-US")} un/box</span>
-                  <span>{product.leadTimeDays} days</span>
+                  <span>
+                    {product.unitsPerBox.toLocaleString(locale)}{" "}
+                    {dictionary.dashboard.demoSections.unitsPerBox}
+                  </span>
+                  <span>{product.leadTimeDays} {dictionary.productCatalog.days}</span>
                 </div>
               </div>
             ))}

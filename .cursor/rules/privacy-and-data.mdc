@@ -1,0 +1,27 @@
+---
+description: Privacy, credentials, and customer data handling
+alwaysApply: true
+---
+
+# Privacy and Data
+
+## Never commit or expose
+
+- Real customer data, contacts, pricing, supplier records, or internal documents
+- API keys, tokens, passwords, or service-role credentials
+- Private data in screenshots, logs, QA reports, fixtures, or prompts
+
+## Fixtures and local data
+
+- Git-tracked fixtures must be synthetic and customer-neutral.
+- Local customer inputs belong under ignored paths (see `scripts/data-preparation/local/`).
+- Use `.env.local` for secrets; only placeholders in `.env.example`.
+
+## QA and monitoring
+
+- Redact or omit sensitive fields in findings.
+- Do not paste `.env` values into chat or reports.
+
+## Reference
+
+Follow `docs/engineering/agent-privacy-policy.md` and `AGENTS.md` §7–8.

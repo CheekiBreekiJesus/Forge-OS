@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://forgeos.local/schemas/health-report/1.0.0",
+  "title": "ForgeOS Maintenance Health Report",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "runId",
+    "timestamp",
+    "branch",
+    "commit",
+    "dirtyBefore",
+    "dirtyAfter",
+    "packageManager",
+    "policyMode",
+    "checks",
+    "generatedFiles",
+    "applicationFilesChanged",
+    "privacyScan",
+    "codexLaunch",
+    "stopDecision",
+    "blockers",
+    "overallStatus"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "string" },
+    "runId": { "type": "string" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "branch": { "type": "string" },
+    "commit": { "type": "string" },
+    "dirtyBefore": { "type": "boolean" },
+    "dirtyAfter": { "type": "boolean" },
+    "packageManager": { "type": "string" },
+    "policyMode": { "type": "string" },
+    "checks": { "type": "array" },
+    "generatedFiles": { "type": "array", "items": { "type": "string" } },
+    "applicationFilesChanged": { "type": "array", "items": { "type": "string" } },
+    "privacyScan": { "type": "object" },
+    "codexLaunch": { "type": "object" },
+    "stopDecision": { "type": "string", "enum": ["STOP", "CONTINUE", "BLOCKED"] },
+    "blockers": { "type": "array", "items": { "type": "string" } },
+    "overallStatus": {
+      "type": "string",
+      "enum": ["healthy", "unhealthy", "blocked", "orchestrator_error"]
+    },
+    "codexTask": { "type": "object" }
+  }
+}

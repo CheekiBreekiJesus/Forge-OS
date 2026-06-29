@@ -19,7 +19,7 @@ export type DashboardCardKey =
 export type DashboardCard = {
   key: DashboardCardKey;
   value: string;
-  detail: string;
+  detailValue?: string;
   tone: "green" | "blue" | "amber" | "red";
 };
 
@@ -41,49 +41,48 @@ export function getDashboardCards(): DashboardCard[] {
     {
       key: "leads",
       value: String(demoLeads.length),
-      detail: `${demoLeads.filter((lead) => lead.status === "new").length} new`,
+      detailValue: String(demoLeads.filter((lead) => lead.status === "new").length),
       tone: "blue"
     },
     {
       key: "quotes",
       value: String(demoQuotes.length),
-      detail: `${demoQuotes.filter((quote) => quote.status === "approved").length} approved`,
+      detailValue: String(
+        demoQuotes.filter((quote) => quote.status === "approved").length
+      ),
       tone: "green"
     },
     {
       key: "productionOrders",
       value: String(demoProductionOrders.length),
-      detail: `${demoProductionOrders.filter((order) => order.status === "blocked").length} blocked`,
+      detailValue: String(
+        demoProductionOrders.filter((order) => order.status === "blocked").length
+      ),
       tone: pendingArtwork || pendingScreens ? "amber" : "green"
     },
     {
       key: "pendingArtwork",
       value: String(pendingArtwork),
-      detail: "Logo/artwork approval",
       tone: pendingArtwork ? "red" : "green"
     },
     {
       key: "pendingScreens",
       value: String(pendingScreens),
-      detail: "Screen preparation",
       tone: pendingScreens ? "amber" : "green"
     },
     {
       key: "inventoryAlerts",
       value: String(inventoryAlerts),
-      detail: "Below available threshold",
       tone: inventoryAlerts ? "red" : "green"
     },
     {
       key: "todayJobs",
       value: String(todayJobs),
-      detail: "Scheduled for 2026-06-15",
       tone: "blue"
     },
     {
       key: "recentActivity",
       value: String(demoEvents.length),
-      detail: "n8n-ready demo events",
       tone: "green"
     }
   ];

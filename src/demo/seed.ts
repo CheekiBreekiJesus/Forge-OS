@@ -1,10 +1,13 @@
 import type {
   DemoEvent,
+  DemoEmailTemplate,
   DemoInventoryItem,
   DemoLead,
   DemoMachine,
   DemoProduct,
   DemoProductionOrder,
+  DemoQuoteRequest,
+  DemoWebhookEvent,
   DemoQuote,
   Tenant
 } from "./types";
@@ -402,5 +405,87 @@ export const demoEvents: DemoEvent[] = [
     type: "quote_approved",
     title: "Quote 1009 approved and ready for production",
     createdAt: "2026-06-15T10:40:00.000Z"
+  }
+];
+
+export const demoQuoteRequests: DemoQuoteRequest[] = [
+  {
+    id: "request_demo_001",
+    tenantId: jhGomesTenant.id,
+    source: "website",
+    companyName: "Atlantic Events Demo",
+    contactName: "Marta Silva",
+    email: "marta.silva@example.invalid",
+    productId: "prod_pp_cup_330",
+    quantity: 12000,
+    message: "Need branded cups for a summer event."
+  }
+];
+
+export const demoEmailTemplates: DemoEmailTemplate[] = [
+  {
+    id: "email_quote_created_pt",
+    tenantId: jhGomesTenant.id,
+    eventType: "quote_created",
+    locale: "pt-PT",
+    subject: "O seu orcamento ForgeOS esta pronto",
+    body: "Ola {{contactName}}, preparámos o orcamento {{quoteId}} para {{companyName}}."
+  },
+  {
+    id: "email_quote_approved_pt",
+    tenantId: jhGomesTenant.id,
+    eventType: "quote_approved",
+    locale: "pt-PT",
+    subject: "Orcamento aprovado e enviado para producao",
+    body: "O orcamento {{quoteId}} foi aprovado e a ordem de producao sera criada."
+  },
+  {
+    id: "email_quote_created_en",
+    tenantId: jhGomesTenant.id,
+    eventType: "quote_created",
+    locale: "en",
+    subject: "Your ForgeOS quote is ready",
+    body: "Hi {{contactName}}, quote {{quoteId}} is ready for {{companyName}}."
+  }
+];
+
+export const demoWebhookEvents: DemoWebhookEvent[] = [
+  {
+    id: "webhook_demo_lead_created",
+    tenantId: jhGomesTenant.id,
+    eventType: "lead_created",
+    destination: "n8n",
+    status: "queued",
+    payload: {
+      leadId: "lead_atlantic_events",
+      companyName: "Atlantic Events Demo",
+      source: "website"
+    },
+    createdAt: "2026-06-15T08:25:05.000Z"
+  },
+  {
+    id: "webhook_demo_quote_created",
+    tenantId: jhGomesTenant.id,
+    eventType: "quote_created",
+    destination: "n8n",
+    status: "queued",
+    payload: {
+      quoteId: "quote_1008",
+      leadId: "lead_cafe_ribeira",
+      total: 448.95
+    },
+    createdAt: "2026-06-15T09:10:05.000Z"
+  },
+  {
+    id: "webhook_demo_quote_approved",
+    tenantId: jhGomesTenant.id,
+    eventType: "quote_approved",
+    destination: "n8n",
+    status: "queued",
+    payload: {
+      quoteId: "quote_1009",
+      productionOrderId: "po_240615_01"
+    },
+    createdAt: "2026-06-15T10:40:05.000Z"
   }
 ];

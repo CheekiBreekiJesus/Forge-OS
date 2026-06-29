@@ -124,3 +124,34 @@ export type DemoEvent = {
   title: string;
   createdAt: string;
 };
+
+export type DemoQuoteRequest = {
+  id: string;
+  tenantId: string;
+  source: "website" | "manual" | "email";
+  companyName: string;
+  contactName: string;
+  email: string;
+  productId: string;
+  quantity: number;
+  message: string;
+};
+
+export type DemoEmailTemplate = {
+  id: string;
+  tenantId: string;
+  eventType: DemoEventType;
+  locale: "pt-PT" | "en";
+  subject: string;
+  body: string;
+};
+
+export type DemoWebhookEvent = {
+  id: string;
+  tenantId: string;
+  eventType: DemoEventType;
+  destination: "n8n";
+  status: "queued" | "sent" | "failed";
+  payload: Record<string, string | number | boolean | null>;
+  createdAt: string;
+};

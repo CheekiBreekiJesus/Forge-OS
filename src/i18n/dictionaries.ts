@@ -58,6 +58,7 @@ export type Dictionary = {
       tone: "green" | "blue" | "amber" | "red";
     }>;
     demoCards: Record<DashboardCardKey, string>;
+    demoCardDetails: Record<DashboardCardKey, string>;
     demoSections: {
       todayJobs: string;
       inventoryAlerts: string;
@@ -65,6 +66,9 @@ export type Dictionary = {
       recentActivity: string;
       viewCatalog: string;
       noAlerts: string;
+      openJobCard: string;
+      minimumPrefix: string;
+      unitsPerBox: string;
     };
     production: {
       title: string;
@@ -204,6 +208,132 @@ export type Dictionary = {
     yes: string;
     no: string;
     days: string;
+  };
+  demoWorkflow: {
+    eyebrow: string;
+    title: string;
+    description: string;
+    startDemo: string;
+    currentStep: string;
+    reset: string;
+    sections: {
+      lead: string;
+      quote: string;
+      production: string;
+      jobCard: string;
+      inventory: string;
+      events: string;
+      automation: string;
+      copilot: string;
+    };
+    steps: string[];
+    fields: {
+      company: string;
+      contact: string;
+      product: string;
+      quantity: string;
+      printColors: string;
+      artwork: string;
+      subtotal: string;
+      vat: string;
+      total: string;
+      machine: string;
+      progress: string;
+      available: string;
+      reserved: string;
+      ink: string;
+      personalizationCost: string;
+      demoArtworkFile: string;
+      emptyValue: string;
+      unitSuffix: string;
+    };
+    actions: {
+      createLead: string;
+      convertLead: string;
+      createQuote: string;
+      uploadArtwork: string;
+      approveQuote: string;
+      createProduction: string;
+      assignMachine: string;
+      updateStatuses: string;
+      logProgress: string;
+      reserveInventory: string;
+    };
+    status: {
+      waiting: string;
+      done: string;
+      active: string;
+    };
+    jobCardLabels: {
+      orderId: string;
+      customer: string;
+      cupCapacity: string;
+      material: string;
+      artworkStatus: string;
+      screenStatus: string;
+      predictedInk: string;
+      loading: string;
+      loadingBay: string;
+      assignedMachine: string;
+      operatorNotes: string;
+      logoPreview: string;
+      label: string;
+      qrUrl: string;
+    };
+    automationLabels: {
+      quoteRequest: string;
+      emailTemplates: string;
+      webhookQueue: string;
+      destination: string;
+      payload: string;
+      status: string;
+    };
+    copilotLabels: {
+      suggestedPrompts: string;
+      answer: string;
+      actionRegistry: string;
+    };
+  };
+  login: {
+    eyebrow: string;
+    title: string;
+    description: string;
+    tenant: string;
+    user: string;
+    password: string;
+    submit: string;
+    note: string;
+  };
+  jobCard: {
+    backToProduction: string;
+    eyebrow: string;
+    title: string;
+    description: string;
+    status: string;
+    scheduledDate: string;
+    progress: string;
+    sections: {
+      production: string;
+      machine: string;
+      artwork: string;
+      packing: string;
+      notes: string;
+    };
+    fields: {
+      customer: string;
+      product: string;
+      quantity: string;
+      machine: string;
+      speed: string;
+      loadingBay: string;
+      artworkStatus: string;
+      screenStatus: string;
+      capacity: string;
+      material: string;
+      ink: string;
+      loading: string;
+      qrUrl: string;
+    };
   };
 };
 

@@ -16,6 +16,17 @@ pnpm-debug.log*
 __pycache__/
 *.py[cod]
 .codex-logs/
+.history/
+
+# Local Cursor QA artifacts (keep .qa/README.md trackable)
+.qa/screenshots/
+.qa/findings/
+.qa/tasks/
+
+# Generated agent maintenance reports (keep schema and .gitkeep trackable)
+qa/reports/*
+!qa/reports/.gitkeep
+!qa/reports/health-report.schema.json
 
 # Local customer data-preparation inputs/outputs
 scripts/data-preparation/local/

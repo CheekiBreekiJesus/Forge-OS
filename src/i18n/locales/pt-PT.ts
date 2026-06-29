@@ -89,13 +89,26 @@ export const dictionary: Dictionary = {
       todayJobs: "Trabalhos de hoje",
       recentActivity: "Atividade recente"
     },
+    demoCardDetails: {
+      leads: "novos",
+      quotes: "aprovados",
+      productionOrders: "bloqueadas",
+      pendingArtwork: "Aprovacao de logo/artwork",
+      pendingScreens: "Preparacao de quadros",
+      inventoryAlerts: "Abaixo do limite disponivel",
+      todayJobs: "Agendados para 2026-06-15",
+      recentActivity: "Eventos demo prontos para n8n"
+    },
     demoSections: {
       todayJobs: "Trabalhos JH Gomes de hoje",
       inventoryAlerts: "Alertas de inventario",
       productCatalog: "Catalogo de produtos JH Gomes",
       recentActivity: "Atividade recente",
       viewCatalog: "Abrir catalogo",
-      noAlerts: "Sem alertas de inventario"
+      noAlerts: "Sem alertas de inventario",
+      openJobCard: "Abrir cartao",
+      minimumPrefix: "min",
+      unitsPerBox: "unidades/caixa"
     },
     production: {
       title: "Producao - OEE",
@@ -519,5 +532,144 @@ export const dictionary: Dictionary = {
     yes: "Sim",
     no: "Nao",
     days: "dias"
+  },
+  demoWorkflow: {
+    eyebrow: "Fluxo demo JH Gomes",
+    title: "Demo de CRM ate producao",
+    description:
+      "Execute o fluxo principal localmente: lead, oportunidade, orcamento de copo personalizado, artwork, aprovacao, ordem de producao, cartao de trabalho, maquina, progresso e reserva de inventario.",
+    startDemo: "Executar demo completo",
+    currentStep: "Passo atual",
+    reset: "Reiniciar demo",
+    sections: {
+      lead: "Lead e oportunidade",
+      quote: "Orcamento de copo personalizado",
+      production: "Ordem de producao",
+      jobCard: "Cartao de trabalho da maquina",
+      inventory: "Reserva de inventario",
+      events: "Eventos de automacao",
+      automation: "Email e hooks n8n",
+      copilot: "Shell AI Copilot"
+    },
+    steps: [
+      "Criar lead",
+      "Converter em cliente/oportunidade",
+      "Criar orcamento",
+      "Carregar artwork",
+      "Aprovar orcamento",
+      "Criar ordem de producao",
+      "Atribuir maquina",
+      "Atualizar estado da arte e quadro",
+      "Registar progresso",
+      "Reservar inventario"
+    ],
+    fields: {
+      company: "Empresa",
+      contact: "Contacto",
+      product: "Produto",
+      quantity: "Quantidade",
+      printColors: "Cores de impressao",
+      artwork: "Artwork",
+      subtotal: "Subtotal",
+      vat: "IVA",
+      total: "Total",
+      machine: "Maquina",
+      progress: "Progresso",
+      available: "Disponivel",
+      reserved: "Reservado",
+      ink: "Tinta",
+      personalizationCost: "Personalizacao",
+      demoArtworkFile: "demo-logo.svg",
+      emptyValue: "-",
+      unitSuffix: "un"
+    },
+    actions: {
+      createLead: "Criar lead",
+      convertLead: "Converter lead",
+      createQuote: "Criar orcamento",
+      uploadArtwork: "Carregar artwork",
+      approveQuote: "Aprovar orcamento",
+      createProduction: "Criar producao",
+      assignMachine: "Atribuir maquina",
+      updateStatuses: "Atualizar estados",
+      logProgress: "Registar progresso",
+      reserveInventory: "Reservar inventario"
+    },
+    status: {
+      waiting: "Em espera",
+      done: "Concluido",
+      active: "Ativo"
+    },
+    jobCardLabels: {
+      orderId: "ID da ordem",
+      customer: "Cliente",
+      cupCapacity: "Capacidade do copo",
+      material: "Material",
+      artworkStatus: "Estado da arte",
+      screenStatus: "Estado do quadro",
+      predictedInk: "Tinta prevista",
+      loading: "Pilhas/carregamento",
+      loadingBay: "Capacidade de carga",
+      assignedMachine: "Maquina atribuida",
+      operatorNotes: "Notas do operador",
+      logoPreview: "Pre-visualizacao do logo",
+      label: "Etiqueta/autocolante",
+      qrUrl: "URL do trabalho para QR"
+    },
+    automationLabels: {
+      quoteRequest: "Modelo do formulario de pedido",
+      emailTemplates: "Templates de email",
+      webhookQueue: "Fila de webhooks n8n",
+      destination: "Destino",
+      payload: "Payload",
+      status: "Estado"
+    },
+    copilotLabels: {
+      suggestedPrompts: "Prompts sugeridos",
+      answer: "Resposta demo",
+      actionRegistry: "Registo placeholder de acoes"
+    }
+  },
+  login: {
+    eyebrow: "Acesso demo",
+    title: "Entrar no ForgeOS",
+    description: "Use o workspace demo da JH Gomes. Este e um ecra local de demonstracao e ainda nao ativa autenticacao real.",
+    tenant: "Empresa",
+    user: "Utilizador demo",
+    password: "Palavra-passe",
+    submit: "Entrar no painel",
+    note: "Supabase Auth deve substituir este placeholder no MVP persistente."
+  },
+  jobCard: {
+    backToProduction: "Voltar a producao",
+    eyebrow: "Cartao do operador",
+    title: "Cartao de trabalho de producao",
+    description:
+      "Instrucoes demo em modo leitura para a fabrica. Aprovacoes reais, qualidade e movimentos de stock ainda estao pendentes.",
+    status: "Estado",
+    scheduledDate: "Data planeada",
+    progress: "Progresso",
+    sections: {
+      production: "Contexto de producao",
+      machine: "Setup da maquina",
+      artwork: "Arte e impressao",
+      packing: "Embalamento",
+      notes: "Notas do operador"
+    },
+    fields: {
+      customer: "Cliente",
+      product: "Produto",
+      quantity: "Quantidade",
+      machine: "Maquina",
+      speed: "Velocidade/hora",
+      loadingBay: "Capacidade de carga",
+      artworkStatus: "Estado da arte",
+      screenStatus: "Estado do quadro",
+      capacity: "Capacidade",
+      material: "Material",
+      ink: "Tinta prevista",
+      loading: "Pilhas/caixas",
+      qrUrl: "URL QR"
+    }
   }
 };

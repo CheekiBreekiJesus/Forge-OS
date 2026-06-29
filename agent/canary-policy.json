@@ -1,0 +1,84 @@
+{
+  "version": "1.0.0",
+  "maintenanceMode": "canary-validation",
+  "readOnly": false,
+  "allowCodexLaunch": true,
+  "allowSourceChanges": false,
+  "allowCommit": false,
+  "allowPush": false,
+  "allowMerge": false,
+  "allowDeploy": false,
+  "maximumSignificantChangesPerRun": 1,
+  "reportPaths": {
+    "healthReport": "qa/reports/latest-health.json",
+    "codexTask": "qa/reports/next-codex-task.md",
+    "healthSchema": "qa/reports/health-report.schema.json",
+    "canaryResult": "qa/reports/codex-canary-result.json"
+  },
+  "allowedCommands": ["npm", "node", "npx", "git", "codex"],
+  "prohibitedActions": [
+    "commit",
+    "push",
+    "merge",
+    "deploy",
+    "install-dependencies",
+    "modify-configuration",
+    "access-customer-data",
+    "network-research"
+  ],
+  "sensitivePathPatterns": [
+    "\\\\Users\\\\[^\\\\]+\\\\",
+    "/home/[^/]+/",
+    "/Users/[^/]+/",
+    "AppData\\\\Local\\\\npm-cache"
+  ],
+  "secretRedactionPatterns": [
+    "sk-[A-Za-z0-9]{10,}",
+    "Bearer\\s+[A-Za-z0-9._-]+",
+    "Authorization:\\s*[^\\s]+",
+    "OPENAI_API_KEY=\\S+",
+    "API_KEY=\\S+",
+    "TOKEN=\\S+"
+  ],
+  "codexLaunchConditions": {
+    "requiresActionableCodeFailure": true,
+    "requiresPolicyAllowCodexLaunch": true,
+    "requiresReadOnlyDisabled": true,
+    "excludesMissingDependencies": true,
+    "excludesMissingEnvironment": true,
+    "maximumTasksPerRun": 1
+  },
+  "healthyStopConditions": {
+    "allRequiredChecksPass": false,
+    "noActionableFailure": false,
+    "noUnexpectedApplicationChanges": true,
+    "noPrivateDataDetected": true,
+    "codexNotLaunched": false,
+    "noFollowUpTaskRequired": false
+  },
+  "checks": [],
+  "timeouts": {
+    "defaultMs": 120000,
+    "buildMs": 120000,
+    "gitMs": 30000
+  },
+  "codex": {
+    "executable": "codex",
+    "versionArgs": ["--version"],
+    "launchArgs": ["exec", "--full-auto"],
+    "allowedPaths": ["qa/fixtures/agent-canary/**"],
+    "prohibitedPathPrefixes": [
+      "src/",
+      "supabase/",
+      "apps/",
+      "packages/",
+      "infrastructure/",
+      "agent/maintenance-policy.json",
+      "package.json",
+      "package-lock.json"
+    ],
+    "fixtureDirectory": "qa/fixtures/agent-canary",
+    "validationCommand": ["npx", "vitest", "run", "qa/fixtures/agent-canary"],
+    "timeoutMs": 120000
+  }
+}
