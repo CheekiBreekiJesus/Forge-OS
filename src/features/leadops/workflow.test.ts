@@ -8,8 +8,10 @@ import {
 import type { LeadOpsWorkflowState } from "./types";
 import {
   appendEvent,
+  buildSequencePreview,
   generatePtPtEmail,
   getCompanyContext,
+  markMessageEdited,
   queueApprovedMessage,
   recommendProductsForLead,
   simulateSend,
@@ -228,5 +230,59 @@ describe("LeadOps demo workflow", () => {
     expect(recommendProductsForLead(leadWithContext).map((item) => item.key)).toContain(
       "customized-plastic-cups"
     );
+  });
+
+  it("getCompanyContext uses correct Portuguese diacritics in notes and summary", () => {
+    const withContext = getCompanyContext(leadWithContext);
+    const withoutContext = getCompanyContext(leadWithoutContext);
+
+    expect(withContext.hasWebsiteContext).toBe(true);
+    expect(withContext.personalizationNotes[0]).toContain("registado");
+    expect(withContext.personalizationNotes[1]).toContain("Localização");
+
+    expect(withoutContext.hasWebsiteContext).toBe(false);
+    expect(withoutContext.personalizationNotes[0]).toContain("Não existe");
+    expect(withoutContext.personalizationNotes[0]).toContain("disponível");
+    expect(withoutContext.summary).toContain("localização");
+    expect(withoutContext.summary).toContain("histórico");
+  });
+
+  it("buildSequencePreview produces correct diacritics in follow-up steps", () => {
+    const steps = buildSequencePreview(null);
+
+    expect(steps).toHaveLength(3);
+    expect(steps[0]!.id).toBe("initial");
+    expect(steps[1]!.preview).toContain("opções");
+    expect(steps[2]!.preview).toContain("Última");
+    expect(steps[2]!.preview).toContain("pressão");
+  });
+
+  it("validateQueue error messages use correct Portuguese diacritics", () => {
+    const missingEmail = validateQueue(
+      buildState({
+        lead: { ...leadWithContext, email: "" },
+        message: { ...buildState().message!, approved: true }
+      })
+    );
+    expect(missingEmail.message).toContain("não tem email válido");
+
+    const unsubscribed = validateQueue(
+      buildState({
+        lead: { ...leadWithContext, consentStatus: "unsubscribed" },
+        message: { ...buildState().message!, approved: true }
+      })
+    );
+    expect(unsubscribed.message).toContain("subscrição");
+
+    const unapproved = validateQueue(buildState());
+    expect(unapproved.message).toContain("aprovação");
+  });
+
+  it("markMessageEdited clears approval and sets edited flag", () => {
+    const original = buildState().message!;
+    const edited = markMessageEdited({ ...original, approved: true });
+
+    expect(edited.edited).toBe(true);
+    expect(edited.approved).toBe(false);
   });
 });

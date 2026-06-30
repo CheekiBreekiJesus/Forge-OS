@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { AppFrame, panelClass } from "@/components/app-frame";
 import { clearLeadOpsFilters, hasActiveFilters } from "@/features/leadops/filters";
 import { calculateLeadOpsKpis, getCampaignProgress } from "@/features/leadops/kpis";
@@ -128,8 +128,8 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
                   </div>
                   <div className="mt-3 h-2 rounded-full bg-slate-800">
                     <div
-                      className="h-2 rounded-full bg-orange-400"
-                      style={{ width: `${progress}%` }}
+                      className="campaign-progress-fill h-2 rounded-full bg-orange-400"
+                      style={{ "--progress-width": `${progress}%` } as React.CSSProperties}
                     />
                   </div>
                   <div className="mt-2 text-xs text-slate-500">{progress}%</div>

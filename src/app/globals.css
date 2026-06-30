@@ -34,3 +34,7 @@ button,
 input {
   font: inherit;
 }
+
+.campaign-progress-fill {
+  width: var(--progress-width, 0%);
+}

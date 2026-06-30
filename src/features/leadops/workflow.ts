@@ -46,10 +46,10 @@ export function getCompanyContext(lead: LeadOpsLead): LeadOpsCompanyContext {
     return {
       hasWebsiteContext: false,
       personalizationNotes: [
-        "Nao existe website disponivel no lead demo; a mensagem evita alegar revisao do site."
+        "Não existe website disponível no lead demo; a mensagem evita alegar revisão do site."
       ],
       summary:
-        "Contexto limitado aos campos importados: setor, localizacao, origem e historico de campanha."
+        "Contexto limitado aos campos importados: setor, localização, origem e histórico de campanha."
     };
   }
 
@@ -151,14 +151,14 @@ export function buildSequencePreview(message: LeadOpsGeneratedMessage | null): L
       delay: "+3 dias",
       id: "follow-up-1",
       preview:
-        "Seguimento curto a confirmar se faz sentido enviar opcoes de produto e estimativa de quantidades.",
+        "Seguimento curto a confirmar se faz sentido enviar opções de produto e estimativa de quantidades.",
       title: "Follow-up 1"
     },
     {
       delay: "+7 dias",
       id: "follow-up-2",
       preview:
-        "Ultima nota de baixa pressao, oferecendo manter o contacto para futuras necessidades.",
+        "Última nota de baixa pressão, oferecendo manter o contacto para futuras necessidades.",
       title: "Follow-up 2"
     }
   ];
@@ -166,11 +166,11 @@ export function buildSequencePreview(message: LeadOpsGeneratedMessage | null): L
 
 export function validateQueue(state: LeadOpsWorkflowState): LeadOpsQueueValidation {
   if (!state.lead.email) {
-    return { message: "O lead nao tem email valido para fila.", ok: false, reason: "missing-email" };
+    return { message: "O lead não tem email válido para fila.", ok: false, reason: "missing-email" };
   }
 
   if (state.lead.consentStatus === "unsubscribed") {
-    return { message: "Lead removido/subscricao cancelada; envio bloqueado.", ok: false, reason: "unsubscribed" };
+    return { message: "Lead removido/subscrição cancelada; envio bloqueado.", ok: false, reason: "unsubscribed" };
   }
 
   if (state.lead.status === "bounced") {
@@ -182,7 +182,7 @@ export function validateQueue(state: LeadOpsWorkflowState): LeadOpsQueueValidati
   }
 
   if (!state.message.approved) {
-    return { message: "A mensagem precisa de aprovacao antes de entrar em fila.", ok: false, reason: "unapproved" };
+    return { message: "A mensagem precisa de aprovação antes de entrar em fila.", ok: false, reason: "unapproved" };
   }
 
   return { message: "Mensagem pronta para fila demo.", ok: true, reason: "ok" };
