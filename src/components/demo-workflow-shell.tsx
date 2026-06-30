@@ -1,332 +1,487 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCallback, useState } from "react";
+import {
+  approveDemoQuotation,
+  assignDemoMachine,
+  convertDemoLead,
+  createDemoLead,
+  createDemoProductionOrder,
+  createDemoQuotation,
+  logDemoProduction,
+  qualifyDemoLead,
+  reserveDemoInventory,
+  type DemoActionResult
+} from "@/application/demo-workflow-service";
 import { AppFrame, panelClass } from "@/components/app-frame";
 import {
-  getEmailTemplatesForLocale,
-  getN8nWebhookQueue,
-  getQuoteRequestFormModel
-} from "@/demo/automation";
-import {
-  answerCopilotPrompt,
-  copilotPrompts,
-  type CopilotActionKey
-} from "@/demo/copilot";
-import {
-  calculatePersonalizedCupQuote,
-  createDemoJobCard,
-  createDemoProductionOrder,
-  findCompatibleMachine,
-  reserveInventoryForProduction
-} from "@/demo/workflow";
-import {
-  demoEvents,
-  demoInventoryItems,
-  demoProducts,
-  jhGomesTenant
-} from "@/demo/seed";
-import type {
-  DemoEvent,
-  DemoInventoryItem,
-  DemoLead,
-  DemoProductionOrder
-} from "@/demo/types";
+  usePersistence,
+  usePersistenceError,
+  usePersistenceLoading
+} from "@/persistence/provider";
+import { demoProducts, demoInventoryItems } from "@/demo/seed";
+import { findCompatibleMachine, reserveInventoryForProduction } from "@/demo/workflow";
+import { getLocalizedLeadDetailHref } from "@/features/leadops/lookup";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
+import { getLocalizedModuleHref } from "@/modules/config";
 
 type DemoWorkflowShellProps = {
   dictionary: Dictionary;
   locale: Locale;
 };
 
-const maxStep = 10;
+type WorkflowContext = {
+  leadId: string | null;
+  customerId: string | null;
+  opportunityId: string | null;
+  quoteId: string | null;
+  productionOrderId: string | null;
+};
 
-export function DemoWorkflowShell({
-  dictionary,
-  locale
-}: DemoWorkflowShellProps) {
-  const cupProducts = demoProducts.filter(
-    (product) => product.category === "personalized-cups"
-  );
-  const [step, setStep] = useState(0);
-  const [selectedProductId, setSelectedProductId] = useState(cupProducts[1]?.id);
+const DEMO_STEPS = [
+  "createLead",
+  "qualifyLead",
+  "convertLead",
+  "openOutreach",
+  "createQuote",
+  "approveQuote",
+  "createProduction",
+  "openJobCard",
+  "assignMachine",
+  "reserveInventory",
+  "logProduction"
+] as const;
+
+type StepKey = (typeof DEMO_STEPS)[number];
+
+export function DemoWorkflowShell({ dictionary, locale }: DemoWorkflowShellProps) {
+  const copy = dictionary.demoWorkflow;
+  const persistenceLoading = usePersistenceLoading();
+  const persistenceError = usePersistenceError();
+  const { state, resetDemoData, reseedDemoData, notifyDataChanged } = usePersistence();
+
+  const router = useRouter();
+  const cupProducts = demoProducts.filter((p) => p.category === "personalized-cups");
+  const [stepIndex, setStepIndex] = useState(0);
+  const [selectedProductId, setSelectedProductId] = useState(cupProducts[1]?.id ?? cupProducts[0]?.id);
   const [quantity, setQuantity] = useState(12000);
-  const [printColorCount, setPrintColorCount] = useState(2);
-  const [inventory, setInventory] = useState<DemoInventoryItem[]>(demoInventoryItems);
-  const [copilotAction, setCopilotAction] =
-    useState<CopilotActionKey>("summarize-dashboard");
+  const [companyName, setCompanyName] = useState("Demo Hospitality Client");
+  const [contactName, setContactName] = useState("Ana Martins");
+  const [email, setEmail] = useState(() => `demo.${Date.now()}@example.invalid`);
+  const [inventory, setInventory] = useState(demoInventoryItems);
+  const [ctx, setCtx] = useState<WorkflowContext>({
+    leadId: null,
+    customerId: null,
+    opportunityId: null,
+    quoteId: null,
+    productionOrderId: null
+  });
+  const [lastResult, setLastResult] = useState<DemoActionResult | null>(null);
+  const [running, setRunning] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
-  const product =
-    demoProducts.find((item) => item.id === selectedProductId) ?? cupProducts[0];
-  const lead: DemoLead = {
-    id: "lead_demo_live",
-    tenantId: jhGomesTenant.id,
-    companyName: "Demo Hospitality Client",
-    contactName: "Ana Martins",
-    status: step >= 2 ? "converted" : step >= 1 ? "qualified" : "new",
-    requestedProductId: product.id,
-    quantity,
-    notes: "Live demo lead for personalized event cups."
-  };
-  const quote = calculatePersonalizedCupQuote({
-    printColorCount,
-    product,
-    quantity
-  });
-  const productionOrder: DemoProductionOrder = createDemoProductionOrder({
-    customerName: lead.companyName,
-    product,
-    quantity,
-    quoteId: "quote_demo_live"
-  });
+  const product = demoProducts.find((p) => p.id === selectedProductId) ?? cupProducts[0];
   const machine = findCompatibleMachine(product);
-  const jobCard = createDemoJobCard({
-    locale,
-    order: {
-      ...productionOrder,
-      artworkStatus: step >= 8 ? "approved" : "pending",
-      machineId: machine.id,
-      progress: step >= 9 ? 35 : 0,
-      screenStatus: step >= 8 ? "ready" : "pending",
-      status: step >= 9 ? "in-progress" : "scheduled"
+  const currentStep = DEMO_STEPS[Math.min(stepIndex, DEMO_STEPS.length - 1)];
+
+  const runAction = useCallback(
+    async (action: () => Promise<DemoActionResult>) => {
+      if (state.status !== "ready" || running) return;
+      setRunning(true);
+      setLastResult(null);
+      try {
+        const result = await action();
+        setLastResult(result);
+        if (result.ok) {
+          notifyDataChanged();
+          setStepIndex((i) => Math.min(i + 1, DEMO_STEPS.length));
+        }
+      } finally {
+        setRunning(false);
+      }
     },
-    product
-  });
-  const events: DemoEvent[] = [
-    ...demoEvents,
-    ...(step >= 1
-      ? [
-          {
-            id: "event_demo_lead_created",
-            tenantId: jhGomesTenant.id,
-            type: "lead_created" as const,
-            title: "Demo lead created",
-            createdAt: "2026-06-15T11:00:00.000Z"
-          }
-        ]
-      : []),
-    ...(step >= 3
-      ? [
-          {
-            id: "event_demo_quote_created",
-            tenantId: jhGomesTenant.id,
-            type: "quote_created" as const,
-            title: "Demo quote created",
-            createdAt: "2026-06-15T11:05:00.000Z"
-          }
-        ]
-      : []),
-    ...(step >= 5
-      ? [
-          {
-            id: "event_demo_quote_approved",
-            tenantId: jhGomesTenant.id,
-            type: "quote_approved" as const,
-            title: "Demo quote approved",
-            createdAt: "2026-06-15T11:12:00.000Z"
-          }
-        ]
-      : [])
-  ];
-  const quoteRequest = getQuoteRequestFormModel();
-  const emailTemplates = getEmailTemplatesForLocale(locale);
-  const webhookQueue = getN8nWebhookQueue();
-  const copilotAnswer = answerCopilotPrompt(copilotAction);
+    [state, running, notifyDataChanged]
+  );
 
-  function advance() {
-    setStep((current) => {
-      const next = Math.min(current + 1, maxStep);
+  async function handleStepAction() {
+    if (state.status !== "ready") return;
+    const repos = state.repos;
+    const tenantId = state.tenantId;
 
-      if (next === 10) {
-        setInventory((currentInventory) =>
-          reserveInventoryForProduction({
-            inventory: currentInventory,
-            product,
-            quantity
+    switch (currentStep) {
+      case "createLead":
+        await runAction(() =>
+          createDemoLead(repos, tenantId, {
+            companyName,
+            contactName,
+            email,
+            productId: product.id,
+            quantity,
+            notes: copy.fields.demoNotesDefault
+          }).then((r) => {
+            if (r.ok) setCtx((c) => ({ ...c, leadId: String(r.data.leadId) }));
+            return r;
           })
         );
-      }
-
-      return next;
-    });
+        break;
+      case "qualifyLead":
+        if (!ctx.leadId) return;
+        await runAction(() => qualifyDemoLead(repos, tenantId, ctx.leadId!));
+        break;
+      case "convertLead":
+        if (!ctx.leadId) return;
+        await runAction(() =>
+          convertDemoLead(repos, tenantId, ctx.leadId!).then((r) => {
+            if (r.ok) {
+              setCtx((c) => ({
+                ...c,
+                customerId: String(r.data.customerId),
+                opportunityId: String(r.data.opportunityId)
+              }));
+            }
+            return r;
+          })
+        );
+        break;
+      case "openOutreach":
+        if (ctx.leadId) {
+          router.push(getLocalizedLeadDetailHref(locale, ctx.leadId));
+        }
+        break;
+      case "createQuote":
+        if (!ctx.leadId) return;
+        await runAction(() =>
+          createDemoQuotation(repos, tenantId, {
+            leadId: ctx.leadId!,
+            customerId: ctx.customerId,
+            opportunityId: ctx.opportunityId,
+            productId: product.id,
+            quantity,
+            printColorCount: 2
+          }).then((r) => {
+            if (r.ok) setCtx((c) => ({ ...c, quoteId: String(r.data.quoteId) }));
+            return r;
+          })
+        );
+        break;
+      case "approveQuote":
+        if (!ctx.quoteId) return;
+        await runAction(() => approveDemoQuotation(repos, tenantId, ctx.quoteId!));
+        break;
+      case "createProduction":
+        if (!ctx.quoteId) return;
+        await runAction(() =>
+          createDemoProductionOrder(repos, tenantId, ctx.quoteId!).then((r) => {
+            if (r.ok) {
+              setCtx((c) => ({
+                ...c,
+                productionOrderId: String(r.data.productionOrderId)
+              }));
+            }
+            return r;
+          })
+        );
+        break;
+      case "openJobCard":
+        if (ctx.productionOrderId) {
+          router.push(`/${locale}/jobs/${ctx.productionOrderId}`);
+        }
+        break;
+      case "assignMachine":
+        if (!ctx.productionOrderId) return;
+        await runAction(() =>
+          assignDemoMachine(
+            repos,
+            tenantId,
+            ctx.productionOrderId!,
+            machine.id,
+            machine.name
+          )
+        );
+        break;
+      case "reserveInventory":
+        if (!ctx.productionOrderId) return;
+        await runAction(() =>
+          reserveDemoInventory(repos, tenantId, ctx.productionOrderId!).then((r) => {
+            if (r.ok) {
+              setInventory((inv) =>
+                reserveInventoryForProduction({ inventory: inv, product, quantity })
+              );
+            }
+            return r;
+          })
+        );
+        break;
+      case "logProduction":
+        if (!ctx.productionOrderId) return;
+        await runAction(() =>
+          logDemoProduction(repos, tenantId, ctx.productionOrderId!, 35)
+        );
+        break;
+    }
   }
 
-  function runFullDemo() {
-    setStep(maxStep);
-    setInventory(
-      reserveInventoryForProduction({
-        inventory: demoInventoryItems,
-        product,
-        quantity
-      })
+  function getStepLabel(key: StepKey): string {
+    const labels: Record<StepKey, string> = {
+      createLead: copy.actions.createLead,
+      qualifyLead: copy.actions.qualifyLead,
+      convertLead: copy.actions.convertLead,
+      openOutreach: copy.actions.openOutreach,
+      createQuote: copy.actions.createQuote,
+      approveQuote: copy.actions.approveQuote,
+      createProduction: copy.actions.createProduction,
+      openJobCard: copy.actions.openJobCard,
+      assignMachine: copy.actions.assignMachine,
+      reserveInventory: copy.actions.reserveInventory,
+      logProduction: copy.actions.logProduction
+    };
+    return labels[key];
+  }
+
+  if (persistenceLoading || state.status === "loading") {
+    return (
+      <AppFrame activeModule="customers" dictionary={dictionary} locale={locale}>
+        <div className={`${panelClass} p-8 text-center text-slate-400`}>
+          {copy.persistence.loading}
+        </div>
+      </AppFrame>
     );
   }
 
-  function resetDemo() {
-    setStep(0);
-    setInventory(demoInventoryItems);
+  if (persistenceError) {
+    return (
+      <AppFrame activeModule="customers" dictionary={dictionary} locale={locale}>
+        <div className={`${panelClass} border-red-400/30 p-8 text-center text-red-200`}>
+          {copy.persistence.unavailable}: {persistenceError}
+        </div>
+      </AppFrame>
+    );
   }
 
   return (
     <AppFrame activeModule="customers" dictionary={dictionary} locale={locale}>
       <section className="mb-5">
         <p className="text-sm font-semibold uppercase tracking-wide text-orange-300">
-          {dictionary.demoWorkflow.eyebrow}
+          {copy.eyebrow}
         </p>
         <div className="mt-2 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              {dictionary.demoWorkflow.title}
-            </h1>
-            <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-400">
-              {dictionary.demoWorkflow.description}
-            </p>
+            <h1 className="text-3xl font-bold tracking-tight">{copy.title}</h1>
+            <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-400">{copy.description}</p>
           </div>
           <div className="flex flex-wrap gap-3">
             <button
-              className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-bold text-white"
-              onClick={runFullDemo}
-              type="button"
-            >
-              {dictionary.demoWorkflow.startDemo}
-            </button>
-            <button
               className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-bold text-slate-200"
-              onClick={resetDemo}
+              onClick={() => setShowResetConfirm(true)}
               type="button"
             >
-              {dictionary.demoWorkflow.reset}
+              {copy.resetData}
             </button>
           </div>
         </div>
       </section>
 
+      {showResetConfirm ? (
+        <div className={`${panelClass} mb-4 border-amber-400/30 p-5`}>
+          <p className="text-sm text-amber-200">{copy.resetConfirm}</p>
+          <div className="mt-4 flex gap-3">
+            <button
+              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white"
+              onClick={() => {
+                void resetDemoData().then(() => {
+                  void reseedDemoData();
+                  setCtx({
+                    leadId: null,
+                    customerId: null,
+                    opportunityId: null,
+                    quoteId: null,
+                    productionOrderId: null
+                  });
+                  setStepIndex(0);
+                  setShowResetConfirm(false);
+                });
+              }}
+              type="button"
+            >
+              {copy.resetData}
+            </button>
+            <button
+              className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300"
+              onClick={() => setShowResetConfirm(false)}
+              type="button"
+            >
+              {copy.cancel}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <section className={`${panelClass} p-5`}>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h2 className="text-lg font-bold">{dictionary.demoWorkflow.currentStep}</h2>
-            <p className="mt-1 text-sm text-slate-400">
-              {dictionary.demoWorkflow.steps[Math.min(step, maxStep - 1)]}
-            </p>
+            <h2 className="text-lg font-bold">{copy.currentStep}</h2>
+            <p className="mt-1 text-sm text-slate-400">{getStepLabel(currentStep)}</p>
           </div>
           <button
             className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={step >= maxStep}
-            onClick={advance}
+            disabled={running || stepIndex >= DEMO_STEPS.length}
+            onClick={() => void handleStepAction()}
             type="button"
           >
-            {dictionary.demoWorkflow.steps[Math.min(step, maxStep - 1)]}
+            {running ? copy.actionRunning : getStepLabel(currentStep)}
           </button>
         </div>
-        <div className="mt-5 grid gap-2 md:grid-cols-5">
-          {dictionary.demoWorkflow.steps.map((label, index) => (
+        <div className="mt-5 grid gap-2 md:grid-cols-4 lg:grid-cols-6">
+          {DEMO_STEPS.map((key, index) => (
             <div
               className={
-                index < step
+                index < stepIndex
                   ? "rounded-md border border-emerald-400/20 bg-emerald-500/10 p-3 text-xs text-emerald-200"
-                  : index === step
+                  : index === stepIndex
                     ? "rounded-md border border-blue-400/20 bg-blue-500/10 p-3 text-xs text-blue-200"
                     : "rounded-md border border-slate-800 bg-slate-950/40 p-3 text-xs text-slate-400"
               }
-              key={label}
+              key={key}
             >
               <div className="font-bold">{index + 1}</div>
-              <div className="mt-1">{label}</div>
+              <div className="mt-1">{getStepLabel(key)}</div>
             </div>
           ))}
         </div>
       </section>
 
+      {lastResult ? (
+        <section className={`${panelClass} mt-4 p-5`}>
+          <h2 className="text-lg font-bold">
+            {lastResult.ok ? copy.resultSuccess : copy.resultError}
+          </h2>
+          {lastResult.ok ? (
+            <div className="mt-4 grid gap-2 text-sm text-slate-300 md:grid-cols-2">
+              {Object.entries(lastResult.data).map(([key, value]) => (
+                <div key={key}>
+                  <span className="text-slate-500">{key}: </span>
+                  <span className="font-semibold">{String(value)}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-2 text-sm text-red-300">{lastResult.message}</p>
+          )}
+          {lastResult.ok && ctx.leadId ? (
+            <Link
+              className="mt-4 inline-block rounded-lg bg-orange-500 px-4 py-2 text-sm font-bold text-white"
+              href={getLocalizedLeadDetailHref(locale, ctx.leadId)}
+            >
+              {copy.openInLeadops}
+            </Link>
+          ) : null}
+          {lastResult.ok && ctx.customerId ? (
+            <Link
+              className="mt-4 ml-3 inline-block rounded-lg border border-slate-600 px-4 py-2 text-sm font-bold text-slate-200"
+              href={getLocalizedModuleHref(locale, "customers")}
+            >
+              {copy.openCustomer}
+            </Link>
+          ) : null}
+          {lastResult.ok && ctx.quoteId ? (
+            <Link
+              className="mt-4 ml-3 inline-block rounded-lg border border-slate-600 px-4 py-2 text-sm font-bold text-slate-200"
+              href={`/${locale}/quotations`}
+            >
+              {copy.openQuotation}
+            </Link>
+          ) : null}
+          {lastResult.ok && ctx.productionOrderId ? (
+            <Link
+              className="mt-4 ml-3 inline-block rounded-lg border border-slate-600 px-4 py-2 text-sm font-bold text-slate-200"
+              href={getLocalizedModuleHref(locale, "production")}
+            >
+              {copy.openProduction}
+            </Link>
+          ) : null}
+        </section>
+      ) : null}
+
       <section className="mt-4 grid gap-4 xl:grid-cols-[0.8fr_1fr]">
         <article className={`${panelClass} p-5`}>
-          <h2 className="text-lg font-bold">{dictionary.demoWorkflow.sections.lead}</h2>
+          <h2 className="text-lg font-bold">{copy.sections.lead}</h2>
           <div className="mt-4 grid gap-4">
-            <Field label={dictionary.demoWorkflow.fields.company} value={lead.companyName} />
-            <Field label={dictionary.demoWorkflow.fields.contact} value={lead.contactName} />
             <label className="grid gap-2 text-sm">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                {dictionary.demoWorkflow.fields.product}
+              <span className="text-xs font-semibold uppercase text-slate-500">
+                {copy.fields.company}
+              </span>
+              <input
+                className="rounded-md border border-slate-700 bg-slate-950 px-3 py-2"
+                onChange={(e) => setCompanyName(e.target.value)}
+                value={companyName}
+              />
+            </label>
+            <label className="grid gap-2 text-sm">
+              <span className="text-xs font-semibold uppercase text-slate-500">
+                {copy.fields.contact}
+              </span>
+              <input
+                className="rounded-md border border-slate-700 bg-slate-950 px-3 py-2"
+                onChange={(e) => setContactName(e.target.value)}
+                value={contactName}
+              />
+            </label>
+            <label className="grid gap-2 text-sm">
+              <span className="text-xs font-semibold uppercase text-slate-500">Email</span>
+              <input
+                className="rounded-md border border-slate-700 bg-slate-950 px-3 py-2"
+                onChange={(e) => setEmail(e.target.value)}
+                type="email"
+                value={email}
+              />
+            </label>
+            <label className="grid gap-2 text-sm">
+              <span className="text-xs font-semibold uppercase text-slate-500">
+                {copy.fields.product}
               </span>
               <select
-                className="rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100"
-                onChange={(event) => setSelectedProductId(event.target.value)}
+                className="rounded-md border border-slate-700 bg-slate-950 px-3 py-2"
+                onChange={(e) => setSelectedProductId(e.target.value)}
                 value={selectedProductId}
               >
-                {cupProducts.map((cupProduct) => (
-                  <option key={cupProduct.id} value={cupProduct.id}>
-                    {cupProduct.name}
+                {cupProducts.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
                   </option>
                 ))}
               </select>
             </label>
             <label className="grid gap-2 text-sm">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                {dictionary.demoWorkflow.fields.quantity}
+              <span className="text-xs font-semibold uppercase text-slate-500">
+                {copy.fields.quantity}
               </span>
               <input
-                className="rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100"
+                className="rounded-md border border-slate-700 bg-slate-950 px-3 py-2"
                 min={500}
-                onChange={(event) => setQuantity(Number(event.target.value))}
+                onChange={(e) => setQuantity(Number(e.target.value))}
                 type="number"
                 value={quantity}
               />
             </label>
-            <label className="grid gap-2 text-sm">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                {dictionary.demoWorkflow.fields.printColors}
-              </span>
-              <input
-                className="rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100"
-                min={1}
-                max={4}
-                onChange={(event) => setPrintColorCount(Number(event.target.value))}
-                type="number"
-                value={printColorCount}
-              />
-            </label>
           </div>
         </article>
 
         <article className={`${panelClass} p-5`}>
-          <h2 className="text-lg font-bold">{dictionary.demoWorkflow.sections.quote}</h2>
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <Field label={dictionary.productCatalog.fields.basePrice} value={formatCurrency(product.basePrice, locale)} />
-            <Field label={dictionary.productCatalog.fields.setupCost} value={formatCurrency(quote.setupCost, locale)} />
-            <Field label={dictionary.productCatalog.fields.screenCost} value={formatCurrency(quote.screenCost, locale)} />
-            <Field label="Ink" value={formatCurrency(quote.inkCost, locale)} />
-            <Field label="Personalization" value={formatCurrency(quote.personalizationCost, locale)} />
-            <Field label={dictionary.demoWorkflow.fields.artwork} value={step >= 4 ? "demo-logo.svg" : "-"} />
-            <Field label={dictionary.demoWorkflow.fields.subtotal} value={formatCurrency(quote.subtotal, locale)} />
-            <Field label={dictionary.demoWorkflow.fields.vat} value={formatCurrency(quote.vat, locale)} />
-            <Field label={dictionary.demoWorkflow.fields.total} value={formatCurrency(quote.total, locale)} />
-          </div>
-        </article>
-      </section>
-
-      <section className="mt-4 grid gap-4 xl:grid-cols-[1fr_1fr]">
-        <article className={`${panelClass} p-5`}>
-          <h2 className="text-lg font-bold">{dictionary.demoWorkflow.sections.production}</h2>
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <Field label={dictionary.demoWorkflow.fields.machine} value={machine.name} />
-            <Field label={dictionary.demoWorkflow.fields.progress} value={step >= 9 ? "35%" : "0%"} />
-            <Field label={dictionary.productCatalog.fields.capacity} value={product.capacity} />
-            <Field label={dictionary.productCatalog.fields.material} value={product.material} />
-          </div>
-        </article>
-
-        <article className={`${panelClass} p-5`}>
-          <h2 className="text-lg font-bold">{dictionary.demoWorkflow.sections.inventory}</h2>
+          <h2 className="text-lg font-bold">{copy.sections.inventory}</h2>
           <div className="mt-4 space-y-3">
             {inventory.map((item) => (
               <div className="rounded-lg border border-slate-800 bg-slate-950/40 p-3" key={item.id}>
                 <div className="font-semibold">{item.name}</div>
                 <div className="mt-2 grid gap-2 text-sm text-slate-400 sm:grid-cols-2">
                   <span>
-                    {dictionary.demoWorkflow.fields.available}:{" "}
-                    {item.quantityOnHand - item.reservedQuantity} {item.unit}
+                    {copy.fields.available}: {item.quantityOnHand - item.reservedQuantity}{" "}
+                    {item.unit}
                   </span>
                   <span>
-                    {dictionary.demoWorkflow.fields.reserved}: {item.reservedQuantity} {item.unit}
+                    {copy.fields.reserved}: {item.reservedQuantity} {item.unit}
                   </span>
                 </div>
               </div>
@@ -334,157 +489,6 @@ export function DemoWorkflowShell({
           </div>
         </article>
       </section>
-
-      <section className="mt-4 grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-        <article className={`${panelClass} p-5`}>
-          <h2 className="text-lg font-bold">{dictionary.demoWorkflow.sections.jobCard}</h2>
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <Field label={dictionary.demoWorkflow.jobCardLabels.orderId} value={jobCard.orderId} />
-            <Field label={dictionary.demoWorkflow.jobCardLabels.customer} value={jobCard.customer} />
-            <Field label={dictionary.demoWorkflow.jobCardLabels.cupCapacity} value={jobCard.cupCapacity} />
-            <Field label={dictionary.demoWorkflow.jobCardLabels.material} value={jobCard.material} />
-            <Field label={dictionary.demoWorkflow.jobCardLabels.artworkStatus} value={jobCard.artworkStatus} />
-            <Field label={dictionary.demoWorkflow.jobCardLabels.screenStatus} value={jobCard.screenStatus} />
-            <Field label={dictionary.demoWorkflow.jobCardLabels.predictedInk} value={`${jobCard.predictedInkKg} kg`} />
-            <Field label={dictionary.demoWorkflow.jobCardLabels.loading} value={jobCard.stackLoadingInfo} />
-            <Field label={dictionary.demoWorkflow.jobCardLabels.loadingBay} value={`${jobCard.loadingBayCapacity} un`} />
-            <Field label={dictionary.demoWorkflow.jobCardLabels.assignedMachine} value={jobCard.assignedMachine} />
-            <Field label={dictionary.demoWorkflow.jobCardLabels.logoPreview} value={jobCard.logoPreviewLabel} />
-            <Field label={dictionary.demoWorkflow.jobCardLabels.label} value={jobCard.packageLabelPlaceholder} />
-            <Field label={dictionary.demoWorkflow.jobCardLabels.qrUrl} value={jobCard.qrReadyJobUrl} />
-            <Field label={dictionary.demoWorkflow.jobCardLabels.operatorNotes} value={jobCard.operatorNotes} />
-          </div>
-        </article>
-
-        <article className={`${panelClass} p-5`}>
-          <h2 className="text-lg font-bold">{dictionary.demoWorkflow.sections.events}</h2>
-          <div className="mt-4 space-y-3">
-            {events.map((event) => (
-              <div className="rounded-lg border border-slate-800 bg-slate-950/40 p-3" key={event.id}>
-                <div className="font-semibold">{event.title}</div>
-                <div className="mt-1 text-xs text-slate-500">{event.type}</div>
-              </div>
-            ))}
-          </div>
-        </article>
-      </section>
-
-      <section className="mt-4 grid gap-4 xl:grid-cols-[1fr_1fr]">
-        <article className={`${panelClass} p-5`}>
-          <h2 className="text-lg font-bold">{dictionary.demoWorkflow.sections.automation}</h2>
-          <div className="mt-4 grid gap-4">
-            <div className="rounded-lg border border-slate-800 bg-slate-950/40 p-3">
-              <div className="text-sm font-bold">
-                {dictionary.demoWorkflow.automationLabels.quoteRequest}
-              </div>
-              <div className="mt-2 grid gap-2 text-sm text-slate-400 md:grid-cols-2">
-                <span>{quoteRequest.companyName}</span>
-                <span>{quoteRequest.email}</span>
-                <span>{quoteRequest.quantity.toLocaleString("en-US")} un</span>
-                <span>{quoteRequest.source}</span>
-              </div>
-            </div>
-
-            <div className="rounded-lg border border-slate-800 bg-slate-950/40 p-3">
-              <div className="text-sm font-bold">
-                {dictionary.demoWorkflow.automationLabels.emailTemplates}
-              </div>
-              <div className="mt-2 space-y-2">
-                {emailTemplates.map((template) => (
-                  <div className="text-sm text-slate-400" key={template.id}>
-                    <span className="font-semibold text-slate-200">{template.eventType}</span>{" "}
-                    {template.subject}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-lg border border-slate-800 bg-slate-950/40 p-3">
-              <div className="text-sm font-bold">
-                {dictionary.demoWorkflow.automationLabels.webhookQueue}
-              </div>
-              <div className="mt-2 space-y-2">
-                {webhookQueue.map((webhook) => (
-                  <div className="rounded border border-slate-800 p-2 text-xs text-slate-400" key={webhook.id}>
-                    <div className="font-semibold text-slate-200">{webhook.eventType}</div>
-                    <div>
-                      {dictionary.demoWorkflow.automationLabels.destination}: {webhook.destination}
-                    </div>
-                    <div>
-                      {dictionary.demoWorkflow.automationLabels.status}: {webhook.status}
-                    </div>
-                    <div className="break-all">
-                      {dictionary.demoWorkflow.automationLabels.payload}:{" "}
-                      {JSON.stringify(webhook.payload)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </article>
-
-        <article className={`${panelClass} p-5`}>
-          <h2 className="text-lg font-bold">{dictionary.demoWorkflow.sections.copilot}</h2>
-          <div className="mt-4">
-            <div className="text-sm font-semibold text-slate-300">
-              {dictionary.demoWorkflow.copilotLabels.suggestedPrompts}
-            </div>
-            <div className="mt-3 grid gap-2">
-              {copilotPrompts.map((prompt) => (
-                <button
-                  className={
-                    prompt.key === copilotAction
-                      ? "rounded-lg border border-blue-400/30 bg-blue-500/10 p-3 text-left text-sm text-blue-100"
-                      : "rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-left text-sm text-slate-300"
-                  }
-                  key={prompt.key}
-                  onClick={() => setCopilotAction(prompt.key)}
-                  type="button"
-                >
-                  {prompt.prompt}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="mt-5 rounded-lg border border-slate-800 bg-slate-950/40 p-4">
-            <div className="text-sm font-semibold text-slate-300">
-              {dictionary.demoWorkflow.copilotLabels.answer}
-            </div>
-            <p className="mt-2 text-sm leading-6 text-slate-400">{copilotAnswer}</p>
-          </div>
-          <div className="mt-5 rounded-lg border border-slate-800 bg-slate-950/40 p-4">
-            <div className="text-sm font-semibold text-slate-300">
-              {dictionary.demoWorkflow.copilotLabels.actionRegistry}
-            </div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {copilotPrompts.map((prompt) => (
-                <span className="rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-300" key={prompt.key}>
-                  {prompt.key}
-                </span>
-              ))}
-            </div>
-          </div>
-        </article>
-      </section>
     </AppFrame>
   );
-}
-
-function Field({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-        {label}
-      </dt>
-      <dd className="mt-1 text-sm text-slate-200">{value}</dd>
-    </div>
-  );
-}
-
-function formatCurrency(value: number, locale: Locale) {
-  return new Intl.NumberFormat(locale, {
-    currency: "EUR",
-    style: "currency"
-  }).format(value);
 }

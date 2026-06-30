@@ -26,6 +26,8 @@ import type {
 } from "@/features/leadops/types";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
+import { usePersistence } from "@/persistence/provider";
+import type { OutreachMessage } from "@/domain/types";
 
 type LeadOpsDetailWorkspaceProps = {
   campaigns: LeadOpsCampaign[];
@@ -40,8 +42,8 @@ export function LeadOpsDetailWorkspace({
   lead,
   locale
 }: LeadOpsDetailWorkspaceProps) {
-  const storageKey = `forgeos:outreach:${lead.tenantId}:${lead.id}`;
-  const savedWorkflow = useMemo(() => readSavedWorkflow(storageKey), [storageKey]);
+  const { state } = usePersistence();
+  const [workflowLoaded, setWorkflowLoaded] = useState(false);
   const context = useMemo(() => getCompanyContext(lead), [lead]);
   const recommendations = useMemo(() => recommendProductsForLead(lead), [lead]);
   const [tone, setTone] = useState<LeadOpsTone>("professional");
@@ -49,32 +51,28 @@ export function LeadOpsDetailWorkspace({
     recommendations.slice(0, 2).map((item) => item.key)
   );
   const [selectedCampaignId, setSelectedCampaignId] = useState(
-    savedWorkflow?.campaign?.id ??
-      lead.campaignId ??
-      campaigns.find((campaign) => campaign.status === "active")?.id ??
-      campaigns[0]?.id
+    lead.campaignId ?? campaigns.find((campaign) => campaign.status === "active")?.id ?? campaigns[0]?.id
   );
   const selectedCampaign =
     campaigns.find((campaign) => campaign.id === selectedCampaignId) ?? campaigns[0] ?? null;
-  const [message, setMessage] = useState<LeadOpsGeneratedMessage | null>(
-    savedWorkflow?.message ?? null
-  );
-  const [leadState, setLeadState] = useState<LeadOpsLead>(savedWorkflow?.lead ?? lead);
-  const [campaignState, setCampaignState] = useState<LeadOpsCampaign | null>(
-    savedWorkflow?.campaign ?? selectedCampaign
-  );
-  const [providerState, setProviderState] = useState(
-    savedWorkflow?.providerState ?? lead.providerState ?? "not_ready"
-  );
-  const [queuedAt, setQueuedAt] = useState<string | null>(savedWorkflow?.queuedAt ?? null);
-  const [sentAt, setSentAt] = useState<string | null>(savedWorkflow?.sentAt ?? null);
-  const [metricsUpdated, setMetricsUpdated] = useState(Boolean(savedWorkflow?.metricsUpdated));
-  const [feedback, setFeedback] = useState<{ kind: "success" | "error"; message: string } | null>(
-    savedWorkflow
-      ? { kind: "success", message: dictionary.leadops.detailWorkspace.savedDraftLoaded }
-      : null
-  );
-  const [activities, setActivities] = useState<LeadOpsActivity[]>(savedWorkflow?.activities ?? []);
+  const [message, setMessage] = useState<LeadOpsGeneratedMessage | null>(null);
+  const [leadState, setLeadState] = useState<LeadOpsLead>(lead);
+  const [campaignState, setCampaignState] = useState<LeadOpsCampaign | null>(null);
+  const defaultCampaign = useMemo(() => {
+    if (campaigns.length === 0) return null;
+    const defaultId =
+      lead.campaignId ??
+      campaigns.find((c) => c.status === "active")?.id ??
+      campaigns[0]?.id;
+    return campaigns.find((c) => c.id === defaultId) ?? campaigns[0] ?? null;
+  }, [campaigns, lead.campaignId]);
+  const effectiveCampaign = campaignState ?? defaultCampaign;
+  const [providerState, setProviderState] = useState(lead.providerState ?? "not_ready");
+  const [queuedAt, setQueuedAt] = useState<string | null>(null);
+  const [sentAt, setSentAt] = useState<string | null>(null);
+  const [metricsUpdated, setMetricsUpdated] = useState(false);
+  const [feedback, setFeedback] = useState<{ kind: "success" | "error"; message: string } | null>(null);
+  const [activities, setActivities] = useState<LeadOpsActivity[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [providerModel, setProviderModel] = useState<string | null>(null);
@@ -83,7 +81,7 @@ export function LeadOpsDetailWorkspace({
   const workflowState = useMemo<LeadOpsWorkflowState>(
     () => ({
       activities,
-      campaign: campaignState,
+      campaign: effectiveCampaign,
       lead: leadState,
       message,
       metricsUpdated,
@@ -91,13 +89,67 @@ export function LeadOpsDetailWorkspace({
       queuedAt,
       sentAt
     }),
-    [activities, campaignState, leadState, message, metricsUpdated, providerState, queuedAt, sentAt]
+    [activities, effectiveCampaign, leadState, message, metricsUpdated, providerState, queuedAt, sentAt]
   );
   const queueValidation = validateQueue(workflowState);
 
   useEffect(() => {
-    window.localStorage.setItem(storageKey, JSON.stringify(workflowState));
-  }, [storageKey, workflowState]);
+    if (state.status !== "ready") return;
+    let cancelled = false;
+    void (async () => {
+      const saved = await state.repos.outreachMessages.getForLead(state.tenantId, lead.id);
+      if (cancelled || !saved) {
+        setWorkflowLoaded(true);
+        return;
+      }
+      if (saved.message) setMessage(saved.message);
+      if (saved.campaignId) {
+        const camp = campaigns.find((c) => c.id === saved.campaignId) ?? null;
+        setCampaignState(camp);
+        setSelectedCampaignId(saved.campaignId);
+      }
+      setProviderState(saved.providerState);
+      setQueuedAt(saved.queuedAt);
+      setSentAt(saved.sentAt);
+      setMetricsUpdated(saved.metricsUpdated);
+      setFeedback({
+        kind: "success",
+        message: dictionary.leadops.detailWorkspace.savedDraftLoaded
+      });
+      setWorkflowLoaded(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [state, lead.id, campaigns, dictionary.leadops.detailWorkspace.savedDraftLoaded]);
+
+  useEffect(() => {
+    if (state.status !== "ready" || !workflowLoaded) return;
+    const record: OutreachMessage = {
+      id: lead.id,
+      tenantId: lead.tenantId,
+      leadId: lead.id,
+      campaignId: effectiveCampaign?.id ?? null,
+      message,
+      providerState,
+      queuedAt,
+      sentAt,
+      metricsUpdated,
+      updatedAt: new Date().toISOString()
+    };
+    void state.repos.outreachMessages.saveDraft(lead.tenantId, lead.id, record);
+  }, [
+    state,
+    workflowLoaded,
+    lead.id,
+    lead.tenantId,
+    effectiveCampaign,
+    message,
+    providerState,
+    queuedAt,
+    sentAt,
+    metricsUpdated
+  ]);
 
   async function generateMessage(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault();
@@ -317,8 +369,8 @@ export function LeadOpsDetailWorkspace({
             <Status>{dictionary.leadops.qualities[leadState.quality]}</Status>
             <Status>{dictionary.leadops.providerStates[providerState]}</Status>
             <Status>
-              {campaignState
-                ? dictionary.leadops.campaignStatuses[campaignState.status]
+              {effectiveCampaign
+                ? dictionary.leadops.campaignStatuses[effectiveCampaign.status]
                 : dictionary.leadops.detailWorkspace.noCampaign}
             </Status>
           </div>
@@ -492,11 +544,11 @@ export function LeadOpsDetailWorkspace({
                   </option>
                 ))}
               </select>
-              {campaignState ? (
+              {effectiveCampaign ? (
                 <div className="mt-4 text-sm text-slate-300">
-                  <div className="font-semibold">{campaignState.name}</div>
+                  <div className="font-semibold">{effectiveCampaign.name}</div>
                   <div className="mt-1 text-slate-400">
-                    {dictionary.leadops.campaignStatuses[campaignState.status]} - {campaignState.sentCount}/{campaignState.totalCount}
+                    {dictionary.leadops.campaignStatuses[effectiveCampaign.status]} - {effectiveCampaign.sentCount}/{effectiveCampaign.totalCount}
                   </div>
                 </div>
               ) : null}
@@ -605,23 +657,4 @@ function BadgeLine({ label, value }: { label: string; value: string }) {
       <span className="font-semibold text-slate-200">{value}</span>
     </div>
   );
-}
-
-function readSavedWorkflow(storageKey: string): Partial<LeadOpsWorkflowState> | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const saved = window.localStorage.getItem(storageKey);
-
-  if (!saved) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(saved) as Partial<LeadOpsWorkflowState>;
-  } catch {
-    window.localStorage.removeItem(storageKey);
-    return null;
-  }
 }

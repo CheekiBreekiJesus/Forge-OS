@@ -249,18 +249,37 @@ export type Dictionary = {
       demoArtworkFile: string;
       emptyValue: string;
       unitSuffix: string;
+      demoNotesDefault: string;
     };
     actions: {
       createLead: string;
+      qualifyLead: string;
       convertLead: string;
+      openOutreach: string;
       createQuote: string;
       uploadArtwork: string;
       approveQuote: string;
       createProduction: string;
+      openJobCard: string;
       assignMachine: string;
       updateStatuses: string;
       logProgress: string;
+      logProduction: string;
       reserveInventory: string;
+    };
+    resetData: string;
+    resetConfirm: string;
+    cancel: string;
+    actionRunning: string;
+    resultSuccess: string;
+    resultError: string;
+    openInLeadops: string;
+    openCustomer: string;
+    openQuotation: string;
+    openProduction: string;
+    persistence: {
+      loading: string;
+      unavailable: string;
     };
     status: {
       waiting: string;
@@ -372,6 +391,10 @@ export type Dictionary = {
       invalidRows: string;
       reviewRows: string;
       validRows: string;
+      confirmImport: string;
+      importing: string;
+      summary: string;
+      failed: string;
     };
     statuses: Record<
       "ready" | "queued" | "contacted" | "replied" | "positive_reply" | "bounced",
@@ -468,12 +491,77 @@ export type Dictionary = {
       incompleteMessage: string;
       queueRequired: string;
       emptyActivity: string;
+      leadNotFound: string;
       manualProductReason: string;
     };
     providerStates: Record<"not_ready" | "draft" | "approved" | "queued" | "sent" | "blocked", string>;
   };
+  dashboardModule: {
+    subtitle: string;
+    recentActivity: string;
+    noActivity: string;
+    leadopsHint: string;
+    metrics: {
+      leads: string;
+      qualified: string;
+      customers: string;
+      opportunities: string;
+      quotations: string;
+      production: string;
+      outreachReady: string;
+      outreachSent: string;
+    };
+  };
+  customersModule: {
+    title: string;
+    description: string;
+    loading: string;
+    empty: string;
+    table: {
+      company: string;
+      contact: string;
+      email: string;
+      sourceLead: string;
+      opportunities: string;
+      created: string;
+    };
+  };
+  quotationsModule: {
+    title: string;
+    description: string;
+    loading: string;
+    empty: string;
+    statuses: Record<"draft" | "sent" | "approved", string>;
+    table: {
+      number: string;
+      customer: string;
+      product: string;
+      quantity: string;
+      status: string;
+      total: string;
+      created: string;
+    };
+  };
+  productionModule: {
+    title: string;
+    description: string;
+    loading: string;
+    empty: string;
+    openJobCard: string;
+    statuses: Record<"scheduled" | "in-progress" | "blocked" | "completed", string>;
+    table: {
+      number: string;
+      customer: string;
+      product: string;
+      quantity: string;
+      machine: string;
+      status: string;
+      created: string;
+    };
+  };
   jobCard: {
     backToProduction: string;
+    notFound: string;
     eyebrow: string;
     title: string;
     description: string;

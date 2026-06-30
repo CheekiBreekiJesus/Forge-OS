@@ -1,23 +1,15 @@
 import { notFound } from "next/navigation";
-import { LeadOpsDetailWorkspace } from "@/components/leadops-detail-workspace";
-import { findLeadById } from "@/features/leadops/lookup";
-import {
-  getTenantCampaigns,
-  leadOpsLeads,
-  LEADOPS_DEMO_TENANT_ID
-} from "@/features/leadops/seed";
+import { LeadOpsDetailShell } from "@/components/leadops-detail-shell";
 import { isSupportedLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 
+export const dynamicParams = true;
+
 export function generateStaticParams() {
-  return ["pt-PT", "en"].flatMap((locale) =>
-    leadOpsLeads
-      .filter((lead) => lead.tenantId === LEADOPS_DEMO_TENANT_ID)
-      .map((lead) => ({
-        leadId: lead.id,
-        locale
-      }))
-  );
+  return ["pt-PT", "en"].flatMap((locale) => [
+    { locale, leadId: "leadops_001" },
+    { locale, leadId: "leadops_006" }
+  ]);
 }
 
 export default async function LeadOpsDetailPage({
@@ -31,21 +23,9 @@ export default async function LeadOpsDetailPage({
     notFound();
   }
 
-  const lead = findLeadById(LEADOPS_DEMO_TENANT_ID, leadId, leadOpsLeads);
-
-  if (!lead) {
-    notFound();
-  }
-
   const dictionary = await getDictionary(locale);
-  const campaigns = getTenantCampaigns(LEADOPS_DEMO_TENANT_ID);
 
   return (
-    <LeadOpsDetailWorkspace
-      campaigns={campaigns}
-      dictionary={dictionary}
-      lead={lead}
-      locale={locale}
-    />
+    <LeadOpsDetailShell dictionary={dictionary} leadId={leadId} locale={locale} />
   );
 }

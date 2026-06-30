@@ -2,28 +2,34 @@
 
 import Link from "next/link";
 import React, { useMemo, useState } from "react";
+import { persistImportedLeads, validateCsvFile } from "@/application/csv-import-service";
 import { AppFrame, panelClass } from "@/components/app-frame";
+import { toLeadOpsLead } from "@/domain/mappers";
 import { clearLeadOpsFilters, hasActiveFilters } from "@/features/leadops/filters";
 import { parseLeadCsv, type LeadImportResult } from "@/features/leadops/import";
 import { calculateLeadOpsKpis, getCampaignProgress } from "@/features/leadops/kpis";
 import { getLocalizedLeadDetailHref } from "@/features/leadops/lookup";
-import {
-  getFilterOptions,
-  getTenantActivities,
-  getTenantCampaigns,
-  getTenantLeads,
-  LEADOPS_DEMO_TENANT_ID
-} from "@/features/leadops/seed";
+import { getFilterOptions } from "@/features/leadops/seed";
 import {
   areAllVisibleSelected,
   isLeadSelected,
   toggleLeadSelection,
   toggleSelectAllVisible
 } from "@/features/leadops/selection";
-import { EMPTY_LEADOPS_FILTERS, type LeadOpsFilters, type LeadOpsLead } from "@/features/leadops/types";
+import {
+  EMPTY_LEADOPS_FILTERS,
+  type LeadOpsFilters,
+  type LeadOpsLead
+} from "@/features/leadops/types";
 import { buildLeadListViewModel } from "@/features/leadops/view-models";
+import { useActivities, useTenantLeads } from "@/persistence/hooks";
+import { usePersistence, usePersistenceLoading } from "@/persistence/provider";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
+import { toLeadOpsCampaign } from "@/domain/mappers";
+import { useEffect } from "react";
+import type { LeadOpsActivityKind, LeadOpsCampaign } from "@/features/leadops/types";
+import type { ActivityAction } from "@/domain/types";
 
 type LeadOpsDashboardShellProps = {
   dictionary: Dictionary;
@@ -43,19 +49,48 @@ const kpiKeys = [
 
 export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardShellProps) {
   const copy = dictionary.leadops;
-  const tenantLeads = useMemo(() => getTenantLeads(LEADOPS_DEMO_TENANT_ID), []);
-  const tenantCampaigns = useMemo(() => getTenantCampaigns(LEADOPS_DEMO_TENANT_ID), []);
-  const tenantActivities = useMemo(() => getTenantActivities(LEADOPS_DEMO_TENANT_ID), []);
+  const persistenceLoading = usePersistenceLoading();
+  const { leads: domainLeads, loading: leadsLoading, reload: reloadLeads } = useTenantLeads();
+  const { activities: domainActivities } = useActivities();
+  const { state } = usePersistence();
+  const [campaigns, setCampaigns] = useState<LeadOpsCampaign[]>([]);
+  const [importResult, setImportResult] = useState<LeadImportResult | null>(null);
+  const [importSummary, setImportSummary] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+
+  const tenantLeads = useMemo(
+    () => domainLeads.map(toLeadOpsLead),
+    [domainLeads]
+  );
+
+  const tenantActivities = useMemo(
+    () =>
+      domainActivities.map((a) => ({
+        id: a.id,
+        tenantId: a.tenantId,
+        kind: mapActivityAction(a.action),
+        companyName: String(a.metadata.companyName ?? a.title),
+        occurredAt: a.occurredAt
+      })),
+    [domainActivities]
+  );
+
+  useEffect(() => {
+    if (state.status !== "ready") return;
+    void state.repos.campaigns.list(state.tenantId).then((rows) => {
+      setCampaigns(rows.map(toLeadOpsCampaign));
+    });
+  }, [state]);
+
   const filterOptions = useMemo(() => getFilterOptions(tenantLeads), [tenantLeads]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<LeadOpsFilters>({ ...EMPTY_LEADOPS_FILTERS });
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
-  const [importResult, setImportResult] = useState<LeadImportResult | null>(null);
 
   const kpis = useMemo(
-    () => calculateLeadOpsKpis(tenantLeads, tenantCampaigns),
-    [tenantCampaigns, tenantLeads]
+    () => calculateLeadOpsKpis(tenantLeads, campaigns),
+    [campaigns, tenantLeads]
   );
   const listView = useMemo(
     () => buildLeadListViewModel(tenantLeads, searchQuery, filters),
@@ -74,15 +109,52 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
   }
 
   function handleCsvImport(file: File | null) {
-    if (!file) {
+    if (!file) return;
+    const validationError = validateCsvFile(file);
+    if (validationError) {
+      setImportSummary(validationError);
       return;
     }
-
     const reader = new FileReader();
     reader.addEventListener("load", () => {
       setImportResult(parseLeadCsv(String(reader.result ?? "")));
+      setImportSummary(null);
     });
     reader.readAsText(file);
+  }
+
+  async function confirmCsvImport() {
+    if (!importResult || state.status !== "ready") return;
+    setImporting(true);
+    try {
+      const result = await persistImportedLeads(
+        state.repos,
+        state.tenantId,
+        importResult.validRows,
+        "CSV Import"
+      );
+      setImportSummary(
+        copy.import.summary
+          .replace("{imported}", String(result.imported))
+          .replace("{skipped}", String(result.skipped))
+      );
+      await reloadLeads();
+      setImportResult(null);
+    } catch (error) {
+      setImportSummary(error instanceof Error ? error.message : copy.import.failed);
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  if (persistenceLoading || leadsLoading) {
+    return (
+      <AppFrame activeModule="marketing" dictionary={dictionary} locale={locale} supplementalRoute="leadops">
+        <div className={`${panelClass} p-8 text-center text-slate-400`}>
+          {dictionary.demoWorkflow.persistence.loading}
+        </div>
+      </AppFrame>
+    );
   }
 
   function formatKpiValue(key: (typeof kpiKeys)[number]): string {
@@ -124,7 +196,7 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
         <article className={`${panelClass} p-5`}>
           <PanelHeading title={copy.sections.campaigns} />
           <div className="mt-4 space-y-4">
-            {tenantCampaigns.map((campaign) => {
+            {campaigns.map((campaign) => {
               const progress = getCampaignProgress(campaign);
 
               return (
@@ -187,12 +259,27 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
           </label>
         </div>
         {importResult ? (
-          <div className="mt-4 grid gap-3 sm:grid-cols-4">
-            <ImportMetric label={copy.import.validRows} value={importResult.validRows.length} />
-            <ImportMetric label={copy.import.reviewRows} value={importResult.reviewRows.length} />
-            <ImportMetric label={copy.import.invalidRows} value={importResult.invalidRows.length} />
-            <ImportMetric label={copy.import.duplicateEmails} value={importResult.duplicateEmails.length} />
+          <div className="mt-4">
+            <div className="grid gap-3 sm:grid-cols-4">
+              <ImportMetric label={copy.import.validRows} value={importResult.validRows.length} />
+              <ImportMetric label={copy.import.reviewRows} value={importResult.reviewRows.length} />
+              <ImportMetric label={copy.import.invalidRows} value={importResult.invalidRows.length} />
+              <ImportMetric label={copy.import.duplicateEmails} value={importResult.duplicateEmails.length} />
+            </div>
+            {importResult.validRows.length > 0 ? (
+              <button
+                className="mt-4 rounded-lg bg-orange-500 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
+                disabled={importing}
+                onClick={() => void confirmCsvImport()}
+                type="button"
+              >
+                {importing ? copy.import.importing : copy.import.confirmImport}
+              </button>
+            ) : null}
           </div>
+        ) : null}
+        {importSummary ? (
+          <p className="mt-4 text-sm text-emerald-200">{importSummary}</p>
         ) : null}
       </section>
 
@@ -494,4 +581,16 @@ function LeadMobileCard({
       </div>
     </article>
   );
+}
+
+function mapActivityAction(action: ActivityAction): LeadOpsActivityKind {
+  const map: Partial<Record<ActivityAction, LeadOpsActivityKind>> = {
+    lead_created: "lead-imported",
+    lead_qualified: "lead-qualified",
+    outreach_generated: "message-generated",
+    outreach_approved: "message-approved",
+    outreach_queued: "message-queued",
+    outreach_sent_simulated: "message-sent"
+  };
+  return map[action] ?? "metrics-updated";
 }

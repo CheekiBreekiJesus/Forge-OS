@@ -584,19 +584,38 @@ export const dictionary: Dictionary = {
       personalizationCost: "Personalização",
       demoArtworkFile: "demo-logo.svg",
       emptyValue: "-",
-      unitSuffix: "un"
+      unitSuffix: "un",
+      demoNotesDefault: "Lead demo para copos personalizados de eventos."
     },
     actions: {
       createLead: "Criar lead",
-      convertLead: "Converter lead",
+      qualifyLead: "Qualificar lead",
+      convertLead: "Converter em cliente",
+      openOutreach: "Abrir em Contactos Comerciais",
       createQuote: "Criar orçamento",
       uploadArtwork: "Carregar artwork",
       approveQuote: "Aprovar orçamento",
-      createProduction: "Criar produção",
+      createProduction: "Criar ordem de produção",
+      openJobCard: "Abrir cartão de trabalho",
       assignMachine: "Atribuir máquina",
       updateStatuses: "Atualizar estados",
       logProgress: "Registar progresso",
+      logProduction: "Registar atividade de produção",
       reserveInventory: "Reservar inventário"
+    },
+    resetData: "Repor dados demo",
+    resetConfirm: "Isto limpa todos os dados locais do ForgeOS e restaura os registos iniciais. Continuar?",
+    cancel: "Cancelar",
+    actionRunning: "A executar…",
+    resultSuccess: "Ação concluída",
+    resultError: "Ação falhou",
+    openInLeadops: "Abrir em Contactos Comerciais",
+    openCustomer: "Abrir cliente",
+    openQuotation: "Abrir orçamento",
+    openProduction: "Abrir ordem de produção",
+    persistence: {
+      loading: "A carregar base de dados local…",
+      unavailable: "Persistência local indisponível"
     },
     status: {
       waiting: "Em espera",
@@ -704,11 +723,15 @@ export const dictionary: Dictionary = {
     },
     import: {
       chooseCsv: "Escolher CSV",
-      description: "Pré-visualize uma base de contactos antes de importar. O demo não grava dados reais.",
+      description: "Carregue uma base de contactos, reveja a classificação e confirme para gravar as linhas válidas.",
       duplicateEmails: "Emails duplicados",
       invalidRows: "Inválidos",
       reviewRows: "Revisão",
-      validRows: "Válidos"
+      validRows: "Válidos",
+      confirmImport: "Confirmar importação",
+      importing: "A importar…",
+      summary: "Importados {imported} leads. Ignorados {skipped} duplicados.",
+      failed: "A importação falhou."
     },
     statuses: {
       ready: "Pronto",
@@ -817,6 +840,7 @@ export const dictionary: Dictionary = {
       incompleteMessage: "Mensagem incompleta.",
       queueRequired: "A mensagem precisa de estar em fila.",
       emptyActivity: "A atividade do demo aparece aqui.",
+      leadNotFound: "Lead não encontrado na base de dados local.",
       manualProductReason: "Produto disponível para seleção manual."
     },
     providerStates: {
@@ -828,8 +852,81 @@ export const dictionary: Dictionary = {
       blocked: "Bloqueado"
     }
   },
+  dashboardModule: {
+    subtitle: "Métricas em tempo real da base de dados local ForgeOS",
+    recentActivity: "Atividade recente",
+    noActivity: "Ainda sem atividade. Execute o fluxo demo para criar registos.",
+    leadopsHint: "Contactos comerciais e campanhas de email",
+    metrics: {
+      leads: "Total de leads",
+      qualified: "Leads qualificados",
+      customers: "Clientes",
+      opportunities: "Oportunidades ativas",
+      quotations: "Orçamentos abertos",
+      production: "Ordens de produção",
+      outreachReady: "Outreach prontos",
+      outreachSent: "Outreach contactados"
+    }
+  },
+  customersModule: {
+    title: "Clientes",
+    description: "Clientes persistentes convertidos a partir de leads e do fluxo demo.",
+    loading: "A carregar clientes…",
+    empty: "Ainda sem clientes. Converta um lead no fluxo demo.",
+    table: {
+      company: "Empresa",
+      contact: "Contacto",
+      email: "Email",
+      sourceLead: "Lead de origem",
+      opportunities: "Oportunidades",
+      created: "Criado"
+    }
+  },
+  quotationsModule: {
+    title: "Orçamentos",
+    description: "Orçamentos persistentes criados pelo fluxo demo.",
+    loading: "A carregar orçamentos…",
+    empty: "Ainda sem orçamentos.",
+    statuses: {
+      draft: "Rascunho",
+      sent: "Enviado",
+      approved: "Aprovado"
+    },
+    table: {
+      number: "Número",
+      customer: "Cliente",
+      product: "Produto",
+      quantity: "Quantidade",
+      status: "Estado",
+      total: "Total",
+      created: "Criado"
+    }
+  },
+  productionModule: {
+    title: "Ordens de produção",
+    description: "Ordens persistentes ligadas a orçamentos aprovados.",
+    loading: "A carregar ordens…",
+    empty: "Ainda sem ordens de produção.",
+    openJobCard: "Cartão de trabalho",
+    statuses: {
+      scheduled: "Agendado",
+      "in-progress": "Em curso",
+      blocked: "Bloqueado",
+      completed: "Concluído"
+    },
+    table: {
+      number: "Ordem",
+      customer: "Cliente",
+      product: "Produto",
+      quantity: "Quantidade",
+      machine: "Máquina",
+      status: "Estado",
+      created: "Criado"
+    }
+  },
   jobCard: {
     backToProduction: "Voltar à produção",
+    notFound: "Ordem de produção não encontrada na base de dados local.",
     eyebrow: "Cartão do operador",
     title: "Cartão de trabalho de produção",
     description:

@@ -584,19 +584,38 @@ export const dictionary: Dictionary = {
       personalizationCost: "Personalization",
       demoArtworkFile: "demo-logo.svg",
       emptyValue: "-",
-      unitSuffix: "un"
+      unitSuffix: "un",
+      demoNotesDefault: "Live demo lead for personalized event cups."
     },
     actions: {
       createLead: "Create lead",
-      convertLead: "Convert lead",
+      qualifyLead: "Qualify lead",
+      convertLead: "Convert to customer",
+      openOutreach: "Open in Contactos Comerciais",
       createQuote: "Create quote",
       uploadArtwork: "Upload artwork",
       approveQuote: "Approve quote",
-      createProduction: "Create production",
+      createProduction: "Create production order",
+      openJobCard: "Open job card",
       assignMachine: "Assign machine",
       updateStatuses: "Update statuses",
       logProgress: "Log progress",
+      logProduction: "Log production activity",
       reserveInventory: "Reserve inventory"
+    },
+    resetData: "Reset demo data",
+    resetConfirm: "This clears all local ForgeOS data and restores seed records. Continue?",
+    cancel: "Cancel",
+    actionRunning: "Running…",
+    resultSuccess: "Action completed",
+    resultError: "Action failed",
+    openInLeadops: "Open in Contactos Comerciais",
+    openCustomer: "Open customer",
+    openQuotation: "Open quotation",
+    openProduction: "Open production order",
+    persistence: {
+      loading: "Loading local database…",
+      unavailable: "Local persistence unavailable"
     },
     status: {
       waiting: "Waiting",
@@ -704,11 +723,15 @@ export const dictionary: Dictionary = {
     },
     import: {
       chooseCsv: "Choose CSV",
-      description: "Preview a contact database before importing. The demo does not persist real data.",
+      description: "Upload a contact database, review classification, then confirm to persist valid rows.",
       duplicateEmails: "Duplicate emails",
       invalidRows: "Invalid",
       reviewRows: "Review",
-      validRows: "Valid"
+      validRows: "Valid",
+      confirmImport: "Confirm import",
+      importing: "Importing…",
+      summary: "Imported {imported} leads. Skipped {skipped} duplicates.",
+      failed: "Import failed."
     },
     statuses: {
       ready: "Ready",
@@ -817,6 +840,7 @@ export const dictionary: Dictionary = {
       incompleteMessage: "Message is incomplete.",
       queueRequired: "The message must be queued first.",
       emptyActivity: "Demo activity appears here.",
+      leadNotFound: "Lead not found in local database.",
       manualProductReason: "Product available for manual selection."
     },
     providerStates: {
@@ -828,8 +852,81 @@ export const dictionary: Dictionary = {
       blocked: "Blocked"
     }
   },
+  dashboardModule: {
+    subtitle: "Live metrics from your local ForgeOS database",
+    recentActivity: "Recent activity",
+    noActivity: "No activity yet. Run the demo workflow to create records.",
+    leadopsHint: "Commercial outreach and email campaigns",
+    metrics: {
+      leads: "Total leads",
+      qualified: "Qualified leads",
+      customers: "Customers",
+      opportunities: "Active opportunities",
+      quotations: "Open quotations",
+      production: "Production orders",
+      outreachReady: "Outreach ready",
+      outreachSent: "Outreach contacted"
+    }
+  },
+  customersModule: {
+    title: "Customers",
+    description: "Persistent customers converted from leads and demo workflow.",
+    loading: "Loading customers…",
+    empty: "No customers yet. Convert a lead from the demo workflow.",
+    table: {
+      company: "Company",
+      contact: "Contact",
+      email: "Email",
+      sourceLead: "Source lead",
+      opportunities: "Opportunities",
+      created: "Created"
+    }
+  },
+  quotationsModule: {
+    title: "Quotations",
+    description: "Persistent quotations created from the demo workflow.",
+    loading: "Loading quotations…",
+    empty: "No quotations yet.",
+    statuses: {
+      draft: "Draft",
+      sent: "Sent",
+      approved: "Approved"
+    },
+    table: {
+      number: "Number",
+      customer: "Customer",
+      product: "Product",
+      quantity: "Quantity",
+      status: "Status",
+      total: "Total",
+      created: "Created"
+    }
+  },
+  productionModule: {
+    title: "Production orders",
+    description: "Persistent production orders linked to approved quotations.",
+    loading: "Loading production orders…",
+    empty: "No production orders yet.",
+    openJobCard: "Job card",
+    statuses: {
+      scheduled: "Scheduled",
+      "in-progress": "In progress",
+      blocked: "Blocked",
+      completed: "Completed"
+    },
+    table: {
+      number: "Order",
+      customer: "Customer",
+      product: "Product",
+      quantity: "Quantity",
+      machine: "Machine",
+      status: "Status",
+      created: "Created"
+    }
+  },
   jobCard: {
     backToProduction: "Back to production",
+    notFound: "Production order not found in local database.",
     eyebrow: "Operator job card",
     title: "Production job card",
     description:

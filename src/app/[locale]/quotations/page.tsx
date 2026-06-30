@@ -1,23 +1,24 @@
 import { notFound } from "next/navigation";
-import { PersistenceRoot } from "@/components/persistence-root";
+import { QuotationsShell } from "@/components/quotations-shell";
 import { isSupportedLocale } from "@/i18n/config";
+import { getDictionary } from "@/i18n/dictionaries";
 
 export function generateStaticParams() {
   return [{ locale: "pt-PT" }, { locale: "en" }];
 }
 
-export default async function LocaleLayout({
-  children,
+export default async function QuotationsPage({
   params
-}: Readonly<{
-  children: React.ReactNode;
+}: {
   params: Promise<{ locale: string }>;
-}>) {
+}) {
   const { locale } = await params;
 
   if (!isSupportedLocale(locale)) {
     notFound();
   }
 
-  return <PersistenceRoot>{children}</PersistenceRoot>;
+  const dictionary = await getDictionary(locale);
+
+  return <QuotationsShell dictionary={dictionary} locale={locale} />;
 }

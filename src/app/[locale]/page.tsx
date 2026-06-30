@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { DashboardShell } from "@/components/dashboard-shell";
+import { DashboardClientShell } from "@/components/dashboard-client-shell";
 import { getDictionary } from "@/i18n/dictionaries";
 import { isSupportedLocale } from "@/i18n/config";
 
@@ -16,5 +16,5 @@ export default async function LocaleHomePage({
 
   const dictionary = await getDictionary(locale);
 
-  return <DashboardShell dictionary={dictionary} locale={locale} />;
+  return <DashboardClientShell dictionary={dictionary} locale={locale} />;
 }

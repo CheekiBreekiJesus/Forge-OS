@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import { ModulePageShell } from "@/components/module-page-shell";
+import { CustomersShell } from "@/components/customers-shell";
+import { ProductionListShell } from "@/components/production-list-shell";
 import { ProductCatalogShell } from "@/components/product-catalog-shell";
 import { isSupportedLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
@@ -39,6 +41,14 @@ export default async function ModulePage({
 
   if (moduleKey === "products") {
     return <ProductCatalogShell dictionary={dictionary} locale={locale} />;
+  }
+
+  if (moduleKey === "customers") {
+    return <CustomersShell dictionary={dictionary} locale={locale} />;
+  }
+
+  if (moduleKey === "production") {
+    return <ProductionListShell dictionary={dictionary} locale={locale} />;
   }
 
   return (

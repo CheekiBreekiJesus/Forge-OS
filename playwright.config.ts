@@ -3,6 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,
+  workers: 1,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
   reporter: "list",
@@ -24,7 +25,7 @@ export default defineConfig({
       AI_OUTREACH_PROVIDER: "deterministic",
       OUTREACH_DELIVERY_PROVIDER: "simulation"
     },
-    reuseExistingServer: false,
+    reuseExistingServer: !process.env.CI,
     timeout: 180000,
     url: "http://localhost:3000/pt-PT/leadops"
   }
