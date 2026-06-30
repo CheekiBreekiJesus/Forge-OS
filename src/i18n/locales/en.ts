@@ -4,7 +4,9 @@ export const dictionary: Dictionary = {
   app: {
     name: "ForgeOS",
     tenantLabel: "Reference tenant",
-    environment: "Prototype foundation"
+    environment: "Prototype foundation",
+    openMenu: "Open navigation menu",
+    closeMenu: "Close navigation menu"
   },
   navigation: {
     dashboard: "Dashboard",

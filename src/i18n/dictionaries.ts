@@ -13,6 +13,8 @@ export type Dictionary = {
     name: string;
     tenantLabel: string;
     environment: string;
+    openMenu: string;
+    closeMenu: string;
   };
   navigation: {
     dashboard: string;

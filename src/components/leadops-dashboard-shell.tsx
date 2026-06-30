@@ -180,14 +180,20 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
             allLabel={copy.filters.all}
             label={copy.filters.status}
             onChange={(value) => updateFilter("status", value)}
-            options={filterOptions.statuses}
+            options={filterOptions.statuses.map((s) => ({
+              value: s,
+              label: copy.statuses[s as keyof typeof copy.statuses] ?? s
+            }))}
             value={filters.status}
           />
           <FilterSelect
             allLabel={copy.filters.all}
             label={copy.filters.quality}
             onChange={(value) => updateFilter("quality", value)}
-            options={filterOptions.qualities}
+            options={filterOptions.qualities.map((q) => ({
+              value: q,
+              label: copy.qualities[q as keyof typeof copy.qualities] ?? q
+            }))}
             value={filters.quality}
           />
           <FilterSelect
@@ -315,6 +321,8 @@ function PanelHeading({ title }: { title: string }) {
   return <h2 className="text-lg font-bold text-slate-100">{title}</h2>;
 }
 
+type FilterOption = string | { value: string; label: string };
+
 function FilterSelect({
   allLabel,
   label,
@@ -324,7 +332,7 @@ function FilterSelect({
 }: {
   allLabel: string;
   label: string;
-  options: string[];
+  options: FilterOption[];
   value: string;
   onChange: (value: string) => void;
 }) {
@@ -337,11 +345,15 @@ function FilterSelect({
         value={value}
       >
         <option value="">{allLabel}</option>
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
+        {options.map((option) => {
+          const val = typeof option === "string" ? option : option.value;
+          const displayLabel = typeof option === "string" ? option : option.label;
+          return (
+            <option key={val} value={val}>
+              {displayLabel}
+            </option>
+          );
+        })}
       </select>
     </label>
   );
