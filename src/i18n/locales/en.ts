@@ -660,7 +660,102 @@ export const dictionary: Dictionary = {
     user: "Demo user",
     password: "Password",
     submit: "Enter dashboard",
-    note: "Supabase Auth will replace this placeholder in the persistent MVP."
+    note: "Supabase Auth will replace this placeholder in the persistent MVP.",
+    googleSignIn: "Continue with Google",
+    microsoftSignIn: "Continue with Microsoft",
+    orContinueLocal: "or continue with local demo",
+    googleDialogTitle: "Google sign-in (hosted version)",
+    googleDialogBody:
+      "Google OAuth requires Supabase Auth and provider configuration in the hosted ForgeOS deployment. After login, your profile is prefilled from workspace membership and you complete company onboarding and sender identity setup.",
+    microsoftDialogTitle: "Microsoft sign-in (hosted version)",
+    microsoftDialogBody:
+      "Microsoft OAuth requires Supabase Auth and provider configuration in the hosted ForgeOS deployment. After login, your profile is prefilled from workspace membership and you complete company onboarding and sender identity setup.",
+    closeDialog: "Close"
+  },
+  settings: {
+    eyebrow: "Workspace configuration",
+    title: "Settings",
+    description: "Configure company branding, your profile, sender identities, team preview users, integrations, and local backup.",
+    loading: "Loading settings…",
+    save: "Save changes",
+    saved: "Settings saved.",
+    sections: {
+      company: "Company",
+      profile: "My profile",
+      senders: "Sender identities",
+      team: "Team",
+      integrations: "Integrations",
+      backup: "Data and backup"
+    },
+    company: {
+      legalName: "Legal name",
+      tradingName: "Trading name",
+      vatNumber: "VAT number",
+      websiteUrl: "Website URL",
+      generalEmail: "General email",
+      generalPhone: "General phone",
+      addressLine1: "Address line 1",
+      addressLine2: "Address line 2",
+      postalCode: "Postal code",
+      city: "City",
+      region: "Region",
+      country: "Country",
+      logoPublicUrl: "Public logo URL (HTTPS)",
+      linkedinUrl: "LinkedIn URL",
+      facebookUrl: "Facebook URL",
+      legalFooter: "Legal footer",
+      uploadLogo: "Upload logo",
+      removeLogo: "Remove logo",
+      noLogo: "No logo",
+      logoUploaded: "Logo uploaded.",
+      invalidWebsite: "Website URL is invalid."
+    },
+    profile: {
+      fullName: "Full name",
+      jobTitle: "Job title",
+      email: "Email",
+      phone: "Phone",
+      language: "Language",
+      role: "Role"
+    },
+    senders: {
+      add: "Add sender identity",
+      created: "Sender identity created.",
+      defaultBadge: "Default",
+      inactive: "Inactive",
+      preview: "Preview signature",
+      setDefault: "Set as default",
+      archive: "Archive",
+      archived: "Sender identity archived.",
+      signaturePreview: "Signature preview"
+    },
+    team: {
+      notice:
+        "Local preview users are stored in IndexedDB only. They are not authenticated cloud accounts and do not connect to Google or Microsoft.",
+      add: "Add local preview user",
+      added: "Preview user added.",
+      localPreview: "Local preview user",
+      active: "Active",
+      inactive: "Inactive"
+    },
+    integrations: {
+      diagnostic: "Run diagnostic",
+      statuses: {
+        configured: "Configured",
+        "not-configured": "Not configured",
+        "local-only": "Local only",
+        "hosted-feature": "Hosted version feature",
+        unavailable: "Unavailable"
+      }
+    },
+    backup: {
+      description: "Export or import a JSON backup of local ForgeOS data including profile entities and optional image assets.",
+      export: "Export JSON backup",
+      import: "Import JSON backup",
+      exported: "Backup downloaded.",
+      imported: "Backup restored.",
+      invalid: "Invalid backup file."
+    }
   },
   leadops: {
     eyebrow: "Outbound commercial contacts",
@@ -841,7 +936,36 @@ export const dictionary: Dictionary = {
       queueRequired: "The message must be queued first.",
       emptyActivity: "Demo activity appears here.",
       leadNotFound: "Lead not found in local database.",
-      manualProductReason: "Product available for manual selection."
+      manualProductReason: "Product available for manual selection.",
+      senderIdentity: "Sender identity",
+      companyProfile: "Company profile",
+      htmlPreview: "HTML preview",
+      plainPreview: "Plain-text preview"
+    },
+    brandingPreview: {
+      links: "Trusted links",
+      media: "Media blocks",
+      signature: "Signature",
+      footer: "Legal footer"
+    },
+    copyActions: {
+      copySubject: "Copy subject",
+      copyPlain: "Copy plain text",
+      copyFormatted: "Copy formatted email",
+      copyFull: "Copy full message",
+      openDefault: "Open default email app",
+      openGmail: "Open Gmail",
+      openOutlook: "Open Outlook",
+      copiedSubject: "Subject copied.",
+      copiedPlain: "Plain text copied.",
+      copiedFormatted: "Formatted email copied.",
+      copiedFull: "Full message copied.",
+      copyFailed: "Copy failed.",
+      htmlFallback: "(HTML clipboard not supported — plain text copied.)",
+      localImageWarning:
+        "Some images are stored locally only and cannot be embedded in external email HTML. Public HTTPS URLs are required for recipient-facing images.",
+      mailtoTruncated: "Message body was truncated for mailto URL length limits.",
+      bodyTruncated: "Message body was truncated for the email client URL limit."
     },
     providerStates: {
       not_ready: "Not ready",

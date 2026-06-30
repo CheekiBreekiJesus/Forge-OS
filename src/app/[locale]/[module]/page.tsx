@@ -3,6 +3,7 @@ import { ModulePageShell } from "@/components/module-page-shell";
 import { CustomersShell } from "@/components/customers-shell";
 import { ProductionListShell } from "@/components/production-list-shell";
 import { ProductCatalogShell } from "@/components/product-catalog-shell";
+import { SettingsShell } from "@/components/settings-shell";
 import { isSupportedLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import {
@@ -49,6 +50,10 @@ export default async function ModulePage({
 
   if (moduleKey === "production") {
     return <ProductionListShell dictionary={dictionary} locale={locale} />;
+  }
+
+  if (moduleKey === "settings") {
+    return <SettingsShell dictionary={dictionary} locale={locale} />;
   }
 
   return (

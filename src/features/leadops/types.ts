@@ -136,6 +136,9 @@ export type LeadOpsGeneratedMessage = {
   approved: boolean;
   edited: boolean;
   providerNotice?: string;
+  composition?: import("@/features/email-composition/types").EmailComposition | null;
+  senderIdentityId?: string | null;
+  variantIndex?: number;
 };
 
 export type LeadOpsSequenceStep = {

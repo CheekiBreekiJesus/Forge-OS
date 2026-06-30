@@ -660,7 +660,102 @@ export const dictionary: Dictionary = {
     user: "Utilizador demo",
     password: "Palavra-passe",
     submit: "Entrar no painel",
-    note: "Supabase Auth deve substituir este placeholder no MVP persistente."
+    note: "Supabase Auth deve substituir este placeholder no MVP persistente.",
+    googleSignIn: "Continuar com Google",
+    microsoftSignIn: "Continuar com Microsoft",
+    orContinueLocal: "ou continuar com demo local",
+    googleDialogTitle: "Início de sessão Google (versão alojada)",
+    googleDialogBody:
+      "OAuth Google requer Supabase Auth e configuração do fornecedor na versão alojada do ForgeOS. Após o login, o perfil é pré-preenchido pela associação ao workspace e conclui o onboarding da empresa e identidades de remetente.",
+    microsoftDialogTitle: "Início de sessão Microsoft (versão alojada)",
+    microsoftDialogBody:
+      "OAuth Microsoft requer Supabase Auth e configuração do fornecedor na versão alojada do ForgeOS. Após o login, o perfil é pré-preenchido pela associação ao workspace e conclui o onboarding da empresa e identidades de remetente.",
+    closeDialog: "Fechar"
+  },
+  settings: {
+    eyebrow: "Configuração do workspace",
+    title: "Definições",
+    description: "Configure marca da empresa, perfil, identidades de remetente, utilizadores de pré-visualização, integrações e cópia de segurança local.",
+    loading: "A carregar definições…",
+    save: "Guardar alterações",
+    saved: "Definições guardadas.",
+    sections: {
+      company: "Empresa",
+      profile: "O meu perfil",
+      senders: "Identidades de remetente",
+      team: "Equipa",
+      integrations: "Integrações",
+      backup: "Dados e cópia de segurança"
+    },
+    company: {
+      legalName: "Nome legal",
+      tradingName: "Nome comercial",
+      vatNumber: "NIF",
+      websiteUrl: "URL do website",
+      generalEmail: "Email geral",
+      generalPhone: "Telefone geral",
+      addressLine1: "Morada linha 1",
+      addressLine2: "Morada linha 2",
+      postalCode: "Código postal",
+      city: "Cidade",
+      region: "Distrito",
+      country: "País",
+      logoPublicUrl: "URL pública do logótipo (HTTPS)",
+      linkedinUrl: "URL LinkedIn",
+      facebookUrl: "URL Facebook",
+      legalFooter: "Rodapé legal",
+      uploadLogo: "Carregar logótipo",
+      removeLogo: "Remover logótipo",
+      noLogo: "Sem logótipo",
+      logoUploaded: "Logótipo carregado.",
+      invalidWebsite: "URL do website inválido."
+    },
+    profile: {
+      fullName: "Nome completo",
+      jobTitle: "Cargo",
+      email: "Email",
+      phone: "Telefone",
+      language: "Idioma",
+      role: "Função"
+    },
+    senders: {
+      add: "Adicionar identidade",
+      created: "Identidade de remetente criada.",
+      defaultBadge: "Predefinida",
+      inactive: "Inativa",
+      preview: "Pré-visualizar assinatura",
+      setDefault: "Definir como predefinida",
+      archive: "Arquivar",
+      archived: "Identidade arquivada.",
+      signaturePreview: "Pré-visualização da assinatura"
+    },
+    team: {
+      notice:
+        "Utilizadores de pré-visualização local são guardados apenas no IndexedDB. Não são contas cloud autenticadas nem ligam ao Google ou Microsoft.",
+      add: "Adicionar utilizador de pré-visualização",
+      added: "Utilizador de pré-visualização adicionado.",
+      localPreview: "Utilizador de pré-visualização local",
+      active: "Ativo",
+      inactive: "Inativo"
+    },
+    integrations: {
+      diagnostic: "Executar diagnóstico",
+      statuses: {
+        configured: "Configurado",
+        "not-configured": "Não configurado",
+        "local-only": "Apenas local",
+        "hosted-feature": "Funcionalidade da versão alojada",
+        unavailable: "Indisponível"
+      }
+    },
+    backup: {
+      description: "Exporte ou importe uma cópia JSON dos dados locais do ForgeOS, incluindo perfis e imagens opcionais.",
+      export: "Exportar cópia JSON",
+      import: "Importar cópia JSON",
+      exported: "Cópia de segurança descarregada.",
+      imported: "Cópia de segurança restaurada.",
+      invalid: "Ficheiro de cópia inválido."
+    }
   },
   leadops: {
     eyebrow: "Contactos comerciais outbound",
@@ -841,7 +936,36 @@ export const dictionary: Dictionary = {
       queueRequired: "A mensagem precisa de estar em fila.",
       emptyActivity: "A atividade do demo aparece aqui.",
       leadNotFound: "Lead não encontrado na base de dados local.",
-      manualProductReason: "Produto disponível para seleção manual."
+      manualProductReason: "Produto disponível para seleção manual.",
+      senderIdentity: "Identidade de remetente",
+      companyProfile: "Perfil da empresa",
+      htmlPreview: "Pré-visualização HTML",
+      plainPreview: "Pré-visualização em texto simples"
+    },
+    brandingPreview: {
+      links: "Ligações verificadas",
+      media: "Blocos de media",
+      signature: "Assinatura",
+      footer: "Rodapé legal"
+    },
+    copyActions: {
+      copySubject: "Copiar assunto",
+      copyPlain: "Copiar texto simples",
+      copyFormatted: "Copiar email formatado",
+      copyFull: "Copiar mensagem completa",
+      openDefault: "Abrir aplicação de email",
+      openGmail: "Abrir Gmail",
+      openOutlook: "Abrir Outlook",
+      copiedSubject: "Assunto copiado.",
+      copiedPlain: "Texto simples copiado.",
+      copiedFormatted: "Email formatado copiado.",
+      copiedFull: "Mensagem completa copiada.",
+      copyFailed: "Falha ao copiar.",
+      htmlFallback: "(Clipboard HTML não suportado — foi copiado texto simples.)",
+      localImageWarning:
+        "Algumas imagens estão apenas em armazenamento local e não podem ser incorporadas em HTML externo. São necessários URLs HTTPS públicos para imagens destinadas ao destinatário.",
+      mailtoTruncated: "O corpo da mensagem foi truncado devido ao limite do mailto.",
+      bodyTruncated: "O corpo da mensagem foi truncado devido ao limite do cliente de email."
     },
     providerStates: {
       not_ready: "Não preparado",

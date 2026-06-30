@@ -1,4 +1,18 @@
 import type {
+  CompanyProfile,
+  CreateCompanyProfileInput,
+  CreateLocalAssetInput,
+  CreateSenderIdentityInput,
+  CreateUserProfileInput,
+  LocalAsset,
+  SenderIdentity,
+  UpdateCompanyProfileInput,
+  UpdateSenderIdentityInput,
+  UpdateUserProfileInput,
+  UserProfile
+} from "@/domain/profile-types";
+import type { CreateProductInput, Product, UpdateProductInput } from "@/domain/product-types";
+import type {
   ActivityEvent,
   Campaign,
   CreateActivityEventInput,
@@ -62,8 +76,57 @@ export interface ProductionOrderRepository {
 
 export interface OutreachMessageRepository {
   listForLead(tenantId: string, leadId: string): Promise<OutreachMessage[]>;
+  listAll(tenantId: string): Promise<OutreachMessage[]>;
   getForLead(tenantId: string, leadId: string): Promise<OutreachMessage | null>;
   saveDraft(tenantId: string, leadId: string, message: OutreachMessage): Promise<OutreachMessage>;
+  countBySenderIdentity(tenantId: string, senderIdentityId: string): Promise<number>;
+}
+
+export interface CompanyProfileRepository {
+  getForTenant(tenantId: string): Promise<CompanyProfile | null>;
+  getById(tenantId: string, id: string): Promise<CompanyProfile | null>;
+  create(tenantId: string, input: CreateCompanyProfileInput): Promise<CompanyProfile>;
+  update(tenantId: string, id: string, input: UpdateCompanyProfileInput): Promise<CompanyProfile>;
+  ensureDefault(tenantId: string, defaults: CreateCompanyProfileInput): Promise<CompanyProfile>;
+}
+
+export interface UserProfileRepository {
+  list(tenantId: string): Promise<UserProfile[]>;
+  getById(tenantId: string, id: string): Promise<UserProfile | null>;
+  getCurrent(tenantId: string): Promise<UserProfile | null>;
+  create(tenantId: string, input: CreateUserProfileInput): Promise<UserProfile>;
+  update(tenantId: string, id: string, input: UpdateUserProfileInput): Promise<UserProfile>;
+  ensureDefault(tenantId: string, defaults: CreateUserProfileInput): Promise<UserProfile>;
+}
+
+export interface SenderIdentityRepository {
+  list(tenantId: string): Promise<SenderIdentity[]>;
+  listAll(tenantId: string): Promise<SenderIdentity[]>;
+  getById(tenantId: string, id: string): Promise<SenderIdentity | null>;
+  getDefault(tenantId: string): Promise<SenderIdentity | null>;
+  create(tenantId: string, input: CreateSenderIdentityInput): Promise<SenderIdentity>;
+  update(tenantId: string, id: string, input: UpdateSenderIdentityInput): Promise<SenderIdentity>;
+  duplicate(tenantId: string, id: string): Promise<SenderIdentity>;
+  archive(tenantId: string, id: string): Promise<SenderIdentity>;
+  setDefault(tenantId: string, id: string): Promise<SenderIdentity>;
+  ensureDefault(tenantId: string, defaults: CreateSenderIdentityInput): Promise<SenderIdentity>;
+}
+
+export interface LocalAssetRepository {
+  list(tenantId: string): Promise<LocalAsset[]>;
+  getById(tenantId: string, id: string): Promise<LocalAsset | null>;
+  create(tenantId: string, input: CreateLocalAssetInput): Promise<LocalAsset>;
+  delete(tenantId: string, id: string): Promise<void>;
+}
+
+export interface ProductRepository {
+  list(tenantId: string): Promise<Product[]>;
+  getById(tenantId: string, id: string): Promise<Product | null>;
+  getBySku(tenantId: string, sku: string): Promise<Product | null>;
+  create(tenantId: string, input: CreateProductInput): Promise<Product>;
+  update(tenantId: string, id: string, input: UpdateProductInput): Promise<Product>;
+  createMany(tenantId: string, inputs: CreateProductInput[]): Promise<Product[]>;
+  listEmailPromotable(tenantId: string): Promise<Product[]>;
 }
 
 export interface CampaignRepository {
@@ -92,8 +155,14 @@ export interface LocalRepositoryBundle {
   campaigns: CampaignRepository;
   activities: ActivityRepository;
   meta: MetaRepository;
+  companyProfiles: CompanyProfileRepository;
+  userProfiles: UserProfileRepository;
+  senderIdentities: SenderIdentityRepository;
+  localAssets: LocalAssetRepository;
+  products: ProductRepository;
   reset(): Promise<void>;
   seed(tenantId: string): Promise<void>;
+  importBackupData?(backup: import("@/features/backup/service").ForgeOSBackup): Promise<void>;
 }
 
 /** Placeholder for future Supabase-backed repositories. */

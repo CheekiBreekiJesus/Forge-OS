@@ -125,7 +125,7 @@ export function AppFrame({
                       href={`/${supportedLocale}${activeRoute ? `/${activeRoute}` : ""}`}
                       key={supportedLocale}
                     >
-                      {supportedLocale}
+                      {supportedLocale === "pt-PT" ? "PT" : supportedLocale === "en" ? "EN" : supportedLocale}
                     </Link>
                   ))}
                 </div>

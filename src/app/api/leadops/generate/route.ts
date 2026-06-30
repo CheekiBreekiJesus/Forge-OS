@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { generateOutreachEmail } from "@/features/leadops/providers";
+import type { CompanyProfileSnapshot, SenderIdentitySnapshot } from "@/domain/profile-types";
+import type { ProductEmailSnapshot } from "@/domain/product-types";
 import type {
   LeadOpsCampaign,
   LeadOpsCompanyContext,
@@ -39,6 +41,10 @@ function parseGenerationPayload(payload: unknown):
       lead: LeadOpsLead;
       productKeys: LeadOpsProductKey[];
       tone: LeadOpsTone;
+      locale?: "pt-PT" | "en";
+      companyProfile?: CompanyProfileSnapshot;
+      senderIdentity?: SenderIdentitySnapshot;
+      products?: ProductEmailSnapshot[];
     }
   | null {
   if (!payload || typeof payload !== "object") {
@@ -50,6 +56,7 @@ function parseGenerationPayload(payload: unknown):
   const campaign = value.campaign as LeadOpsCampaign | undefined;
   const context = value.context as LeadOpsCompanyContext | undefined;
   const tone = value.tone;
+  const locale = value.locale;
   const selectedProductKeys = Array.isArray(value.productKeys)
     ? value.productKeys.filter((key): key is LeadOpsProductKey =>
         typeof key === "string" && productKeys.has(key as LeadOpsProductKey)
@@ -75,9 +82,15 @@ function parseGenerationPayload(payload: unknown):
 
   return {
     campaign,
+    companyProfile: value.companyProfile as CompanyProfileSnapshot | undefined,
     context,
     lead,
+    locale: locale === "en" ? "en" : "pt-PT",
     productKeys: selectedProductKeys,
+    products: Array.isArray(value.products)
+      ? (value.products as ProductEmailSnapshot[])
+      : undefined,
+    senderIdentity: value.senderIdentity as SenderIdentitySnapshot | undefined,
     tone: tone as LeadOpsTone
   };
 }

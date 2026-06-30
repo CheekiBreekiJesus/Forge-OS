@@ -1,5 +1,5 @@
 import Dexie, { type Table } from "dexie";
-import { LOCAL_DB_NAME } from "@/domain/constants";
+import { LOCAL_DB_NAME, SCHEMA_VERSION } from "@/domain/constants";
 import type {
   ActivityEvent,
   Campaign,
@@ -10,6 +10,13 @@ import type {
   ProductionOrder,
   Quote
 } from "@/domain/types";
+import type {
+  CompanyProfile,
+  LocalAsset,
+  SenderIdentity,
+  UserProfile
+} from "@/domain/profile-types";
+import type { Product } from "@/domain/product-types";
 
 export type MetaRecord = {
   key: string;
@@ -26,6 +33,11 @@ export class ForgeOSDatabase extends Dexie {
   outreachMessages!: Table<OutreachMessage, string>;
   campaigns!: Table<Campaign, string>;
   activities!: Table<ActivityEvent, string>;
+  companyProfiles!: Table<CompanyProfile, string>;
+  userProfiles!: Table<UserProfile, string>;
+  senderIdentities!: Table<SenderIdentity, string>;
+  localAssets!: Table<LocalAsset, string>;
+  products!: Table<Product, string>;
 
   constructor(name: string = LOCAL_DB_NAME) {
     super(name);
@@ -41,6 +53,27 @@ export class ForgeOSDatabase extends Dexie {
       campaigns: "id, tenantId",
       activities: "id, tenantId, occurredAt, action, [tenantId+occurredAt]"
     });
+
+    this.version(SCHEMA_VERSION)
+      .stores({
+        meta: "key",
+        leads: "id, tenantId, email, crmStatus, outreachStatus, [tenantId+email]",
+        customers: "id, tenantId, leadId, [tenantId+leadId]",
+        opportunities: "id, tenantId, leadId, customerId, [tenantId+leadId]",
+        quotes: "id, tenantId, quoteNumber, leadId, customerId, status, [tenantId+leadId]",
+        productionOrders: "id, tenantId, orderNumber, quoteId, status, [tenantId+quoteId]",
+        outreachMessages: "id, tenantId, leadId, [tenantId+leadId]",
+        campaigns: "id, tenantId",
+        activities: "id, tenantId, occurredAt, action, [tenantId+occurredAt]",
+        companyProfiles: "id, tenantId, [tenantId+id]",
+        userProfiles: "id, tenantId, email, active, [tenantId+email]",
+        senderIdentities: "id, tenantId, userProfileId, companyProfileId, isDefault, active, [tenantId+isDefault]",
+        localAssets: "id, tenantId, assetType, [tenantId+assetType]",
+        products: "id, tenantId, sku, category, active, [tenantId+sku]"
+      })
+      .upgrade(async (tx) => {
+        await tx.table("meta").put({ key: "schemaVersion", value: String(SCHEMA_VERSION) });
+      });
   }
 }
 

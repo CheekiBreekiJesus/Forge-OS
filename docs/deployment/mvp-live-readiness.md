@@ -8,6 +8,8 @@ ForgeOS is **not production-ready**. This document describes gaps between the cu
 - Single implicit tenant (`tenant_jh_gomes`)
 - Demo workflow creates durable leads → customers → quotes → production orders
 - Outreach uses shared repository + server AI gateway
+- **Company profile, user profile, sender identities, and branded email composer** (IndexedDB v2)
+- JSON backup/restore for local profile and product data
 - Simulation email delivery only
 - Reset/reseed for local development
 
@@ -68,7 +70,21 @@ ForgeOS is **not production-ready**. This document describes gaps between the cu
 - [ ] Supabase automated backups
 - [ ] Recovery drill documented
 
-## 11. GDPR considerations
+## 13. Profile and hosted assets
+
+- [ ] Supabase Storage for company logos and product images
+- [ ] Public CDN URLs for embeddable outreach HTML
+- [ ] Migrate `LocalAsset` blobs to hosted storage
+- [ ] Sender identity approval locks with immutable snapshots (local MVP done)
+
+## 14. Email client integration
+
+- [x] Copy plain text and formatted HTML locally
+- [x] Gmail / Outlook web compose URL generation
+- [ ] Gmail API / Microsoft Graph send (hosted, authenticated)
+- [ ] URL length and attachment strategy for large HTML
+
+## 15. GDPR considerations (continued)
 
 - [ ] Lawful basis for outreach email
 - [ ] Data processing agreement

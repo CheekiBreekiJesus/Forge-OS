@@ -1,4 +1,4 @@
-import { DEFAULT_TENANT_ID, SEED_VERSION } from "@/domain/constants";
+import { DEFAULT_TENANT_ID, SCHEMA_VERSION, SEED_VERSION } from "@/domain/constants";
 import { createRecordId } from "@/domain/ids";
 import {
   formatProductionOrderNumber,
@@ -22,6 +22,14 @@ import {
   leadOpsLeads
 } from "@/features/leadops/seed";
 import type { ForgeOSDatabase } from "../db";
+import {
+  createCompanyProfileRepository,
+  createLocalAssetRepository,
+  createSenderIdentityRepository,
+  createUserProfileRepository
+} from "./profile-repositories";
+import { createProductRepository, demoProductToCreateInput } from "./product-repositories";
+import type { ForgeOSBackup } from "@/features/backup/service";
 import {
   PersistenceError,
   type ActivityRepository,
@@ -384,6 +392,9 @@ export function createOutreachMessageRepository(db: ForgeOSDatabase): OutreachMe
         .equals([tenantId, leadId])
         .toArray();
     },
+    async listAll(tenantId) {
+      return db.outreachMessages.where("tenantId").equals(tenantId).toArray();
+    },
     async getForLead(tenantId, leadId) {
       const rows = await this.listForLead(tenantId, leadId);
       return rows[0] ?? null;
@@ -398,6 +409,15 @@ export function createOutreachMessageRepository(db: ForgeOSDatabase): OutreachMe
       };
       await db.outreachMessages.put(record);
       return record;
+    },
+    async countBySenderIdentity(tenantId, senderIdentityId) {
+      const rows = await this.listAll(tenantId);
+      return rows.filter((row) => {
+        const msg = row.message;
+        if (!msg?.approved) return false;
+        const composition = msg.composition;
+        return composition?.senderIdentityId === senderIdentityId;
+      }).length;
     }
   };
 }
@@ -440,6 +460,70 @@ export function createActivityRepository(db: ForgeOSDatabase): ActivityRepositor
 
 const META_SEED_KEY = "seedVersion";
 
+async function seedProfileDefaults(db: ForgeOSDatabase, tenantId: string): Promise<void> {
+  const companyProfiles = createCompanyProfileRepository(db);
+  const userProfiles = createUserProfileRepository(db);
+  const senderIdentities = createSenderIdentityRepository(db);
+  const products = createProductRepository(db);
+
+  const company = await companyProfiles.ensureDefault(tenantId, {
+    addressLine1: "Zona Industrial de Oliveira de Azeméis",
+    addressLine2: "",
+    city: "Oliveira de Azeméis",
+    country: "Portugal",
+    defaultCurrency: "EUR",
+    defaultLanguage: "pt-PT",
+    facebookUrl: "",
+    generalEmail: "geral@jhgomes.pt",
+    generalPhone: "+351 256 000 000",
+    legalFooter:
+      "JH Gomes — Fabrico de copos personalizados. Mensagem comercial sujeita a disponibilidade e confirmação comercial.",
+    legalName: "JH Gomes, Lda.",
+    linkedinUrl: "",
+    logoLocalAssetId: null,
+    logoPublicUrl: "",
+    postalCode: "3720-000",
+    region: "Aveiro",
+    tradingName: "JH Gomes",
+    vatNumber: "PT000000000",
+    websiteUrl: "https://www.jhgomes.pt"
+  });
+
+  const user = await userProfiles.ensureDefault(tenantId, {
+    active: true,
+    email: "joao.gomes@demo.local",
+    fullName: "João Gomes",
+    isLocalPreview: false,
+    jobTitle: "Diretor Comercial",
+    phone: "+351 910 000 000",
+    preferredLanguage: "pt-PT",
+    profileImageLocalAssetId: null,
+    role: "admin"
+  });
+
+  await senderIdentities.ensureDefault(tenantId, {
+    active: true,
+    companyProfileId: company.id,
+    defaultLanguage: "pt-PT",
+    displayName: user.fullName,
+    fromEmail: user.email,
+    isDefault: true,
+    jobTitle: user.jobTitle,
+    phone: user.phone,
+    replyToEmail: user.email,
+    signatureHtml: "",
+    signatureText: "",
+    userProfileId: user.id
+  });
+
+  const productInputs = demoProducts
+    .filter((p) => p.tenantId === tenantId)
+    .map((p) => demoProductToCreateInput(p));
+  if (productInputs.length > 0) {
+    await products.createMany(tenantId, productInputs);
+  }
+}
+
 export async function seedDatabase(
   db: ForgeOSDatabase,
   tenantId: string = DEFAULT_TENANT_ID,
@@ -450,7 +534,8 @@ export async function seedDatabase(
 
   if (!force && existingVersion === String(SEED_VERSION)) {
     const leadCount = await db.leads.where("tenantId").equals(tenantId).count();
-    if (leadCount > 0) return false;
+    const profileCount = await db.companyProfiles.where("tenantId").equals(tenantId).count();
+    if (leadCount > 0 && profileCount > 0) return false;
   }
 
   const timestamp = nowIso();
@@ -475,38 +560,56 @@ export async function seedDatabase(
       })
     );
 
-  await db.transaction(
-    "rw",
-    [
-      db.meta,
-      db.leads,
-      db.customers,
-      db.opportunities,
-      db.quotes,
-      db.productionOrders,
-      db.outreachMessages,
-      db.campaigns,
-      db.activities
-    ],
-    async () => {
-      if (force) {
-        await db.leads.where("tenantId").equals(tenantId).delete();
-        await db.customers.where("tenantId").equals(tenantId).delete();
-        await db.opportunities.where("tenantId").equals(tenantId).delete();
-        await db.quotes.where("tenantId").equals(tenantId).delete();
-        await db.productionOrders.where("tenantId").equals(tenantId).delete();
-        await db.outreachMessages.where("tenantId").equals(tenantId).delete();
-        await db.campaigns.where("tenantId").equals(tenantId).delete();
-        await db.activities.where("tenantId").equals(tenantId).delete();
-      }
+  const allTables = [
+    db.meta,
+    db.leads,
+    db.customers,
+    db.opportunities,
+    db.quotes,
+    db.productionOrders,
+    db.outreachMessages,
+    db.campaigns,
+    db.activities,
+    db.companyProfiles,
+    db.userProfiles,
+    db.senderIdentities,
+    db.localAssets,
+    db.products
+  ];
 
+  await db.transaction("rw", allTables, async () => {
+    if (force) {
+      await db.leads.where("tenantId").equals(tenantId).delete();
+      await db.customers.where("tenantId").equals(tenantId).delete();
+      await db.opportunities.where("tenantId").equals(tenantId).delete();
+      await db.quotes.where("tenantId").equals(tenantId).delete();
+      await db.productionOrders.where("tenantId").equals(tenantId).delete();
+      await db.outreachMessages.where("tenantId").equals(tenantId).delete();
+      await db.campaigns.where("tenantId").equals(tenantId).delete();
+      await db.activities.where("tenantId").equals(tenantId).delete();
+      await db.companyProfiles.where("tenantId").equals(tenantId).delete();
+      await db.userProfiles.where("tenantId").equals(tenantId).delete();
+      await db.senderIdentities.where("tenantId").equals(tenantId).delete();
+      await db.localAssets.where("tenantId").equals(tenantId).delete();
+      await db.products.where("tenantId").equals(tenantId).delete();
+    }
+
+    const existingLeads = await db.leads.where("tenantId").equals(tenantId).count();
+    if (existingLeads === 0) {
       await db.campaigns.bulkPut(campaigns);
       await db.leads.bulkPut(leads);
-      await meta.set(META_SEED_KEY, String(SEED_VERSION));
-      await meta.set("tenantId", tenantId);
-      await meta.set("tenantName", jhGomesTenant.name);
     }
-  );
+
+    await meta.set(META_SEED_KEY, String(SEED_VERSION));
+    await meta.set("schemaVersion", String(SCHEMA_VERSION));
+    await meta.set("tenantId", tenantId);
+    await meta.set("tenantName", jhGomesTenant.name);
+  });
+
+  const profileCount = await db.companyProfiles.where("tenantId").equals(tenantId).count();
+  if (profileCount === 0) {
+    await seedProfileDefaults(db, tenantId);
+  }
 
   return true;
 }
@@ -523,7 +626,12 @@ export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
       db.productionOrders,
       db.outreachMessages,
       db.campaigns,
-      db.activities
+      db.activities,
+      db.companyProfiles,
+      db.userProfiles,
+      db.senderIdentities,
+      db.localAssets,
+      db.products
     ],
     async () => {
       await db.meta.clear();
@@ -535,6 +643,59 @@ export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
       await db.outreachMessages.clear();
       await db.campaigns.clear();
       await db.activities.clear();
+      await db.companyProfiles.clear();
+      await db.userProfiles.clear();
+      await db.senderIdentities.clear();
+      await db.localAssets.clear();
+      await db.products.clear();
+    }
+  );
+}
+
+async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Promise<void> {
+  const { tables, localAssets, tenantId } = backup;
+  await db.transaction(
+    "rw",
+    [
+      db.leads,
+      db.customers,
+      db.opportunities,
+      db.quotes,
+      db.productionOrders,
+      db.outreachMessages,
+      db.campaigns,
+      db.activities,
+      db.companyProfiles,
+      db.userProfiles,
+      db.senderIdentities,
+      db.localAssets,
+      db.products
+    ],
+    async () => {
+      await db.leads.bulkPut(tables.leads);
+      await db.customers.bulkPut(tables.customers);
+      await db.opportunities.bulkPut(tables.opportunities);
+      await db.quotes.bulkPut(tables.quotes);
+      await db.productionOrders.bulkPut(tables.productionOrders);
+      await db.outreachMessages.bulkPut(tables.outreachMessages);
+      await db.campaigns.bulkPut(tables.campaigns);
+      await db.activities.bulkPut(tables.activities);
+      await db.companyProfiles.bulkPut(tables.companyProfiles);
+      await db.userProfiles.bulkPut(tables.userProfiles);
+      await db.senderIdentities.bulkPut(tables.senderIdentities);
+      await db.products.bulkPut(tables.products);
+      if (localAssets) {
+        for (const asset of localAssets) {
+          const binary = atob(asset.blobBase64);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+          const blob = new Blob([bytes], { type: asset.mimeType });
+          const { blobBase64: _removed, ...rest } = asset;
+          void _removed;
+          await db.localAssets.put({ ...rest, blob });
+        }
+      }
+      await db.meta.put({ key: "tenantId", value: tenantId });
     }
   );
 }
@@ -549,6 +710,11 @@ export function createLocalRepositoryBundle(db: ForgeOSDatabase) {
   const outreachMessages = createOutreachMessageRepository(db);
   const campaigns = createCampaignRepository(db);
   const activities = createActivityRepository(db);
+  const companyProfiles = createCompanyProfileRepository(db);
+  const userProfiles = createUserProfileRepository(db);
+  const senderIdentities = createSenderIdentityRepository(db);
+  const localAssets = createLocalAssetRepository(db);
+  const products = createProductRepository(db);
 
   return {
     meta,
@@ -560,11 +726,19 @@ export function createLocalRepositoryBundle(db: ForgeOSDatabase) {
     outreachMessages,
     campaigns,
     activities,
+    companyProfiles,
+    userProfiles,
+    senderIdentities,
+    localAssets,
+    products,
     async reset() {
       await resetDatabase(db);
     },
     async seed(tenantId: string) {
       await seedDatabase(db, tenantId, true);
+    },
+    async importBackupData(backup: ForgeOSBackup) {
+      await importBackupToDb(db, backup);
     }
   };
 }

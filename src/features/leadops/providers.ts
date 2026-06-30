@@ -4,6 +4,10 @@ import {
   validateQueue
 } from "./workflow";
 import { generateOutreachEmailWithAI } from "@/lib/ai/capabilities/outreach-email";
+import { composeEmail } from "@/features/email-composition/renderer";
+import { parseLegacyBodyOutput } from "@/lib/ai/capabilities/outreach-email-schema";
+import type { CompanyProfileSnapshot, SenderIdentitySnapshot } from "@/domain/profile-types";
+import type { ProductEmailSnapshot } from "@/domain/product-types";
 import type {
   LeadOpsCampaign,
   LeadOpsCompanyContext,
@@ -20,10 +24,15 @@ export type OutreachGenerationRequest = {
   lead: LeadOpsLead;
   productKeys: LeadOpsProductKey[];
   tone: LeadOpsTone;
+  locale?: "pt-PT" | "en";
+  companyProfile?: CompanyProfileSnapshot;
+  senderIdentity?: SenderIdentitySnapshot;
+  products?: ProductEmailSnapshot[];
 };
 
 export type OutreachGenerationResult = {
   body?: string;
+  composition?: import("@/features/email-composition/types").EmailComposition;
   contextUsed?: string[];
   fallbackUsed?: boolean;
   message: LeadOpsGeneratedMessage;
@@ -45,8 +54,7 @@ export type OutreachDeliveryResult = {
 export function generateDeterministicOutreachEmail(
   request: OutreachGenerationRequest
 ): OutreachGenerationResult {
-  const result = generateFallbackMessage(request);
-  return result;
+  return generateFallbackMessage(request);
 }
 
 export async function generateOutreachEmail(
@@ -63,14 +71,17 @@ export async function generateOutreachEmail(
 
   return {
     body: result.body,
+    composition: result.composition,
     contextUsed: result.contextUsed,
     fallbackUsed: result.fallbackUsed,
     message: {
       approved: false,
       body: result.body,
+      composition: result.composition,
       edited: false,
       generationMethod,
       providerNotice: result.warnings.join(" "),
+      senderIdentityId: result.composition.senderIdentityId,
       subject: result.subject
     },
     mode: result.fallbackUsed ? "fallback" : result.provider,
@@ -84,18 +95,44 @@ export async function generateOutreachEmail(
 
 function generateFallbackMessage(request: OutreachGenerationRequest): OutreachGenerationResult {
   const message = generatePtPtEmail(request);
+  const locale = request.locale ?? "pt-PT";
+  const aiCopy = parseLegacyBodyOutput(message.body, message.subject);
+  const company = request.companyProfile;
+  const sender = request.senderIdentity;
+  const products = request.products ?? [];
+
+  const composition =
+    company && sender
+      ? composeEmail({
+          aiCopy,
+          companyProfile: company,
+          fallbackUsed: true,
+          locale,
+          model: "deterministic-template",
+          products,
+          provider: "deterministic",
+          senderIdentity: sender
+        })
+      : undefined;
 
   return {
-    body: message.body,
+    body: composition?.plainText ?? message.body,
+    composition,
     contextUsed: request.context.hasWebsiteContext
       ? ["stored website context", "lead industry", "lead location", "selected products"]
       : ["lead industry", "lead location", "selected products"],
     fallbackUsed: true,
-    message,
+    message: {
+      ...message,
+      body: composition?.plainText ?? message.body,
+      composition: composition ?? null,
+      senderIdentityId: composition?.senderIdentityId ?? null,
+      subject: composition?.subject ?? message.subject
+    },
     mode: "deterministic",
     model: "deterministic-template",
     provider: "deterministic",
-    subject: message.subject,
+    subject: composition?.subject ?? message.subject,
     warnings: []
   };
 }

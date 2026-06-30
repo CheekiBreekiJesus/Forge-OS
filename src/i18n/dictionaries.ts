@@ -325,6 +325,92 @@ export type Dictionary = {
     password: string;
     submit: string;
     note: string;
+    googleSignIn: string;
+    microsoftSignIn: string;
+    orContinueLocal: string;
+    googleDialogTitle: string;
+    googleDialogBody: string;
+    microsoftDialogTitle: string;
+    microsoftDialogBody: string;
+    closeDialog: string;
+  };
+  settings: {
+    eyebrow: string;
+    title: string;
+    description: string;
+    loading: string;
+    save: string;
+    saved: string;
+    sections: {
+      company: string;
+      profile: string;
+      senders: string;
+      team: string;
+      integrations: string;
+      backup: string;
+    };
+    company: {
+      legalName: string;
+      tradingName: string;
+      vatNumber: string;
+      websiteUrl: string;
+      generalEmail: string;
+      generalPhone: string;
+      addressLine1: string;
+      addressLine2: string;
+      postalCode: string;
+      city: string;
+      region: string;
+      country: string;
+      logoPublicUrl: string;
+      linkedinUrl: string;
+      facebookUrl: string;
+      legalFooter: string;
+      uploadLogo: string;
+      removeLogo: string;
+      noLogo: string;
+      logoUploaded: string;
+      invalidWebsite: string;
+    };
+    profile: {
+      fullName: string;
+      jobTitle: string;
+      email: string;
+      phone: string;
+      language: string;
+      role: string;
+    };
+    senders: {
+      add: string;
+      created: string;
+      defaultBadge: string;
+      inactive: string;
+      preview: string;
+      setDefault: string;
+      archive: string;
+      archived: string;
+      signaturePreview: string;
+    };
+    team: {
+      notice: string;
+      add: string;
+      added: string;
+      localPreview: string;
+      active: string;
+      inactive: string;
+    };
+    integrations: {
+      diagnostic: string;
+      statuses: Record<string, string>;
+    };
+    backup: {
+      description: string;
+      export: string;
+      import: string;
+      exported: string;
+      imported: string;
+      invalid: string;
+    };
   };
   leadops: {
     eyebrow: string;
@@ -493,6 +579,34 @@ export type Dictionary = {
       emptyActivity: string;
       leadNotFound: string;
       manualProductReason: string;
+      senderIdentity: string;
+      companyProfile: string;
+      htmlPreview: string;
+      plainPreview: string;
+    };
+    brandingPreview: {
+      links: string;
+      media: string;
+      signature: string;
+      footer: string;
+    };
+    copyActions: {
+      copySubject: string;
+      copyPlain: string;
+      copyFormatted: string;
+      copyFull: string;
+      openDefault: string;
+      openGmail: string;
+      openOutlook: string;
+      copiedSubject: string;
+      copiedPlain: string;
+      copiedFormatted: string;
+      copiedFull: string;
+      copyFailed: string;
+      htmlFallback: string;
+      localImageWarning: string;
+      mailtoTruncated: string;
+      bodyTruncated: string;
     };
     providerStates: Record<"not_ready" | "draft" | "approved" | "queued" | "sent" | "blocked", string>;
   };

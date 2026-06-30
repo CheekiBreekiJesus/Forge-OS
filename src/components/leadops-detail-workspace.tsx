@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { AppFrame, panelClass } from "@/components/app-frame";
+import { EmailBrandingPreview, EmailCopyActions } from "@/components/leadops-email-composer";
+import { snapshotCompanyProfile, snapshotProducts, snapshotSenderIdentity } from "@/features/email-composition/renderer";
 import { getLocalizedLeadOpsHref } from "@/features/leadops/lookup";
 import {
   appendEvent,
@@ -28,6 +30,12 @@ import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { usePersistence } from "@/persistence/provider";
 import type { OutreachMessage } from "@/domain/types";
+import type { ProductEmailSnapshot } from "@/domain/product-types";
+import {
+  useCompanyProfile,
+  useProducts,
+  useSenderIdentities
+} from "@/persistence/profile-hooks";
 
 type LeadOpsDetailWorkspaceProps = {
   campaigns: LeadOpsCampaign[];
@@ -43,6 +51,40 @@ export function LeadOpsDetailWorkspace({
   locale
 }: LeadOpsDetailWorkspaceProps) {
   const { state } = usePersistence();
+  const { profile: companyProfile } = useCompanyProfile();
+  const { identities: senderIdentities } = useSenderIdentities();
+  const { products: tenantProducts } = useProducts();
+  const [selectedSenderId, setSelectedSenderId] = useState<string>(() => "");
+
+  const selectedSender = useMemo(
+    () =>
+      senderIdentities.find((s) => s.id === selectedSenderId) ??
+      senderIdentities.find((s) => s.isDefault) ??
+      senderIdentities[0] ??
+      null,
+    [senderIdentities, selectedSenderId]
+  );
+
+  const effectiveSenderId = selectedSenderId || selectedSender?.id || "";
+
+  const productSnapshots = useMemo<ProductEmailSnapshot[]>(() => {
+    return tenantProducts
+      .filter((p) => p.isEmailPromotable && p.active)
+      .slice(0, 3)
+      .map((p) => ({
+        customizerUrl: p.customizerUrl,
+        defaultCtaLabel: p.defaultCtaLabel,
+        emailDescription: p.emailDescription,
+        emailTitle: p.emailTitle,
+        id: p.id,
+        imageUrl: p.imageUrl,
+        name: p.name,
+        productPageUrl: p.productPageUrl,
+        sku: p.sku,
+        thumbnailUrl: p.thumbnailUrl
+      }));
+  }, [tenantProducts]);
+
   const [workflowLoaded, setWorkflowLoaded] = useState(false);
   const context = useMemo(() => getCompanyContext(lead), [lead]);
   const recommendations = useMemo(() => recommendProductsForLead(lead), [lead]);
@@ -166,9 +208,13 @@ export function LeadOpsDetailWorkspace({
       const response = await fetch("/api/leadops/generate", {
         body: JSON.stringify({
           campaign: selectedCampaign,
+          companyProfile: companyProfile ?? undefined,
           context,
           lead: leadState,
+          locale,
           productKeys: selectedProducts,
+          products: productSnapshots,
+          senderIdentity: selectedSender ?? undefined,
           tone
         }),
         headers: {
@@ -238,7 +284,28 @@ export function LeadOpsDetailWorkspace({
       return;
     }
 
-    setMessage({ ...message, approved: true });
+    const composition = message.composition
+      ? {
+          ...message.composition,
+          companyProfileSnapshot: message.composition.companyProfileSnapshot
+            ? snapshotCompanyProfile(message.composition.companyProfileSnapshot)
+            : companyProfile
+              ? snapshotCompanyProfile(companyProfile)
+              : null,
+          selectedProductSnapshots: snapshotProducts(
+            message.composition.selectedProductSnapshots.length
+              ? message.composition.selectedProductSnapshots
+              : productSnapshots
+          ),
+          senderIdentitySnapshot: message.composition.senderIdentitySnapshot
+            ? snapshotSenderIdentity(message.composition.senderIdentitySnapshot)
+            : selectedSender
+              ? snapshotSenderIdentity(selectedSender)
+              : null
+        }
+      : null;
+
+    setMessage({ ...message, approved: true, composition });
     setProviderState("approved");
     setActivities((current) => appendEvent(current, leadState, "message-approved"));
     setFeedback({ kind: "success", message: dictionary.leadops.detailWorkspace.success });
@@ -467,6 +534,28 @@ export function LeadOpsDetailWorkspace({
                 {dictionary.leadops.detailWorkspace.personalizationWarning}
               </div>
             ) : null}
+            <div className="mb-4 grid gap-3 md:grid-cols-2">
+              <label className="grid gap-1 text-sm">
+                <span className="text-xs uppercase tracking-wide text-slate-500">
+                  {dictionary.leadops.detailWorkspace.senderIdentity}
+                </span>
+                <select
+                  className="rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100"
+                  value={effectiveSenderId}
+                  onChange={(e) => setSelectedSenderId(e.target.value)}
+                >
+                  {senderIdentities.map((identity) => (
+                    <option key={identity.id} value={identity.id}>
+                      {identity.displayName} ({identity.fromEmail})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <Field
+                label={dictionary.leadops.detailWorkspace.companyProfile}
+                value={companyProfile?.tradingName ?? "-"}
+              />
+            </div>
             <form className="mb-4 flex flex-wrap gap-3" onSubmit={generateMessage}>
               <label className="grid gap-1 text-sm">
                 <span className="text-xs uppercase tracking-wide text-slate-500">
@@ -529,6 +618,29 @@ export function LeadOpsDetailWorkspace({
                 value={message?.body ?? ""}
               />
             </label>
+            {message?.composition ? (
+              <div className="mt-4 space-y-4">
+                <div>
+                  <div className="text-xs uppercase text-slate-500">
+                    {dictionary.leadops.detailWorkspace.plainPreview}
+                  </div>
+                  <pre className="mt-2 max-h-48 overflow-auto rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-xs text-slate-300">
+                    {message.composition.plainText}
+                  </pre>
+                </div>
+                <EmailBrandingPreview composition={message.composition} dictionary={dictionary} />
+              </div>
+            ) : null}
+            {message?.approved && message.composition ? (
+              <div className="mt-4 border-t border-slate-800 pt-4">
+                <EmailCopyActions
+                  composition={message.composition}
+                  dictionary={dictionary}
+                  onFeedback={(msg, kind) => setFeedback({ kind, message: msg })}
+                  recipientEmail={leadState.email}
+                />
+              </div>
+            ) : null}
           </Panel>
 
           <section className="grid gap-4 xl:grid-cols-2">
