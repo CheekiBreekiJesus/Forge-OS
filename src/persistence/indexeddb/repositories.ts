@@ -8,6 +8,7 @@ import {
 import type {
   ActivityEvent,
   Campaign,
+  CreateCustomerInput,
   Customer,
   Lead,
   Opportunity,
@@ -16,11 +17,22 @@ import type {
   Quote
 } from "@/domain/types";
 import { demoProducts, jhGomesTenant } from "@/demo/seed";
-import { findCompatibleMachine } from "@/demo/workflow";
 import {
   leadOpsCampaigns,
   leadOpsLeads
 } from "@/features/leadops/seed";
+import { recordActivity } from "@/features/crud/activity-recorder";
+import { resolveCustomerName } from "@/features/crud/relationships";
+import { normalizeEmail } from "@/features/crud/validation";
+import {
+  createArchivePatch,
+  createRestorePatch,
+  filterByArchive,
+  DEFAULT_ARCHIVABLE,
+  isActiveRecord,
+  type ArchiveInput,
+  type ListOptions
+} from "@/persistence/archive-utils";
 import type { ForgeOSDatabase } from "../db";
 import {
   createCompanyProfileRepository,
@@ -29,6 +41,12 @@ import {
   createUserProfileRepository
 } from "./profile-repositories";
 import { createProductRepository, demoProductToCreateInput } from "./product-repositories";
+import {
+  createCustomerContactRepository,
+  createInventoryRepository,
+  createMachineRepository,
+  seedOperationsDefaults
+} from "./operations-repositories";
 import type { ForgeOSBackup } from "@/features/backup/service";
 import {
   PersistenceError,
@@ -63,10 +81,14 @@ export function createMetaRepository(db: ForgeOSDatabase): MetaRepository {
   };
 }
 
-export function createLeadRepository(db: ForgeOSDatabase): LeadRepository {
+export function createLeadRepository(
+  db: ForgeOSDatabase,
+  activities?: ActivityRepository
+): LeadRepository {
   return {
-    async list(tenantId) {
-      return db.leads.where("tenantId").equals(tenantId).toArray();
+    async list(tenantId, options?: ListOptions) {
+      const rows = await db.leads.where("tenantId").equals(tenantId).toArray();
+      return filterByArchive(rows, options);
     },
     async getById(tenantId, leadId) {
       const lead = await db.leads.get(leadId);
@@ -82,9 +104,9 @@ export function createLeadRepository(db: ForgeOSDatabase): LeadRepository {
       return leads[0] ?? null;
     },
     async create(tenantId, input) {
-      const email = input.email.toLowerCase().trim();
+      const email = normalizeEmail(input.email);
       const existing = await this.getByEmail(tenantId, email);
-      if (existing) {
+      if (existing && isActiveRecord(existing)) {
         throw new PersistenceError("duplicate", "A lead with this email already exists.");
       }
       const timestamp = nowIso();
@@ -96,24 +118,35 @@ export function createLeadRepository(db: ForgeOSDatabase): LeadRepository {
         email,
         phone: input.phone?.trim() ?? "",
         website: input.website ?? null,
+        facebookUrl: input.facebookUrl ?? null,
         location: input.location?.trim() ?? "",
         industry: input.industry?.trim() ?? "General",
         crmStatus: "new",
-        outreachStatus: "ready",
-        quality: "medium",
+        outreachStatus: input.outreachStatus ?? "ready",
+        quality: input.quality ?? "medium",
         source: input.source?.trim() ?? "manual",
-        sourceDatabase: input.sourceDatabase?.trim() ?? "Demo",
+        sourceDatabase: input.sourceDatabase?.trim() ?? "Manual",
+        contactSource: input.contactSource?.trim() ?? input.sourceDatabase?.trim() ?? "Manual",
         language: input.language ?? "pt-PT",
         campaignId: null,
-        consentStatus: "subscribed",
+        consentStatus: input.consentStatus ?? "subscribed",
         providerState: "not_ready",
         requestedProductId: input.requestedProductId ?? null,
         quantity: input.quantity ?? 0,
         notes: input.notes?.trim() ?? "",
+        ...DEFAULT_ARCHIVABLE,
         createdAt: timestamp,
         updatedAt: timestamp
       };
       await db.leads.put(lead);
+      if (activities) {
+        await recordActivity(activities, tenantId, {
+          action: "entity_created",
+          entityId: lead.id,
+          entityType: "lead",
+          title: `Lead created: ${lead.companyName}`
+        });
+      }
       return lead;
     },
     async createMany(tenantId, inputs) {
@@ -145,17 +178,106 @@ export function createLeadRepository(db: ForgeOSDatabase): LeadRepository {
       };
       await db.leads.put(updated);
       return updated;
+    },
+    async duplicate(tenantId, leadId) {
+      const existing = await this.getById(tenantId, leadId);
+      if (!existing) throw new PersistenceError("not_found", "Lead not found.");
+      const suffix = Date.now().toString().slice(-4);
+      return this.create(tenantId, {
+        companyName: `${existing.companyName} (${suffix})`,
+        contactName: existing.contactName,
+        email: existing.email.replace("@", `+${suffix}@`),
+        phone: existing.phone,
+        website: existing.website,
+        facebookUrl: existing.facebookUrl,
+        location: existing.location,
+        industry: existing.industry,
+        source: existing.source,
+        sourceDatabase: existing.sourceDatabase,
+        contactSource: existing.contactSource,
+        language: existing.language,
+        notes: existing.notes,
+        quality: existing.quality
+      });
+    },
+    async archive(tenantId, leadId, input?: ArchiveInput) {
+      const existing = await this.getById(tenantId, leadId);
+      if (!existing) throw new PersistenceError("not_found", "Lead not found.");
+      const updated: Lead = {
+        ...existing,
+        ...createArchivePatch(input),
+        updatedAt: nowIso()
+      };
+      await db.leads.put(updated);
+      if (activities) {
+        await recordActivity(activities, tenantId, {
+          action: "entity_archived",
+          entityId: leadId,
+          entityType: "lead",
+          title: `Lead archived: ${existing.companyName}`
+        });
+      }
+      return updated;
+    },
+    async restore(tenantId, leadId) {
+      const existing = await this.getById(tenantId, leadId);
+      if (!existing) throw new PersistenceError("not_found", "Lead not found.");
+      const updated: Lead = {
+        ...existing,
+        ...createRestorePatch(),
+        updatedAt: nowIso()
+      };
+      await db.leads.put(updated);
+      if (activities) {
+        await recordActivity(activities, tenantId, {
+          action: "entity_restored",
+          entityId: leadId,
+          entityType: "lead",
+          title: `Lead restored: ${existing.companyName}`
+        });
+      }
+      return updated;
     }
   };
 }
 
 export function createCustomerRepository(
   db: ForgeOSDatabase,
-  leads: LeadRepository
+  leads: LeadRepository,
+  activities?: ActivityRepository
 ): CustomerRepository {
+  const buildCustomer = (tenantId: string, input: CreateCustomerInput, leadId: string | null): Customer => {
+    const timestamp = nowIso();
+    const tradingName = input.tradingName?.trim() || input.companyName?.trim() || input.legalName.trim();
+    return {
+      id: createRecordId("cust"),
+      tenantId,
+      leadId,
+      legalName: input.legalName.trim(),
+      tradingName,
+      companyName: input.companyName?.trim() || tradingName,
+      contactName: input.contactName.trim(),
+      email: normalizeEmail(input.email),
+      phone: input.phone?.trim() ?? "",
+      vatNumber: input.vatNumber?.trim() ?? "",
+      addressLine1: input.addressLine1?.trim() ?? "",
+      addressLine2: input.addressLine2?.trim() ?? "",
+      postalCode: input.postalCode?.trim() ?? "",
+      city: input.city?.trim() ?? "",
+      country: input.country?.trim() ?? "Portugal",
+      website: input.website ?? null,
+      customerStatus: input.customerStatus ?? "active",
+      notes: input.notes?.trim() ?? "",
+      ...DEFAULT_ARCHIVABLE,
+      createdAt: timestamp,
+      updatedAt: timestamp
+    };
+  };
+
   return {
-    async list(tenantId) {
-      return db.customers.where("tenantId").equals(tenantId).toArray();
+    async list(tenantId, options?: ListOptions) {
+      const rows = await db.customers.where("tenantId").equals(tenantId).toArray();
+      return filterByArchive(rows, options);
     },
     async getById(tenantId, customerId) {
       const customer = await db.customers.get(customerId);
@@ -171,35 +293,109 @@ export function createCustomerRepository(
     },
     async createFromLead(tenantId, leadId) {
       const existing = await this.getByLeadId(tenantId, leadId);
-      if (existing) {
+      if (existing && isActiveRecord(existing)) {
         throw new PersistenceError("duplicate", "Customer already exists for this lead.");
       }
       const lead = await leads.getById(tenantId, leadId);
       if (!lead) {
         throw new PersistenceError("missing_link", "Lead not found for conversion.");
       }
-      if (lead.crmStatus === "converted") {
-        throw new PersistenceError("invalid_transition", "Lead is already converted.");
-      }
-      const timestamp = nowIso();
-      const customer: Customer = {
-        id: createRecordId("cust"),
-        tenantId,
-        leadId,
-        companyName: lead.companyName,
+      const customer = buildCustomer(tenantId, {
         contactName: lead.contactName,
         email: lead.email,
-        phone: lead.phone,
+        leadId,
+        legalName: lead.companyName,
         notes: lead.notes,
-        createdAt: timestamp,
-        updatedAt: timestamp
-      };
+        phone: lead.phone,
+        tradingName: lead.companyName,
+        website: lead.website
+      }, leadId);
       await db.customers.put(customer);
-      await leads.update(tenantId, leadId, {
-        crmStatus: "converted",
-        outreachStatus: lead.outreachStatus
-      });
+      await leads.update(tenantId, leadId, { crmStatus: "converted" });
+      if (activities) {
+        await recordActivity(activities, tenantId, {
+          action: "customer_created",
+          entityId: customer.id,
+          entityType: "customer",
+          title: `Customer created from lead: ${customer.companyName}`,
+          metadata: { leadId }
+        });
+      }
       return customer;
+    },
+    async create(tenantId, input) {
+      const customer = buildCustomer(tenantId, input, input.leadId ?? null);
+      await db.customers.put(customer);
+      if (activities) {
+        await recordActivity(activities, tenantId, {
+          action: "entity_created",
+          entityId: customer.id,
+          entityType: "customer",
+          title: `Customer created: ${customer.companyName}`
+        });
+      }
+      return customer;
+    },
+    async update(tenantId, customerId, input) {
+      const existing = await this.getById(tenantId, customerId);
+      if (!existing) throw new PersistenceError("not_found", "Customer not found.");
+      const updated: Customer = {
+        ...existing,
+        ...input,
+        email: input.email ? normalizeEmail(input.email) : existing.email,
+        id: existing.id,
+        tenantId: existing.tenantId,
+        createdAt: existing.createdAt,
+        updatedAt: nowIso()
+      };
+      await db.customers.put(updated);
+      if (activities) {
+        await recordActivity(activities, tenantId, {
+          action: "entity_updated",
+          entityId: customerId,
+          entityType: "customer",
+          title: `Customer updated: ${updated.companyName}`
+        });
+      }
+      return updated;
+    },
+    async archive(tenantId, customerId, input?: ArchiveInput) {
+      const existing = await this.getById(tenantId, customerId);
+      if (!existing) throw new PersistenceError("not_found", "Customer not found.");
+      const updated: Customer = {
+        ...existing,
+        ...createArchivePatch(input),
+        updatedAt: nowIso()
+      };
+      await db.customers.put(updated);
+      if (activities) {
+        await recordActivity(activities, tenantId, {
+          action: "entity_archived",
+          entityId: customerId,
+          entityType: "customer",
+          title: `Customer archived: ${existing.companyName}`
+        });
+      }
+      return updated;
+    },
+    async restore(tenantId, customerId) {
+      const existing = await this.getById(tenantId, customerId);
+      if (!existing) throw new PersistenceError("not_found", "Customer not found.");
+      const updated: Customer = {
+        ...existing,
+        ...createRestorePatch(),
+        updatedAt: nowIso()
+      };
+      await db.customers.put(updated);
+      if (activities) {
+        await recordActivity(activities, tenantId, {
+          action: "entity_restored",
+          entityId: customerId,
+          entityType: "customer",
+          title: `Customer restored: ${existing.companyName}`
+        });
+      }
+      return updated;
     }
   };
 }
@@ -223,6 +419,10 @@ export function createOpportunityRepository(
         .equals([tenantId, leadId])
         .toArray();
       return rows[0] ?? null;
+    },
+    async getByCustomerId(tenantId, customerId) {
+      const rows = await db.opportunities.where("tenantId").equals(tenantId).toArray();
+      return rows.filter((o) => o.customerId === customerId);
     },
     async createFromLead(tenantId, leadId, customerId) {
       const existing = await this.getByLeadId(tenantId, leadId);
@@ -251,10 +451,14 @@ export function createOpportunityRepository(
   };
 }
 
-export function createQuoteRepository(db: ForgeOSDatabase): QuoteRepository {
+export function createQuoteRepository(
+  db: ForgeOSDatabase,
+  activities?: ActivityRepository
+): QuoteRepository {
   return {
-    async list(tenantId) {
-      return db.quotes.where("tenantId").equals(tenantId).toArray();
+    async list(tenantId, options?: ListOptions) {
+      const rows = await db.quotes.where("tenantId").equals(tenantId).toArray();
+      return filterByArchive(rows, options);
     },
     async getById(tenantId, quoteId) {
       const row = await db.quotes.get(quoteId);
@@ -264,6 +468,10 @@ export function createQuoteRepository(db: ForgeOSDatabase): QuoteRepository {
     async getByLeadId(tenantId, leadId) {
       const rows = await db.quotes.where("[tenantId+leadId]").equals([tenantId, leadId]).toArray();
       return rows[0] ?? null;
+    },
+    async getByCustomerId(tenantId, customerId) {
+      const rows = await db.quotes.where("tenantId").equals(tenantId).toArray();
+      return rows.filter((q) => q.customerId === customerId);
     },
     async create(tenantId, input) {
       const count = await db.quotes.where("tenantId").equals(tenantId).count();
@@ -293,6 +501,61 @@ export function createQuoteRepository(db: ForgeOSDatabase): QuoteRepository {
         subtotal: input.subtotal,
         vat: input.vat,
         total: input.total,
+        discount: input.discount ?? 0,
+        validityDate: input.validityDate ?? null,
+        notes: input.notes?.trim() ?? "",
+        ...DEFAULT_ARCHIVABLE,
+        createdAt: timestamp,
+        updatedAt: timestamp
+      };
+      await db.quotes.put(quote);
+      if (activities) {
+        await recordActivity(activities, tenantId, {
+          action: "quotation_created",
+          entityId: quote.id,
+          entityType: "quote",
+          title: `Quotation created: ${quote.quoteNumber}`
+        });
+      }
+      return quote;
+    },
+    async update(tenantId, quoteId, input) {
+      const existing = await this.getById(tenantId, quoteId);
+      if (!existing) throw new PersistenceError("not_found", "Quote not found.");
+      if (existing.status !== "draft") {
+        throw new PersistenceError("invalid_transition", "Only draft quotations can be edited.");
+      }
+      const updated: Quote = {
+        ...existing,
+        ...input,
+        id: existing.id,
+        tenantId: existing.tenantId,
+        quoteNumber: existing.quoteNumber,
+        createdAt: existing.createdAt,
+        updatedAt: nowIso()
+      };
+      await db.quotes.put(updated);
+      if (activities) {
+        await recordActivity(activities, tenantId, {
+          action: "entity_updated",
+          entityId: quoteId,
+          entityType: "quote",
+          title: `Quotation updated: ${updated.quoteNumber}`
+        });
+      }
+      return updated;
+    },
+    async duplicate(tenantId, quoteId) {
+      const existing = await this.getById(tenantId, quoteId);
+      if (!existing) throw new PersistenceError("not_found", "Quote not found.");
+      const count = await db.quotes.where("tenantId").equals(tenantId).count();
+      const timestamp = nowIso();
+      const quote: Quote = {
+        ...existing,
+        id: createRecordId("quote"),
+        quoteNumber: formatQuoteNumber(count + 1),
+        status: "draft",
+        ...DEFAULT_ARCHIVABLE,
         createdAt: timestamp,
         updatedAt: timestamp
       };
@@ -307,17 +570,101 @@ export function createQuoteRepository(db: ForgeOSDatabase): QuoteRepository {
       const updated = { ...existing, status, updatedAt: nowIso() };
       await db.quotes.put(updated);
       return updated;
+    },
+    async approve(tenantId, quoteId) {
+      const existing = await this.getById(tenantId, quoteId);
+      if (!existing) throw new PersistenceError("not_found", "Quote not found.");
+      if (existing.status === "approved") return existing;
+      if (existing.status === "rejected") {
+        throw new PersistenceError("invalid_transition", "Rejected quotations cannot be approved.");
+      }
+      const updated = { ...existing, status: "approved" as const, updatedAt: nowIso() };
+      await db.quotes.put(updated);
+      if (activities) {
+        await recordActivity(activities, tenantId, {
+          action: "quotation_approved",
+          entityId: quoteId,
+          entityType: "quote",
+          title: `Quotation approved: ${existing.quoteNumber}`
+        });
+      }
+      return updated;
+    },
+    async reject(tenantId, quoteId, reason) {
+      const existing = await this.getById(tenantId, quoteId);
+      if (!existing) throw new PersistenceError("not_found", "Quote not found.");
+      if (existing.status === "approved") {
+        throw new PersistenceError("invalid_transition", "Approved quotations cannot be rejected.");
+      }
+      const updated = {
+        ...existing,
+        notes: reason ? `${existing.notes}\nRejected: ${reason}`.trim() : existing.notes,
+        status: "rejected" as const,
+        updatedAt: nowIso()
+      };
+      await db.quotes.put(updated);
+      if (activities) {
+        await recordActivity(activities, tenantId, {
+          action: "quotation_rejected",
+          entityId: quoteId,
+          entityType: "quote",
+          title: `Quotation rejected: ${existing.quoteNumber}`
+        });
+      }
+      return updated;
+    },
+    async archive(tenantId, quoteId, input?: ArchiveInput) {
+      const existing = await this.getById(tenantId, quoteId);
+      if (!existing) throw new PersistenceError("not_found", "Quote not found.");
+      const updated: Quote = {
+        ...existing,
+        ...createArchivePatch(input),
+        updatedAt: nowIso()
+      };
+      await db.quotes.put(updated);
+      if (activities) {
+        await recordActivity(activities, tenantId, {
+          action: "entity_archived",
+          entityId: quoteId,
+          entityType: "quote",
+          title: `Quotation archived: ${existing.quoteNumber}`
+        });
+      }
+      return updated;
+    },
+    async restore(tenantId, quoteId) {
+      const existing = await this.getById(tenantId, quoteId);
+      if (!existing) throw new PersistenceError("not_found", "Quote not found.");
+      const updated: Quote = {
+        ...existing,
+        ...createRestorePatch(),
+        updatedAt: nowIso()
+      };
+      await db.quotes.put(updated);
+      if (activities) {
+        await recordActivity(activities, tenantId, {
+          action: "entity_restored",
+          entityId: quoteId,
+          entityType: "quote",
+          title: `Quotation restored: ${existing.quoteNumber}`
+        });
+      }
+      return updated;
     }
   };
 }
 
 export function createProductionOrderRepository(
   db: ForgeOSDatabase,
-  quotes: QuoteRepository
+  quotes: QuoteRepository,
+  customers: CustomerRepository,
+  machines: import("../interfaces").MachineRepository,
+  activities?: ActivityRepository
 ): ProductionOrderRepository {
   return {
-    async list(tenantId) {
-      return db.productionOrders.where("tenantId").equals(tenantId).toArray();
+    async list(tenantId, options?: ListOptions) {
+      const rows = await db.productionOrders.where("tenantId").equals(tenantId).toArray();
+      return filterByArchive(rows, options);
     },
     async getById(tenantId, orderId) {
       const row = await db.productionOrders.get(orderId);
@@ -331,45 +678,82 @@ export function createProductionOrderRepository(
         .toArray();
       return rows[0] ?? null;
     },
+    async getByMachineId(tenantId, machineId) {
+      const rows = await db.productionOrders.where("tenantId").equals(tenantId).toArray();
+      return rows.filter((o) => o.machineId === machineId);
+    },
     async createFromQuote(tenantId, quoteId) {
-      const existing = await this.getByQuoteId(tenantId, quoteId);
-      if (existing) {
-        throw new PersistenceError("duplicate", "Production order already exists for this quote.");
-      }
       const quote = await quotes.getById(tenantId, quoteId);
-      if (!quote) {
-        throw new PersistenceError("missing_link", "Quote not found.");
-      }
+      if (!quote) throw new PersistenceError("missing_link", "Quote not found.");
       if (quote.status !== "approved") {
         throw new PersistenceError("invalid_transition", "Quote must be approved first.");
       }
-      const product =
-        demoProducts.find((p) => p.id === quote.productId) ?? demoProducts[0];
-      const machine = findCompatibleMachine(product);
+      return this.create(tenantId, {
+        customerId: quote.customerId,
+        productId: quote.productId,
+        productName: quote.productName,
+        quantity: quote.quantity,
+        quoteId
+      });
+    },
+    async create(tenantId, input) {
+      const existing = await this.getByQuoteId(tenantId, input.quoteId);
+      if (existing && isActiveRecord(existing)) {
+        throw new PersistenceError("duplicate", "Production order already exists for this quote.");
+      }
+      const quote = await quotes.getById(tenantId, input.quoteId);
+      if (!quote) throw new PersistenceError("missing_link", "Quote not found.");
+      if (quote.status !== "approved") {
+        throw new PersistenceError("invalid_transition", "Quote must be approved first.");
+      }
+      const customer = input.customerId
+        ? await customers.getById(tenantId, input.customerId)
+        : quote.customerId
+          ? await customers.getById(tenantId, quote.customerId)
+          : null;
+      const compatible = await machines.listForProduct(tenantId, input.productId);
+      const machine = compatible[0] ?? (await machines.list(tenantId))[0];
+      if (!machine) {
+        throw new PersistenceError("missing_link", "No compatible machine available.");
+      }
       const count = await db.productionOrders.where("tenantId").equals(tenantId).count();
       const timestamp = nowIso();
       const order: ProductionOrder = {
         id: createRecordId("po"),
         tenantId,
         orderNumber: formatProductionOrderNumber(count + 1),
-        quoteId,
-        customerId: quote.customerId,
-        customerName: "-",
-        productId: quote.productId,
-        productName: quote.productName,
-        quantity: quote.quantity,
+        quoteId: input.quoteId,
+        customerId: customer?.id ?? quote.customerId,
+        customerName: input.customerName ?? resolveCustomerName(customer),
+        productId: input.productId,
+        productName: input.productName,
+        quantity: input.quantity,
+        completedQuantity: 0,
+        rejectedQuantity: 0,
         status: "scheduled",
         scheduledDate: timestamp.slice(0, 10),
+        plannedStart: null,
+        plannedEnd: null,
         artworkStatus: "pending",
         screenStatus: "pending",
         machineId: machine.id,
         machineName: machine.name,
         progress: 0,
         operatorNotes: "Created from approved quotation.",
+        ...DEFAULT_ARCHIVABLE,
         createdAt: timestamp,
         updatedAt: timestamp
       };
       await db.productionOrders.put(order);
+      if (activities) {
+        await recordActivity(activities, tenantId, {
+          action: "production_order_created",
+          entityId: order.id,
+          entityType: "production_order",
+          title: `Production order created: ${order.orderNumber}`,
+          metadata: { quoteId: input.quoteId }
+        });
+      }
       return order;
     },
     async update(tenantId, orderId, input) {
@@ -379,6 +763,70 @@ export function createProductionOrderRepository(
       }
       const updated = { ...existing, ...input, updatedAt: nowIso() };
       await db.productionOrders.put(updated);
+      if (activities && input.status && input.status !== existing.status) {
+        await recordActivity(activities, tenantId, {
+          action: "production_status_changed",
+          entityId: orderId,
+          entityType: "production_order",
+          title: `Production status: ${existing.status} → ${input.status}`,
+          metadata: { from: existing.status, to: input.status }
+        });
+      }
+      return updated;
+    },
+    async assignMachine(tenantId, orderId, machineId, machineName) {
+      const machine = await machines.getById(tenantId, machineId);
+      if (!machine || !isActiveRecord(machine)) {
+        throw new PersistenceError("invalid_transition", "Machine is archived or unavailable.");
+      }
+      const order = await this.update(tenantId, orderId, { machineId, machineName });
+      if (activities) {
+        await recordActivity(activities, tenantId, {
+          action: "machine_assigned",
+          entityId: orderId,
+          entityType: "production_order",
+          title: `Machine assigned: ${machineName}`,
+          metadata: { machineId }
+        });
+      }
+      return order;
+    },
+    async archive(tenantId, orderId, input?: ArchiveInput) {
+      const existing = await this.getById(tenantId, orderId);
+      if (!existing) throw new PersistenceError("not_found", "Production order not found.");
+      const updated: ProductionOrder = {
+        ...existing,
+        ...createArchivePatch(input),
+        updatedAt: nowIso()
+      };
+      await db.productionOrders.put(updated);
+      if (activities) {
+        await recordActivity(activities, tenantId, {
+          action: "entity_archived",
+          entityId: orderId,
+          entityType: "production_order",
+          title: `Production order archived: ${existing.orderNumber}`
+        });
+      }
+      return updated;
+    },
+    async restore(tenantId, orderId) {
+      const existing = await this.getById(tenantId, orderId);
+      if (!existing) throw new PersistenceError("not_found", "Production order not found.");
+      const updated: ProductionOrder = {
+        ...existing,
+        ...createRestorePatch(),
+        updatedAt: nowIso()
+      };
+      await db.productionOrders.put(updated);
+      if (activities) {
+        await recordActivity(activities, tenantId, {
+          action: "entity_restored",
+          entityId: orderId,
+          entityType: "production_order",
+          title: `Production order restored: ${existing.orderNumber}`
+        });
+      }
       return updated;
     }
   };
@@ -440,6 +888,10 @@ export function createActivityRepository(db: ForgeOSDatabase): ActivityRepositor
     async list(tenantId) {
       const events = await db.activities.where("tenantId").equals(tenantId).toArray();
       return events.sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
+    },
+    async listForEntity(tenantId, entityType, entityId) {
+      const events = await this.list(tenantId);
+      return events.filter((e) => e.entityType === entityType && e.entityId === entityId);
     },
     async append(tenantId, event) {
       const record: ActivityEvent = {
@@ -522,6 +974,8 @@ async function seedProfileDefaults(db: ForgeOSDatabase, tenantId: string): Promi
   if (productInputs.length > 0) {
     await products.createMany(tenantId, productInputs);
   }
+  const productRows = await db.products.where("tenantId").equals(tenantId).toArray();
+  await seedOperationsDefaults(db, tenantId, productRows);
 }
 
 export async function seedDatabase(
@@ -574,7 +1028,11 @@ export async function seedDatabase(
     db.userProfiles,
     db.senderIdentities,
     db.localAssets,
-    db.products
+    db.products,
+    db.machines,
+    db.inventoryItems,
+    db.stockMovements,
+    db.customerContacts
   ];
 
   await db.transaction("rw", allTables, async () => {
@@ -592,6 +1050,10 @@ export async function seedDatabase(
       await db.senderIdentities.where("tenantId").equals(tenantId).delete();
       await db.localAssets.where("tenantId").equals(tenantId).delete();
       await db.products.where("tenantId").equals(tenantId).delete();
+      await db.machines.where("tenantId").equals(tenantId).delete();
+      await db.inventoryItems.where("tenantId").equals(tenantId).delete();
+      await db.stockMovements.where("tenantId").equals(tenantId).delete();
+      await db.customerContacts.where("tenantId").equals(tenantId).delete();
     }
 
     const existingLeads = await db.leads.where("tenantId").equals(tenantId).count();
@@ -631,7 +1093,11 @@ export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
       db.userProfiles,
       db.senderIdentities,
       db.localAssets,
-      db.products
+      db.products,
+      db.machines,
+      db.inventoryItems,
+      db.stockMovements,
+      db.customerContacts
     ],
     async () => {
       await db.meta.clear();
@@ -648,6 +1114,10 @@ export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
       await db.senderIdentities.clear();
       await db.localAssets.clear();
       await db.products.clear();
+      await db.machines.clear();
+      await db.inventoryItems.clear();
+      await db.stockMovements.clear();
+      await db.customerContacts.clear();
     }
   );
 }
@@ -702,27 +1172,39 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
 
 export function createLocalRepositoryBundle(db: ForgeOSDatabase) {
   const meta = createMetaRepository(db);
-  const leads = createLeadRepository(db);
-  const customers = createCustomerRepository(db, leads);
+  const activities = createActivityRepository(db);
+  const leads = createLeadRepository(db, activities);
+  const customers = createCustomerRepository(db, leads, activities);
+  const customerContacts = createCustomerContactRepository(db);
   const opportunities = createOpportunityRepository(db, leads);
-  const quotes = createQuoteRepository(db);
-  const productionOrders = createProductionOrderRepository(db, quotes);
+  const quotes = createQuoteRepository(db, activities);
+  const machines = createMachineRepository(db, activities);
+  const productionOrders = createProductionOrderRepository(
+    db,
+    quotes,
+    customers,
+    machines,
+    activities
+  );
+  const inventory = createInventoryRepository(db, activities);
   const outreachMessages = createOutreachMessageRepository(db);
   const campaigns = createCampaignRepository(db);
-  const activities = createActivityRepository(db);
   const companyProfiles = createCompanyProfileRepository(db);
   const userProfiles = createUserProfileRepository(db);
   const senderIdentities = createSenderIdentityRepository(db);
   const localAssets = createLocalAssetRepository(db);
-  const products = createProductRepository(db);
+  const products = createProductRepository(db, activities);
 
   return {
     meta,
     leads,
     customers,
+    customerContacts,
     opportunities,
     quotes,
     productionOrders,
+    machines,
+    inventory,
     outreachMessages,
     campaigns,
     activities,

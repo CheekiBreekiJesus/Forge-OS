@@ -1,4 +1,15 @@
 import type {
+  CreateCustomerContactInput,
+  CreateInventoryItemInput,
+  CreateMachineInput,
+  CustomerContact,
+  InventoryItem,
+  Machine,
+  StockMovement,
+  UpdateInventoryItemInput,
+  UpdateMachineInput
+} from "@/domain/operations-types";
+import type {
   CompanyProfile,
   CreateCompanyProfileInput,
   CreateLocalAssetInput,
@@ -16,6 +27,7 @@ import type {
   ActivityEvent,
   Campaign,
   CreateActivityEventInput,
+  CreateCustomerInput,
   CreateLeadInput,
   CreateQuoteInput,
   Customer,
@@ -24,54 +36,160 @@ import type {
   OutreachMessage,
   ProductionOrder,
   Quote,
-  UpdateLeadInput
+  UpdateCustomerInput,
+  UpdateLeadInput,
+  UpdateQuoteInput
 } from "@/domain/types";
+import type { ArchiveInput, ListOptions } from "@/persistence/archive-utils";
+import type { StockChangeInput } from "@/domain/operations-types";
+
+export type { ListOptions, ArchiveInput };
 
 export interface LeadRepository {
-  list(tenantId: string): Promise<Lead[]>;
+  list(tenantId: string, options?: ListOptions): Promise<Lead[]>;
   getById(tenantId: string, leadId: string): Promise<Lead | null>;
   getByEmail(tenantId: string, email: string): Promise<Lead | null>;
   create(tenantId: string, input: CreateLeadInput): Promise<Lead>;
   createMany(tenantId: string, inputs: CreateLeadInput[]): Promise<Lead[]>;
   update(tenantId: string, leadId: string, input: UpdateLeadInput): Promise<Lead>;
+  duplicate(tenantId: string, leadId: string): Promise<Lead>;
+  archive(tenantId: string, leadId: string, input?: ArchiveInput): Promise<Lead>;
+  restore(tenantId: string, leadId: string): Promise<Lead>;
 }
 
 export interface CustomerRepository {
-  list(tenantId: string): Promise<Customer[]>;
+  list(tenantId: string, options?: ListOptions): Promise<Customer[]>;
   getById(tenantId: string, customerId: string): Promise<Customer | null>;
   getByLeadId(tenantId: string, leadId: string): Promise<Customer | null>;
+  create(tenantId: string, input: CreateCustomerInput): Promise<Customer>;
   createFromLead(tenantId: string, leadId: string): Promise<Customer>;
+  update(tenantId: string, customerId: string, input: UpdateCustomerInput): Promise<Customer>;
+  archive(tenantId: string, customerId: string, input?: ArchiveInput): Promise<Customer>;
+  restore(tenantId: string, customerId: string): Promise<Customer>;
+}
+
+export interface CustomerContactRepository {
+  listForCustomer(
+    tenantId: string,
+    customerId: string,
+    options?: ListOptions
+  ): Promise<CustomerContact[]>;
+  create(tenantId: string, input: CreateCustomerContactInput): Promise<CustomerContact>;
+  update(
+    tenantId: string,
+    id: string,
+    input: Partial<CreateCustomerContactInput>
+  ): Promise<CustomerContact>;
+  archive(tenantId: string, id: string, input?: ArchiveInput): Promise<CustomerContact>;
+  restore(tenantId: string, id: string): Promise<CustomerContact>;
 }
 
 export interface OpportunityRepository {
   list(tenantId: string): Promise<Opportunity[]>;
   getById(tenantId: string, opportunityId: string): Promise<Opportunity | null>;
   getByLeadId(tenantId: string, leadId: string): Promise<Opportunity | null>;
+  getByCustomerId(tenantId: string, customerId: string): Promise<Opportunity[]>;
   createFromLead(tenantId: string, leadId: string, customerId?: string): Promise<Opportunity>;
 }
 
 export interface QuoteRepository {
-  list(tenantId: string): Promise<Quote[]>;
+  list(tenantId: string, options?: ListOptions): Promise<Quote[]>;
   getById(tenantId: string, quoteId: string): Promise<Quote | null>;
   getByLeadId(tenantId: string, leadId: string): Promise<Quote | null>;
+  getByCustomerId(tenantId: string, customerId: string): Promise<Quote[]>;
   create(tenantId: string, input: CreateQuoteInput): Promise<Quote>;
-  updateStatus(
-    tenantId: string,
-    quoteId: string,
-    status: Quote["status"]
-  ): Promise<Quote>;
+  update(tenantId: string, quoteId: string, input: UpdateQuoteInput): Promise<Quote>;
+  duplicate(tenantId: string, quoteId: string): Promise<Quote>;
+  updateStatus(tenantId: string, quoteId: string, status: Quote["status"]): Promise<Quote>;
+  approve(tenantId: string, quoteId: string): Promise<Quote>;
+  reject(tenantId: string, quoteId: string, reason?: string): Promise<Quote>;
+  archive(tenantId: string, quoteId: string, input?: ArchiveInput): Promise<Quote>;
+  restore(tenantId: string, quoteId: string): Promise<Quote>;
 }
 
 export interface ProductionOrderRepository {
-  list(tenantId: string): Promise<ProductionOrder[]>;
+  list(tenantId: string, options?: ListOptions): Promise<ProductionOrder[]>;
   getById(tenantId: string, orderId: string): Promise<ProductionOrder | null>;
   getByQuoteId(tenantId: string, quoteId: string): Promise<ProductionOrder | null>;
+  getByMachineId(tenantId: string, machineId: string): Promise<ProductionOrder[]>;
   createFromQuote(tenantId: string, quoteId: string): Promise<ProductionOrder>;
+  create(
+    tenantId: string,
+    input: {
+      quoteId: string;
+      customerId?: string | null;
+      productId: string;
+      productName: string;
+      quantity: number;
+      customerName?: string;
+    }
+  ): Promise<ProductionOrder>;
   update(
     tenantId: string,
     orderId: string,
-    input: Partial<Pick<ProductionOrder, "machineId" | "machineName" | "status" | "progress" | "artworkStatus" | "screenStatus" | "operatorNotes">>
+    input: Partial<
+      Pick<
+        ProductionOrder,
+        | "machineId"
+        | "machineName"
+        | "status"
+        | "progress"
+        | "artworkStatus"
+        | "screenStatus"
+        | "operatorNotes"
+        | "completedQuantity"
+        | "rejectedQuantity"
+        | "plannedStart"
+        | "plannedEnd"
+        | "scheduledDate"
+      >
+    >
   ): Promise<ProductionOrder>;
+  assignMachine(
+    tenantId: string,
+    orderId: string,
+    machineId: string,
+    machineName: string
+  ): Promise<ProductionOrder>;
+  archive(tenantId: string, orderId: string, input?: ArchiveInput): Promise<ProductionOrder>;
+  restore(tenantId: string, orderId: string): Promise<ProductionOrder>;
+}
+
+export interface MachineRepository {
+  list(tenantId: string, options?: ListOptions): Promise<Machine[]>;
+  getById(tenantId: string, id: string): Promise<Machine | null>;
+  getByCode(tenantId: string, code: string): Promise<Machine | null>;
+  create(tenantId: string, input: CreateMachineInput): Promise<Machine>;
+  update(tenantId: string, id: string, input: UpdateMachineInput): Promise<Machine>;
+  duplicate(tenantId: string, id: string): Promise<Machine>;
+  archive(tenantId: string, id: string, input?: ArchiveInput): Promise<Machine>;
+  restore(tenantId: string, id: string): Promise<Machine>;
+  listForProduct(tenantId: string, productId: string, options?: ListOptions): Promise<Machine[]>;
+}
+
+export interface InventoryRepository {
+  list(tenantId: string, options?: ListOptions): Promise<InventoryItem[]>;
+  getById(tenantId: string, id: string): Promise<InventoryItem | null>;
+  create(tenantId: string, input: CreateInventoryItemInput): Promise<InventoryItem>;
+  update(tenantId: string, id: string, input: UpdateInventoryItemInput): Promise<InventoryItem>;
+  archive(tenantId: string, id: string, input?: ArchiveInput): Promise<InventoryItem>;
+  restore(tenantId: string, id: string): Promise<InventoryItem>;
+  recordReceipt(
+    tenantId: string,
+    id: string,
+    input: StockChangeInput
+  ): Promise<{ item: InventoryItem; movement: StockMovement }>;
+  recordConsumption(
+    tenantId: string,
+    id: string,
+    input: StockChangeInput
+  ): Promise<{ item: InventoryItem; movement: StockMovement }>;
+  adjustStock(
+    tenantId: string,
+    id: string,
+    input: StockChangeInput
+  ): Promise<{ item: InventoryItem; movement: StockMovement }>;
+  listMovements(tenantId: string, inventoryItemId: string): Promise<StockMovement[]>;
 }
 
 export interface OutreachMessageRepository {
@@ -120,11 +238,14 @@ export interface LocalAssetRepository {
 }
 
 export interface ProductRepository {
-  list(tenantId: string): Promise<Product[]>;
+  list(tenantId: string, options?: ListOptions): Promise<Product[]>;
   getById(tenantId: string, id: string): Promise<Product | null>;
   getBySku(tenantId: string, sku: string): Promise<Product | null>;
   create(tenantId: string, input: CreateProductInput): Promise<Product>;
   update(tenantId: string, id: string, input: UpdateProductInput): Promise<Product>;
+  duplicate(tenantId: string, id: string): Promise<Product>;
+  archive(tenantId: string, id: string, input?: ArchiveInput): Promise<Product>;
+  restore(tenantId: string, id: string): Promise<Product>;
   createMany(tenantId: string, inputs: CreateProductInput[]): Promise<Product[]>;
   listEmailPromotable(tenantId: string): Promise<Product[]>;
 }
@@ -136,6 +257,7 @@ export interface CampaignRepository {
 
 export interface ActivityRepository {
   list(tenantId: string): Promise<ActivityEvent[]>;
+  listForEntity(tenantId: string, entityType: string, entityId: string): Promise<ActivityEvent[]>;
   append(tenantId: string, event: CreateActivityEventInput): Promise<ActivityEvent>;
 }
 
@@ -148,9 +270,12 @@ export interface MetaRepository {
 export interface LocalRepositoryBundle {
   leads: LeadRepository;
   customers: CustomerRepository;
+  customerContacts: CustomerContactRepository;
   opportunities: OpportunityRepository;
   quotes: QuoteRepository;
   productionOrders: ProductionOrderRepository;
+  machines: MachineRepository;
+  inventory: InventoryRepository;
   outreachMessages: OutreachMessageRepository;
   campaigns: CampaignRepository;
   activities: ActivityRepository;

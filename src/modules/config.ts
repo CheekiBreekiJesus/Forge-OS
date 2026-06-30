@@ -17,7 +17,7 @@ export const moduleRoutes: Record<ModuleKey, string> = {
   dashboard: "",
   customers: "customers",
   products: "products",
-  orders: "orders",
+  orders: "quotations",
   production: "production",
   inventory: "inventory",
   machines: "machines",

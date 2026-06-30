@@ -1,10 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import type { Machine, InventoryItem } from "@/domain/operations-types";
+import type { Product } from "@/domain/product-types";
 import type { Lead, ProductionOrder, Quote, Customer, ActivityEvent } from "@/domain/types";
+import type { ListOptions } from "@/persistence/archive-utils";
 import { usePersistence } from "@/persistence/provider";
 
-export function useTenantLeads(): {
+function toListOptions(includeArchived: boolean): ListOptions {
+  return includeArchived ? { includeArchived: true } : {};
+}
+
+export function useTenantLeads(includeArchived = false): {
   leads: Lead[];
   loading: boolean;
   reload: () => Promise<void>;
@@ -16,10 +23,10 @@ export function useTenantLeads(): {
   const reload = useCallback(async () => {
     if (state.status !== "ready") return;
     setLoading(true);
-    const rows = await state.repos.leads.list(tenantId);
+    const rows = await state.repos.leads.list(tenantId, toListOptions(includeArchived));
     setLeads(rows);
     setLoading(false);
-  }, [state, tenantId]);
+  }, [state, tenantId, includeArchived]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- repository read on mount
@@ -59,7 +66,7 @@ export function useLeadById(leadId: string): {
   return { lead, loading, notFound };
 }
 
-export function useCustomers(): {
+export function useCustomers(includeArchived = false): {
   customers: Customer[];
   loading: boolean;
   reload: () => Promise<void>;
@@ -71,10 +78,10 @@ export function useCustomers(): {
   const reload = useCallback(async () => {
     if (state.status !== "ready") return;
     setLoading(true);
-    const rows = await state.repos.customers.list(tenantId);
+    const rows = await state.repos.customers.list(tenantId, toListOptions(includeArchived));
     setCustomers(rows);
     setLoading(false);
-  }, [state, tenantId]);
+  }, [state, tenantId, includeArchived]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- repository read on mount
@@ -84,7 +91,7 @@ export function useCustomers(): {
   return { customers, loading, reload };
 }
 
-export function useQuotes(): { quotes: Quote[]; loading: boolean; reload: () => Promise<void> } {
+export function useQuotes(includeArchived = false): { quotes: Quote[]; loading: boolean; reload: () => Promise<void> } {
   const { tenantId, state, dataVersion } = usePersistence();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,10 +99,10 @@ export function useQuotes(): { quotes: Quote[]; loading: boolean; reload: () => 
   const reload = useCallback(async () => {
     if (state.status !== "ready") return;
     setLoading(true);
-    const rows = await state.repos.quotes.list(tenantId);
+    const rows = await state.repos.quotes.list(tenantId, toListOptions(includeArchived));
     setQuotes(rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
     setLoading(false);
-  }, [state, tenantId]);
+  }, [state, tenantId, includeArchived]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- repository read on mount
@@ -105,7 +112,7 @@ export function useQuotes(): { quotes: Quote[]; loading: boolean; reload: () => 
   return { quotes, loading, reload };
 }
 
-export function useProductionOrders(): {
+export function useProductionOrders(includeArchived = false): {
   orders: ProductionOrder[];
   loading: boolean;
   reload: () => Promise<void>;
@@ -117,10 +124,10 @@ export function useProductionOrders(): {
   const reload = useCallback(async () => {
     if (state.status !== "ready") return;
     setLoading(true);
-    const rows = await state.repos.productionOrders.list(tenantId);
+    const rows = await state.repos.productionOrders.list(tenantId, toListOptions(includeArchived));
     setOrders(rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
     setLoading(false);
-  }, [state, tenantId]);
+  }, [state, tenantId, includeArchived]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- repository read on mount
@@ -206,4 +213,79 @@ export function useDashboardMetrics() {
   }, [reload, dataVersion]);
 
   return { metrics, loading, reload };
+}
+
+export function useMachines(includeArchived = false): {
+  machines: Machine[];
+  loading: boolean;
+  reload: () => Promise<void>;
+} {
+  const { tenantId, state, dataVersion } = usePersistence();
+  const [machines, setMachines] = useState<Machine[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const reload = useCallback(async () => {
+    if (state.status !== "ready") return;
+    setLoading(true);
+    const rows = await state.repos.machines.list(tenantId, toListOptions(includeArchived));
+    setMachines(rows);
+    setLoading(false);
+  }, [state, tenantId, includeArchived]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- repository read on mount
+    void reload();
+  }, [reload, dataVersion]);
+
+  return { machines, loading, reload };
+}
+
+export function useInventory(includeArchived = false): {
+  items: InventoryItem[];
+  loading: boolean;
+  reload: () => Promise<void>;
+} {
+  const { tenantId, state, dataVersion } = usePersistence();
+  const [items, setItems] = useState<InventoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const reload = useCallback(async () => {
+    if (state.status !== "ready") return;
+    setLoading(true);
+    const rows = await state.repos.inventory.list(tenantId, toListOptions(includeArchived));
+    setItems(rows);
+    setLoading(false);
+  }, [state, tenantId, includeArchived]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- repository read on mount
+    void reload();
+  }, [reload, dataVersion]);
+
+  return { items, loading, reload };
+}
+
+export function useProducts(includeArchived = false): {
+  products: Product[];
+  loading: boolean;
+  reload: () => Promise<void>;
+} {
+  const { tenantId, state, dataVersion } = usePersistence();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const reload = useCallback(async () => {
+    if (state.status !== "ready") return;
+    setLoading(true);
+    const rows = await state.repos.products.list(tenantId, toListOptions(includeArchived));
+    setProducts(rows);
+    setLoading(false);
+  }, [state, tenantId, includeArchived]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- repository read on mount
+    void reload();
+  }, [reload, dataVersion]);
+
+  return { products, loading, reload };
 }

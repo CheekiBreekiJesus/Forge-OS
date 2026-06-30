@@ -32,6 +32,8 @@ export type Product = {
   isEmailPromotable: boolean;
   active: boolean;
   archivedAt: string | null;
+  archivedBy: string | null;
+  archiveReason: string | null;
   createdAt: string;
   updatedAt: string;
 };

@@ -211,6 +211,27 @@ export type Dictionary = {
     yes: string;
     no: string;
     days: string;
+    loading: string;
+    empty: string;
+    actions: { create: string };
+    table: {
+      sku: string;
+      name: string;
+      category: string;
+      price: string;
+    };
+    form: {
+      createTitle: string;
+      editTitle: string;
+      name: string;
+      sku: string;
+      category: string;
+      basePrice: string;
+      productPageUrl: string;
+      emailTitle: string;
+      emailPromotable: string;
+      required: string;
+    };
   };
   demoWorkflow: {
     eyebrow: string;
@@ -438,6 +459,18 @@ export type Dictionary = {
       leads: string;
       import: string;
     };
+    actions: {
+      createLead: string;
+      convert: string;
+    };
+    form: {
+      createTitle: string;
+      companyName: string;
+      contactName: string;
+      email: string;
+      required: string;
+      invalidEmail: string;
+    };
     kpis: {
       totalLeads: string;
       ready: string;
@@ -631,6 +664,19 @@ export type Dictionary = {
     description: string;
     loading: string;
     empty: string;
+    emptyDescription?: string;
+    actions: { create: string };
+    form: {
+      createTitle: string;
+      editTitle: string;
+      companyName: string;
+      contactName: string;
+      email: string;
+      phone: string;
+      notes: string;
+      required: string;
+      invalidEmail: string;
+    };
     table: {
       company: string;
       contact: string;
@@ -640,12 +686,153 @@ export type Dictionary = {
       created: string;
     };
   };
+  machinesModule: {
+    title: string;
+    description: string;
+    loading: string;
+    empty: string;
+    actions: { create: string };
+    statuses: Record<"operational" | "maintenance" | "offline" | "retired", string>;
+    form: {
+      createTitle: string;
+      editTitle: string;
+      code: string;
+      name: string;
+      type: string;
+      status: string;
+      capacity: string;
+      location: string;
+      notes: string;
+      required: string;
+    };
+    table: {
+      code: string;
+      name: string;
+      type: string;
+      status: string;
+      capacity: string;
+    };
+  };
+  inventoryModule: {
+    title: string;
+    description: string;
+    loading: string;
+    empty: string;
+    actions: { create: string; receiveStock: string };
+    form: {
+      createTitle: string;
+      editTitle: string;
+      sku: string;
+      name: string;
+      category: string;
+      unit: string;
+      reorderLevel: string;
+      location: string;
+      notes: string;
+      required: string;
+    };
+    stock: {
+      title: string;
+      quantity: string;
+      reason: string;
+      submit: string;
+      defaultReason: string;
+    };
+    table: {
+      sku: string;
+      name: string;
+      quantity: string;
+      unit: string;
+      location: string;
+    };
+  };
+  crudModule: {
+    searchPlaceholder: string;
+    showArchived: string;
+    actions: {
+      menu: string;
+      edit: string;
+      archive: string;
+      restore: string;
+      duplicate: string;
+    };
+    form: {
+      create: string;
+      save: string;
+      cancel: string;
+    };
+    archive: {
+      title: string;
+      message: string;
+      restoreMessage: string;
+      confirm: string;
+      cancel: string;
+    };
+    error: { generic: string };
+    rolePreview: {
+      badge: string;
+      label: string;
+      roles: Record<"owner" | "sales" | "production_manager" | "warehouse_manager", string>;
+    };
+    commandPalette: {
+      placeholder: string;
+      noResults: string;
+      close: string;
+      groups: {
+        navigation: string;
+        create: string;
+        leads: string;
+        customers: string;
+        products: string;
+        quotes: string;
+        production: string;
+        machines: string;
+        inventory: string;
+      };
+      create: {
+        lead: string;
+        customer: string;
+        product: string;
+        quote: string;
+        production: string;
+        machine: string;
+        inventory: string;
+      };
+    };
+    quickCreate: {
+      trigger: string;
+      lead: string;
+      customer: string;
+      product: string;
+      quote: string;
+      production: string;
+      machine: string;
+      inventory: string;
+    };
+    customizeDialog: {
+      title: string;
+      message: string;
+      close: string;
+    };
+  };
   quotationsModule: {
     title: string;
     description: string;
     loading: string;
     empty: string;
-    statuses: Record<"draft" | "sent" | "approved", string>;
+    actions: { create: string; approve: string };
+    form: {
+      createTitle: string;
+      customer: string;
+      product: string;
+      quantity: string;
+      printColors: string;
+      notes: string;
+      selectCustomer: string;
+      selectProduct: string;
+      required: string;
+    };
+    statuses: Record<"draft" | "sent" | "approved" | "rejected", string>;
     table: {
       number: string;
       customer: string;
@@ -662,6 +849,16 @@ export type Dictionary = {
     loading: string;
     empty: string;
     openJobCard: string;
+    actions: {
+      assignMachine: string;
+      start: string;
+      complete: string;
+    };
+    form: {
+      assignMachine: string;
+      machine: string;
+      selectMachine: string;
+    };
     statuses: Record<"scheduled" | "in-progress" | "blocked" | "completed", string>;
     table: {
       number: string;

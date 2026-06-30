@@ -1,13 +1,10 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { Dictionary } from "@/i18n/dictionaries";
-import { supportedLocales, type Locale } from "@/i18n/config";
-import {
-  getLocalizedModuleHref,
-  moduleKeys,
-  moduleRoutes,
-  type ModuleKey
-} from "@/modules/config";
+import type { Locale } from "@/i18n/config";
+import { moduleRoutes, type ModuleKey } from "@/modules/config";
+import { AppFrameClient } from "@/components/app-frame-client";
+import { AppFrameNav } from "@/components/app-frame-nav";
 import { MobileNavDrawer } from "@/components/mobile-nav-drawer";
 
 type AppFrameProps = {
@@ -51,37 +48,14 @@ export function AppFrame({
             <div className="mt-1 text-xs text-slate-400">{dictionary.dashboard.userRole}</div>
           </div>
 
-          <nav className="flex-1 space-y-1 px-3">
-            {moduleKeys.map((key, index) => (
-              <Link
-                className={
-                  key === activeModule && !isLeadOpsActive
-                    ? "flex items-center gap-3 rounded-lg border-l-2 border-orange-400 bg-orange-500/10 px-3 py-3 text-sm font-semibold text-orange-300"
-                    : "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
-                }
-                href={getLocalizedModuleHref(locale, key)}
-                key={key}
-              >
-                <span className="grid size-6 place-items-center rounded-md border border-slate-700 text-xs">
-                  {index + 1}
-                </span>
-                {dictionary.navigation[key]}
-              </Link>
-            ))}
-            <Link
-              className={
-                isLeadOpsActive
-                  ? "flex items-center gap-3 rounded-lg border-l-2 border-orange-400 bg-orange-500/10 px-3 py-3 text-sm font-semibold text-orange-300"
-                  : "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
-              }
-              href={leadOpsHref}
-            >
-              <span className="grid size-6 place-items-center rounded-md border border-slate-700 text-xs">
-                L
-              </span>
-              {dictionary.navigation.leadops}
-            </Link>
-          </nav>
+          <AppFrameNav
+            activeModule={activeModule}
+            className="flex-1 px-3"
+            dictionary={dictionary}
+            isLeadOpsActive={isLeadOpsActive}
+            leadOpsHref={leadOpsHref}
+            locale={locale}
+          />
 
           <div className="m-4 rounded-lg border border-slate-700 bg-slate-900 px-4 py-4">
             <div className="text-sm font-bold">{dictionary.dashboard.footer.version}</div>
@@ -102,37 +76,12 @@ export function AppFrame({
                 locale={locale}
               />
 
-              <div className="hidden min-w-0 flex-1 sm:block">
-                <div className="flex max-w-md items-center rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-400">
-                  <span className="mr-2">/</span>
-                  <span className="flex-1">{dictionary.dashboard.searchPlaceholder}</span>
-                  <span className="text-xs">{dictionary.dashboard.searchShortcut}</span>
-                </div>
-              </div>
-
-              <div className="ml-auto flex items-center gap-2">
-                <div className="hidden items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 sm:flex">
-                  {dictionary.dashboard.dateRange}
-                </div>
-                <div className="flex rounded-lg border border-slate-700 bg-slate-900 p-1">
-                  {supportedLocales.map((supportedLocale) => (
-                    <Link
-                      className={
-                        supportedLocale === locale
-                          ? "rounded-md bg-slate-700 px-3 py-1.5 text-sm font-semibold text-white"
-                          : "rounded-md px-3 py-1.5 text-sm font-semibold text-slate-400 hover:text-white"
-                      }
-                      href={`/${supportedLocale}${activeRoute ? `/${activeRoute}` : ""}`}
-                      key={supportedLocale}
-                    >
-                      {supportedLocale === "pt-PT" ? "PT" : supportedLocale === "en" ? "EN" : supportedLocale}
-                    </Link>
-                  ))}
-                </div>
-                <button className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-200">
-                  {dictionary.dashboard.customize}
-                </button>
-              </div>
+              <AppFrameClient
+                activeModule={activeModule}
+                dictionary={dictionary}
+                locale={locale}
+                supplementalRoute={supplementalRoute}
+              />
             </div>
           </header>
 

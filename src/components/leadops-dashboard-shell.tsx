@@ -1,10 +1,21 @@
 "use client";
 
-import Link from "next/link";
-import React, { useMemo, useState } from "react";
+import React, { FormEvent, useCallback, useMemo, useState } from "react";
+import { convertDemoLead } from "@/application/demo-workflow-service";
 import { persistImportedLeads, validateCsvFile } from "@/application/csv-import-service";
 import { AppFrame, panelClass } from "@/components/app-frame";
+import {
+  ArchiveConfirmationDialog,
+  EntityFormDrawer,
+  FormField,
+  FormFieldError,
+  PrimaryActionButton,
+  RowActionMenu,
+  inputClassName
+} from "@/components/crud";
 import { toLeadOpsLead } from "@/domain/mappers";
+import { isValidEmail } from "@/features/crud/validation";
+import { isArchivedRecord, useHashAction } from "@/features/crud/ui-utils";
 import { clearLeadOpsFilters, hasActiveFilters } from "@/features/leadops/filters";
 import { parseLeadCsv, type LeadImportResult } from "@/features/leadops/import";
 import { calculateLeadOpsKpis, getCampaignProgress } from "@/features/leadops/kpis";
@@ -49,10 +60,12 @@ const kpiKeys = [
 
 export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardShellProps) {
   const copy = dictionary.leadops;
+  const shared = dictionary.crudModule;
+  const [showArchived, setShowArchived] = useState(false);
   const persistenceLoading = usePersistenceLoading();
-  const { leads: domainLeads, loading: leadsLoading, reload: reloadLeads } = useTenantLeads();
+  const { leads: domainLeads, loading: leadsLoading, reload: reloadLeads } = useTenantLeads(showArchived);
   const { activities: domainActivities } = useActivities();
-  const { state } = usePersistence();
+  const { state, tenantId, notifyDataChanged } = usePersistence();
   const [campaigns, setCampaigns] = useState<LeadOpsCampaign[]>([]);
   const [importResult, setImportResult] = useState<LeadImportResult | null>(null);
   const [importSummary, setImportSummary] = useState<string | null>(null);
@@ -87,6 +100,19 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<LeadOpsFilters>({ ...EMPTY_LEADOPS_FILTERS });
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
+  const [leadDrawerOpen, setLeadDrawerOpen] = useState(false);
+  const [leadForm, setLeadForm] = useState({ companyName: "", contactName: "", email: "" });
+  const [leadFormError, setLeadFormError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [archiveLeadId, setArchiveLeadId] = useState<string | null>(null);
+
+  const openCreateLead = useCallback(() => {
+    setLeadForm({ companyName: "", contactName: "", email: "" });
+    setLeadFormError(null);
+    setLeadDrawerOpen(true);
+  }, []);
+
+  useHashAction("create-lead", openCreateLead);
 
   const kpis = useMemo(
     () => calculateLeadOpsKpis(tenantLeads, campaigns),
@@ -101,6 +127,94 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
 
   function updateFilter<Key extends keyof LeadOpsFilters>(key: Key, value: LeadOpsFilters[Key]) {
     setFilters((current) => ({ ...current, [key]: value }));
+  }
+
+  async function handleCreateLead(event: FormEvent) {
+    event.preventDefault();
+    if (state.status !== "ready") return;
+    if (!leadForm.companyName.trim() || !leadForm.contactName.trim()) {
+      setLeadFormError(copy.form.required);
+      return;
+    }
+    if (!isValidEmail(leadForm.email)) {
+      setLeadFormError(copy.form.invalidEmail);
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await state.repos.leads.create(tenantId, leadForm);
+      notifyDataChanged();
+      await reloadLeads();
+      setLeadDrawerOpen(false);
+    } catch (error) {
+      setLeadFormError(error instanceof Error ? error.message : shared.error.generic);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleLeadArchive(leadId: string, restore: boolean) {
+    if (state.status !== "ready") return;
+    setSubmitting(true);
+    try {
+      if (restore) {
+        await state.repos.leads.restore(tenantId, leadId);
+      } else {
+        await state.repos.leads.archive(tenantId, leadId);
+      }
+      notifyDataChanged();
+      await reloadLeads();
+      setArchiveLeadId(null);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleLeadDuplicate(leadId: string) {
+    if (state.status !== "ready") return;
+    await state.repos.leads.duplicate(tenantId, leadId);
+    notifyDataChanged();
+    await reloadLeads();
+  }
+
+  async function handleLeadConvert(leadId: string) {
+    if (state.status !== "ready") return;
+    await convertDemoLead(state.repos, tenantId, leadId);
+    notifyDataChanged();
+    await reloadLeads();
+  }
+
+  function leadRowActions(leadId: string, archived: boolean) {
+    return (
+      <RowActionMenu
+        actions={[
+          {
+            key: "view",
+            label: copy.table.viewLead,
+            onClick: () => {
+              window.location.href = getLocalizedLeadDetailHref(locale, leadId);
+            }
+          },
+          {
+            key: "dup",
+            label: shared.actions.duplicate,
+            onClick: () => void handleLeadDuplicate(leadId)
+          },
+          {
+            key: "convert",
+            label: copy.actions.convert,
+            onClick: () => void handleLeadConvert(leadId)
+          },
+          {
+            key: "archive",
+            label: archived ? shared.actions.restore : shared.actions.archive,
+            destructive: !archived,
+            onClick: () => setArchiveLeadId(leadId)
+          }
+        ]}
+        triggerLabel={shared.actions.menu}
+      />
+    );
   }
 
   function handleClearFilters() {
@@ -284,7 +398,20 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
       </section>
 
       <section className={`${panelClass} p-5`}>
-        <PanelHeading title={copy.sections.leads} />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <PanelHeading title={copy.sections.leads} />
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="flex items-center gap-2 text-sm text-slate-300">
+              <input
+                checked={showArchived}
+                onChange={(e) => setShowArchived(e.target.checked)}
+                type="checkbox"
+              />
+              {shared.showArchived}
+            </label>
+            <PrimaryActionButton onClick={openCreateLead}>{copy.actions.createLead}</PrimaryActionButton>
+          </div>
+        </div>
 
         <div className="mt-4 grid gap-3 lg:grid-cols-[1.4fr_repeat(5,minmax(0,1fr))]">
           <input
@@ -407,10 +534,10 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
                 <tbody>
                   {listView.visibleLeads.map((lead) => (
                     <LeadTableRow
+                      actions={leadRowActions(lead.id, isArchivedRecord(domainLeads.find((l) => l.id === lead.id) ?? { active: true }))}
                       copy={copy}
                       key={lead.id}
                       lead={lead}
-                      locale={locale}
                       onToggle={() =>
                         setSelectedLeadIds(toggleLeadSelection(selectedLeadIds, lead.id))
                       }
@@ -424,10 +551,10 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
             <div className="mt-4 space-y-3 lg:hidden">
               {listView.visibleLeads.map((lead) => (
                 <LeadMobileCard
+                  actions={leadRowActions(lead.id, isArchivedRecord(domainLeads.find((l) => l.id === lead.id) ?? { active: true }))}
                   copy={copy}
                   key={lead.id}
                   lead={lead}
-                  locale={locale}
                   onToggle={() =>
                     setSelectedLeadIds(toggleLeadSelection(selectedLeadIds, lead.id))
                   }
@@ -438,6 +565,55 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
           </>
         ) : null}
       </section>
+
+      <EntityFormDrawer
+        cancelLabel={shared.form.cancel}
+        onClose={() => setLeadDrawerOpen(false)}
+        onSubmit={handleCreateLead}
+        open={leadDrawerOpen}
+        submitLabel={shared.form.create}
+        submitting={submitting}
+        title={copy.form.createTitle}
+      >
+        <FormField label={copy.form.companyName} required>
+          <input
+            className={inputClassName}
+            onChange={(e) => setLeadForm({ ...leadForm, companyName: e.target.value })}
+            value={leadForm.companyName}
+          />
+        </FormField>
+        <FormField label={copy.form.contactName} required>
+          <input
+            className={inputClassName}
+            onChange={(e) => setLeadForm({ ...leadForm, contactName: e.target.value })}
+            value={leadForm.contactName}
+          />
+        </FormField>
+        <FormField label={copy.form.email} required>
+          <input
+            className={inputClassName}
+            onChange={(e) => setLeadForm({ ...leadForm, email: e.target.value })}
+            type="email"
+            value={leadForm.email}
+          />
+        </FormField>
+        <FormFieldError message={leadFormError} />
+      </EntityFormDrawer>
+
+      <ArchiveConfirmationDialog
+        cancelLabel={shared.archive.cancel}
+        confirmLabel={shared.archive.confirm}
+        confirming={submitting}
+        message={shared.archive.message}
+        onCancel={() => setArchiveLeadId(null)}
+        onConfirm={() => {
+          const lead = domainLeads.find((l) => l.id === archiveLeadId);
+          if (!lead || !archiveLeadId) return;
+          void handleLeadArchive(archiveLeadId, isArchivedRecord(lead));
+        }}
+        open={Boolean(archiveLeadId)}
+        title={shared.archive.title}
+      />
     </AppFrame>
   );
 }
@@ -504,16 +680,16 @@ function EmptyState({ title, description }: { title: string; description: string
 
 function LeadTableRow({
   lead,
-  locale,
   copy,
   selected,
-  onToggle
+  onToggle,
+  actions
 }: {
   lead: LeadOpsLead;
-  locale: Locale;
   copy: Dictionary["leadops"];
   selected: boolean;
   onToggle: () => void;
+  actions: React.ReactNode;
 }) {
   return (
     <tr className="border-t border-slate-800 text-slate-200">
@@ -526,30 +702,23 @@ function LeadTableRow({
       <td className="px-3 py-3">{lead.location}</td>
       <td className="px-3 py-3">{copy.statuses[lead.status]}</td>
       <td className="px-3 py-3">{copy.qualities[lead.quality]}</td>
-      <td className="px-3 py-3">
-        <Link
-          className="text-sm font-semibold text-blue-300 hover:text-blue-200"
-          href={getLocalizedLeadDetailHref(locale, lead.id)}
-        >
-          {copy.table.viewLead}
-        </Link>
-      </td>
+      <td className="px-3 py-3">{actions}</td>
     </tr>
   );
 }
 
 function LeadMobileCard({
   lead,
-  locale,
   copy,
   selected,
-  onToggle
+  onToggle,
+  actions
 }: {
   lead: LeadOpsLead;
-  locale: Locale;
   copy: Dictionary["leadops"];
   selected: boolean;
   onToggle: () => void;
+  actions: React.ReactNode;
 }) {
   return (
     <article className="rounded-lg border border-slate-800 bg-slate-950/40 p-4">
@@ -558,12 +727,7 @@ function LeadMobileCard({
           <input checked={selected} onChange={onToggle} type="checkbox" />
           <span className="font-semibold">{lead.companyName}</span>
         </label>
-        <Link
-          className="text-xs font-semibold text-blue-300 hover:text-blue-200"
-          href={getLocalizedLeadDetailHref(locale, lead.id)}
-        >
-          {copy.table.viewLead}
-        </Link>
+        {actions}
       </div>
       <div className="mt-3 grid gap-1 text-sm text-slate-400">
         <div>

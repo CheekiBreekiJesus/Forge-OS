@@ -534,7 +534,28 @@ export const dictionary: Dictionary = {
     },
     yes: "Yes",
     no: "No",
-    days: "days"
+    days: "days",
+    loading: "Loading products…",
+    empty: "No products yet.",
+    actions: { create: "New product" },
+    table: {
+      sku: "SKU",
+      name: "Name",
+      category: "Category",
+      price: "Base price"
+    },
+    form: {
+      createTitle: "Create product",
+      editTitle: "Edit product",
+      name: "Name",
+      sku: "SKU",
+      category: "Category",
+      basePrice: "Base price",
+      productPageUrl: "Product page URL",
+      emailTitle: "Email title",
+      emailPromotable: "Promotable in outreach emails",
+      required: "Name and SKU are required."
+    }
   },
   demoWorkflow: {
     eyebrow: "JH Gomes demo flow",
@@ -784,6 +805,18 @@ export const dictionary: Dictionary = {
       leads: "Lead list",
       import: "Import CSV"
     },
+    actions: {
+      createLead: "New lead",
+      convert: "Convert to customer"
+    },
+    form: {
+      createTitle: "Create lead",
+      companyName: "Company",
+      contactName: "Contact",
+      email: "Email",
+      required: "Company and contact are required.",
+      invalidEmail: "Enter a valid email address."
+    },
     kpis: {
       totalLeads: "Total leads",
       ready: "Ready",
@@ -994,9 +1027,22 @@ export const dictionary: Dictionary = {
   },
   customersModule: {
     title: "Customers",
-    description: "Persistent customers converted from leads and demo workflow.",
+    description: "Manage tenant-scoped customers with create, edit, and archive actions.",
     loading: "Loading customers…",
-    empty: "No customers yet. Convert a lead from the demo workflow.",
+    empty: "No customers yet",
+    emptyDescription: "Create a customer or convert a lead from Outreach.",
+    actions: { create: "New customer" },
+    form: {
+      createTitle: "Create customer",
+      editTitle: "Edit customer",
+      companyName: "Company",
+      contactName: "Contact",
+      email: "Email",
+      phone: "Phone",
+      notes: "Notes",
+      required: "Company and contact are required.",
+      invalidEmail: "Enter a valid email address."
+    },
     table: {
       company: "Company",
       contact: "Contact",
@@ -1006,15 +1052,167 @@ export const dictionary: Dictionary = {
       created: "Created"
     }
   },
+  machinesModule: {
+    title: "Machines",
+    description: "Manage production machines, capacity, and availability.",
+    loading: "Loading machines…",
+    empty: "No machines yet.",
+    actions: { create: "New machine" },
+    statuses: {
+      operational: "Operational",
+      maintenance: "Maintenance",
+      offline: "Offline",
+      retired: "Retired"
+    },
+    form: {
+      createTitle: "Create machine",
+      editTitle: "Edit machine",
+      code: "Code",
+      name: "Name",
+      type: "Type",
+      status: "Status",
+      capacity: "Capacity / hour",
+      location: "Location",
+      notes: "Notes",
+      required: "Code and name are required."
+    },
+    table: {
+      code: "Code",
+      name: "Name",
+      type: "Type",
+      status: "Status",
+      capacity: "Capacity/h"
+    }
+  },
+  inventoryModule: {
+    title: "Inventory",
+    description: "Track stock levels, receipts, and warehouse locations.",
+    loading: "Loading inventory…",
+    empty: "No inventory items yet.",
+    actions: { create: "New item", receiveStock: "Receive stock" },
+    form: {
+      createTitle: "Create inventory item",
+      editTitle: "Edit inventory item",
+      sku: "SKU",
+      name: "Name",
+      category: "Category",
+      unit: "Unit",
+      reorderLevel: "Reorder level",
+      location: "Warehouse location",
+      notes: "Notes",
+      required: "SKU and name are required."
+    },
+    stock: {
+      title: "Record stock receipt",
+      quantity: "Quantity",
+      reason: "Reason",
+      submit: "Record receipt",
+      defaultReason: "Manual receipt"
+    },
+    table: {
+      sku: "SKU",
+      name: "Name",
+      quantity: "Quantity",
+      unit: "Unit",
+      location: "Location"
+    }
+  },
+  crudModule: {
+    searchPlaceholder: "Search records…",
+    showArchived: "Show archived",
+    actions: {
+      menu: "Actions",
+      edit: "Edit",
+      archive: "Archive",
+      restore: "Restore",
+      duplicate: "Duplicate"
+    },
+    form: {
+      create: "Create",
+      save: "Save",
+      cancel: "Cancel"
+    },
+    archive: {
+      title: "Archive record?",
+      message: "Archived records are hidden from default lists. You can restore them later.",
+      restoreMessage: "Restore this record to active lists?",
+      confirm: "Confirm",
+      cancel: "Cancel"
+    },
+    error: { generic: "Something went wrong. Try again." },
+    rolePreview: {
+      badge: "Preview role",
+      label: "Preview role",
+      roles: {
+        owner: "Owner",
+        sales: "Sales",
+        production_manager: "Production manager",
+        warehouse_manager: "Warehouse manager"
+      }
+    },
+    commandPalette: {
+      placeholder: "Search modules and records…",
+      noResults: "No matches",
+      close: "Close",
+      groups: {
+        navigation: "Navigation",
+        create: "Quick create",
+        leads: "Leads",
+        customers: "Customers",
+        products: "Products",
+        quotes: "Quotations",
+        production: "Production",
+        machines: "Machines",
+        inventory: "Inventory"
+      },
+      create: {
+        lead: "New lead",
+        customer: "New customer",
+        product: "New product",
+        quote: "New quotation",
+        production: "New production order",
+        machine: "New machine",
+        inventory: "New inventory item"
+      }
+    },
+    quickCreate: {
+      trigger: "Create",
+      lead: "Lead",
+      customer: "Customer",
+      product: "Product",
+      quote: "Quotation",
+      production: "Production order",
+      machine: "Machine",
+      inventory: "Inventory item"
+    },
+    customizeDialog: {
+      title: "Customize dashboard",
+      message: "Dashboard customization is not available in this local MVP preview.",
+      close: "Close"
+    }
+  },
   quotationsModule: {
     title: "Quotations",
-    description: "Persistent quotations created from the demo workflow.",
+    description: "Create, approve, and manage customer quotations.",
     loading: "Loading quotations…",
     empty: "No quotations yet.",
+    actions: { create: "New quotation", approve: "Approve" },
+    form: {
+      createTitle: "Create quotation",
+      customer: "Customer",
+      product: "Product",
+      quantity: "Quantity",
+      printColors: "Print colours",
+      notes: "Notes",
+      selectCustomer: "Select customer",
+      selectProduct: "Select product",
+      required: "Customer and product are required."
+    },
     statuses: {
       draft: "Draft",
       sent: "Sent",
-      approved: "Approved"
+      approved: "Approved",
+      rejected: "Rejected"
     },
     table: {
       number: "Number",
@@ -1028,10 +1226,20 @@ export const dictionary: Dictionary = {
   },
   productionModule: {
     title: "Production orders",
-    description: "Persistent production orders linked to approved quotations.",
+    description: "Assign machines, update status, and open job cards.",
     loading: "Loading production orders…",
     empty: "No production orders yet.",
     openJobCard: "Job card",
+    actions: {
+      assignMachine: "Assign machine",
+      start: "Start production",
+      complete: "Mark completed"
+    },
+    form: {
+      assignMachine: "Assign machine",
+      machine: "Machine",
+      selectMachine: "Select machine"
+    },
     statuses: {
       scheduled: "Scheduled",
       "in-progress": "In progress",

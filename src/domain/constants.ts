@@ -5,7 +5,7 @@ export const DEFAULT_TENANT_ID = "tenant_jh_gomes" as const;
 export const LOCAL_DB_NAME = "forgeos:jhgomes:development" as const;
 
 /** Bump when seed data shape changes to trigger optional reseed prompts. */
-export const SEED_VERSION = 2 as const;
+export const SEED_VERSION = 3 as const;
 
 /** IndexedDB Dexie schema version. */
-export const SCHEMA_VERSION = 2 as const;
+export const SCHEMA_VERSION = 3 as const;

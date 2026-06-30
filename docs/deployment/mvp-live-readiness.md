@@ -4,7 +4,7 @@ ForgeOS is **not production-ready**. This document describes gaps between the cu
 
 ## 1. Current local MVP
 
-- IndexedDB persistence (`forgeos:jhgomes:development`)
+- IndexedDB persistence (`forgeos:jhgomes:development`) — schema v3 with machines, inventory, customer contacts
 - Single implicit tenant (`tenant_jh_gomes`)
 - Demo workflow creates durable leads → customers → quotes → production orders
 - Outreach uses shared repository + server AI gateway
@@ -125,6 +125,8 @@ ForgeOS is **not production-ready**. This document describes gaps between the cu
 - [x] Outreach reads/writes shared leads
 - [x] Dashboard metrics from repository
 - [x] Customers, Quotations, Production lists
+- [x] Operational CRUD UI (customers, products, quotations, production, machines, inventory, leads)
+- [x] Command palette, role preview, quick create (local demo only)
 - [x] CSV import confirmation + persist
 - [x] Reset/reseed
 - [x] Deterministic E2E (no paid AI in CI)

@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { getLocalizedModuleHref, moduleKeys, type ModuleKey } from "@/modules/config";
+import type { ModuleKey } from "@/modules/config";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
+import { AppFrameNav } from "@/components/app-frame-nav";
 
 type MobileNavDrawerProps = {
   activeModule: ModuleKey;
@@ -89,39 +90,15 @@ export function MobileNavDrawer({
           <div className="mt-1 text-xs text-slate-400">{dictionary.dashboard.userRole}</div>
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto px-3">
-          {moduleKeys.map((key, index) => (
-            <Link
-              className={
-                key === activeModule && !isLeadOpsActive
-                  ? "flex items-center gap-3 rounded-lg border-l-2 border-orange-400 bg-orange-500/10 px-3 py-3 text-sm font-semibold text-orange-300"
-                  : "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
-              }
-              href={getLocalizedModuleHref(locale, key)}
-              key={key}
-              onClick={close}
-            >
-              <span className="grid size-6 place-items-center rounded-md border border-slate-700 text-xs">
-                {index + 1}
-              </span>
-              {dictionary.navigation[key]}
-            </Link>
-          ))}
-          <Link
-            className={
-              isLeadOpsActive
-                ? "flex items-center gap-3 rounded-lg border-l-2 border-orange-400 bg-orange-500/10 px-3 py-3 text-sm font-semibold text-orange-300"
-                : "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
-            }
-            href={leadOpsHref}
-            onClick={close}
-          >
-            <span className="grid size-6 place-items-center rounded-md border border-slate-700 text-xs">
-              L
-            </span>
-            {dictionary.navigation.leadops}
-          </Link>
-        </nav>
+        <AppFrameNav
+          activeModule={activeModule}
+          className="flex-1 overflow-y-auto px-3"
+          dictionary={dictionary}
+          isLeadOpsActive={isLeadOpsActive}
+          leadOpsHref={leadOpsHref}
+          locale={locale}
+          onNavigate={close}
+        />
       </div>
     </>
   );

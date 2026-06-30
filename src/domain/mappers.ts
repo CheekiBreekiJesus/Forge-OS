@@ -1,4 +1,5 @@
 import type { LeadOpsCampaign, LeadOpsLead } from "@/features/leadops/types";
+import { DEFAULT_ARCHIVABLE } from "@/persistence/archive-utils";
 import type { Campaign, Customer, Lead, Opportunity, ProductionOrder, Quote } from "./types";
 
 export function toLeadOpsLead(lead: Lead): LeadOpsLead {
@@ -43,6 +44,7 @@ export function leadFromLeadOpsSeed(seed: LeadOpsLead, overrides?: Partial<Lead>
     email: seed.email,
     phone: "",
     website: seed.website,
+    facebookUrl: null,
     location: seed.location,
     industry: seed.industry,
     crmStatus:
@@ -55,6 +57,7 @@ export function leadFromLeadOpsSeed(seed: LeadOpsLead, overrides?: Partial<Lead>
     quality: seed.quality,
     source: seed.source,
     sourceDatabase: seed.sourceDatabase,
+    contactSource: seed.sourceDatabase,
     language: seed.language,
     campaignId: seed.campaignId,
     consentStatus: seed.consentStatus ?? "subscribed",
@@ -62,6 +65,7 @@ export function leadFromLeadOpsSeed(seed: LeadOpsLead, overrides?: Partial<Lead>
     requestedProductId: null,
     quantity: 0,
     notes: "",
+    ...DEFAULT_ARCHIVABLE,
     createdAt: now,
     updatedAt: now,
     ...overrides

@@ -5,6 +5,7 @@ import type {
   LeadOpsQuality,
   LeadOpsStatus
 } from "@/features/leadops/types";
+import type { CustomerStatus } from "@/domain/operations-types";
 
 export type Tenant = {
   id: string;
@@ -23,6 +24,7 @@ export type Lead = {
   email: string;
   phone: string;
   website: string | null;
+  facebookUrl: string | null;
   location: string;
   industry: string;
   crmStatus: CrmLeadStatus;
@@ -30,6 +32,7 @@ export type Lead = {
   quality: LeadOpsQuality;
   source: string;
   sourceDatabase: string;
+  contactSource: string;
   language: string;
   campaignId: string | null;
   consentStatus: LeadOpsConsentStatus;
@@ -37,6 +40,10 @@ export type Lead = {
   requestedProductId: string | null;
   quantity: number;
   notes: string;
+  active: boolean;
+  archivedAt: string | null;
+  archivedBy: string | null;
+  archiveReason: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -47,14 +54,19 @@ export type CreateLeadInput = {
   email: string;
   phone?: string;
   website?: string | null;
+  facebookUrl?: string | null;
   location?: string;
   industry?: string;
   source?: string;
   sourceDatabase?: string;
+  contactSource?: string;
   language?: string;
   requestedProductId?: string | null;
   quantity?: number;
   notes?: string;
+  quality?: LeadOpsQuality;
+  outreachStatus?: LeadOpsStatus;
+  consentStatus?: LeadOpsConsentStatus;
 };
 
 export type UpdateLeadInput = Partial<
@@ -64,15 +76,52 @@ export type UpdateLeadInput = Partial<
 export type Customer = {
   id: string;
   tenantId: string;
-  leadId: string;
+  leadId: string | null;
+  legalName: string;
+  tradingName: string;
   companyName: string;
   contactName: string;
   email: string;
   phone: string;
+  vatNumber: string;
+  addressLine1: string;
+  addressLine2: string;
+  postalCode: string;
+  city: string;
+  country: string;
+  website: string | null;
+  customerStatus: CustomerStatus;
   notes: string;
+  active: boolean;
+  archivedAt: string | null;
+  archivedBy: string | null;
+  archiveReason: string | null;
   createdAt: string;
   updatedAt: string;
 };
+
+export type CreateCustomerInput = {
+  leadId?: string | null;
+  legalName: string;
+  tradingName?: string;
+  companyName?: string;
+  contactName: string;
+  email: string;
+  phone?: string;
+  vatNumber?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  postalCode?: string;
+  city?: string;
+  country?: string;
+  website?: string | null;
+  customerStatus?: CustomerStatus;
+  notes?: string;
+};
+
+export type UpdateCustomerInput = Partial<
+  Omit<Customer, "id" | "tenantId" | "createdAt" | "updatedAt">
+>;
 
 export type OpportunityStage =
   | "discovery"
@@ -118,7 +167,7 @@ export type OutreachMessage = {
   updatedAt: string;
 };
 
-export type QuoteStatus = "draft" | "sent" | "approved";
+export type QuoteStatus = "draft" | "sent" | "approved" | "rejected";
 
 export type QuoteLine = {
   productId: string;
@@ -145,6 +194,13 @@ export type Quote = {
   subtotal: number;
   vat: number;
   total: number;
+  discount: number;
+  validityDate: string | null;
+  notes: string;
+  active: boolean;
+  archivedAt: string | null;
+  archivedBy: string | null;
+  archiveReason: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -162,7 +218,14 @@ export type CreateQuoteInput = {
   total: number;
   setupCost: number;
   unitPrice: number;
+  discount?: number;
+  validityDate?: string | null;
+  notes?: string;
 };
+
+export type UpdateQuoteInput = Partial<
+  Omit<Quote, "id" | "tenantId" | "quoteNumber" | "createdAt" | "updatedAt">
+>;
 
 export type ProductionOrderStatus =
   | "scheduled"
@@ -180,14 +243,22 @@ export type ProductionOrder = {
   productId: string;
   productName: string;
   quantity: number;
+  completedQuantity: number;
+  rejectedQuantity: number;
   status: ProductionOrderStatus;
   scheduledDate: string;
+  plannedStart: string | null;
+  plannedEnd: string | null;
   artworkStatus: "pending" | "approved";
   screenStatus: "pending" | "ready";
   machineId: string;
   machineName: string;
   progress: number;
   operatorNotes: string;
+  active: boolean;
+  archivedAt: string | null;
+  archivedBy: string | null;
+  archiveReason: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -203,10 +274,19 @@ export type ActivityAction =
   | "outreach_sent_simulated"
   | "quotation_created"
   | "quotation_approved"
+  | "quotation_rejected"
   | "production_order_created"
   | "machine_assigned"
   | "inventory_reserved"
-  | "production_logged";
+  | "production_logged"
+  | "entity_created"
+  | "entity_updated"
+  | "entity_archived"
+  | "entity_restored"
+  | "stock_received"
+  | "stock_consumed"
+  | "stock_adjusted"
+  | "production_status_changed";
 
 export type ActivityEntityType =
   | "lead"
@@ -215,7 +295,10 @@ export type ActivityEntityType =
   | "quote"
   | "production_order"
   | "outreach"
-  | "campaign";
+  | "campaign"
+  | "product"
+  | "machine"
+  | "inventory";
 
 export type ActivityEvent = {
   id: string;

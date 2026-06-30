@@ -534,7 +534,28 @@ export const dictionary: Dictionary = {
     },
     yes: "Sim",
     no: "Não",
-    days: "dias"
+    days: "dias",
+    loading: "A carregar produtos…",
+    empty: "Ainda sem produtos.",
+    actions: { create: "Novo produto" },
+    table: {
+      sku: "SKU",
+      name: "Nome",
+      category: "Categoria",
+      price: "Preço base"
+    },
+    form: {
+      createTitle: "Criar produto",
+      editTitle: "Editar produto",
+      name: "Nome",
+      sku: "SKU",
+      category: "Categoria",
+      basePrice: "Preço base",
+      productPageUrl: "URL da página do produto",
+      emailTitle: "Título do email",
+      emailPromotable: "Promovível em emails de outreach",
+      required: "Nome e SKU são obrigatórios."
+    }
   },
   demoWorkflow: {
     eyebrow: "Fluxo demo JH Gomes",
@@ -784,6 +805,18 @@ export const dictionary: Dictionary = {
       leads: "Lista de leads",
       import: "Importar CSV"
     },
+    actions: {
+      createLead: "Novo lead",
+      convert: "Converter em cliente"
+    },
+    form: {
+      createTitle: "Criar lead",
+      companyName: "Empresa",
+      contactName: "Contacto",
+      email: "Email",
+      required: "Empresa e contacto são obrigatórios.",
+      invalidEmail: "Introduza um endereço de email válido."
+    },
     kpis: {
       totalLeads: "Total de leads",
       ready: "Prontos",
@@ -994,9 +1027,22 @@ export const dictionary: Dictionary = {
   },
   customersModule: {
     title: "Clientes",
-    description: "Clientes persistentes convertidos a partir de leads e do fluxo demo.",
+    description: "Gerir clientes do tenant com criar, editar e arquivar.",
     loading: "A carregar clientes…",
-    empty: "Ainda sem clientes. Converta um lead no fluxo demo.",
+    empty: "Ainda sem clientes",
+    emptyDescription: "Crie um cliente ou converta um lead em Contactos Comerciais.",
+    actions: { create: "Novo cliente" },
+    form: {
+      createTitle: "Criar cliente",
+      editTitle: "Editar cliente",
+      companyName: "Empresa",
+      contactName: "Contacto",
+      email: "Email",
+      phone: "Telefone",
+      notes: "Notas",
+      required: "Empresa e contacto são obrigatórios.",
+      invalidEmail: "Introduza um endereço de email válido."
+    },
     table: {
       company: "Empresa",
       contact: "Contacto",
@@ -1006,15 +1052,167 @@ export const dictionary: Dictionary = {
       created: "Criado"
     }
   },
+  machinesModule: {
+    title: "Máquinas",
+    description: "Gerir máquinas de produção, capacidade e disponibilidade.",
+    loading: "A carregar máquinas…",
+    empty: "Ainda sem máquinas.",
+    actions: { create: "Nova máquina" },
+    statuses: {
+      operational: "Operacional",
+      maintenance: "Manutenção",
+      offline: "Offline",
+      retired: "Retirada"
+    },
+    form: {
+      createTitle: "Criar máquina",
+      editTitle: "Editar máquina",
+      code: "Código",
+      name: "Nome",
+      type: "Tipo",
+      status: "Estado",
+      capacity: "Capacidade / hora",
+      location: "Localização",
+      notes: "Notas",
+      required: "Código e nome são obrigatórios."
+    },
+    table: {
+      code: "Código",
+      name: "Nome",
+      type: "Tipo",
+      status: "Estado",
+      capacity: "Capacidade/h"
+    }
+  },
+  inventoryModule: {
+    title: "Inventário",
+    description: "Acompanhar níveis de stock, entradas e localizações.",
+    loading: "A carregar inventário…",
+    empty: "Ainda sem itens de inventário.",
+    actions: { create: "Novo item", receiveStock: "Registar entrada" },
+    form: {
+      createTitle: "Criar item de inventário",
+      editTitle: "Editar item de inventário",
+      sku: "SKU",
+      name: "Nome",
+      category: "Categoria",
+      unit: "Unidade",
+      reorderLevel: "Nível de reposição",
+      location: "Localização no armazém",
+      notes: "Notas",
+      required: "SKU e nome são obrigatórios."
+    },
+    stock: {
+      title: "Registar entrada de stock",
+      quantity: "Quantidade",
+      reason: "Motivo",
+      submit: "Registar entrada",
+      defaultReason: "Entrada manual"
+    },
+    table: {
+      sku: "SKU",
+      name: "Nome",
+      quantity: "Quantidade",
+      unit: "Unidade",
+      location: "Localização"
+    }
+  },
+  crudModule: {
+    searchPlaceholder: "Pesquisar registos…",
+    showArchived: "Mostrar arquivados",
+    actions: {
+      menu: "Ações",
+      edit: "Editar",
+      archive: "Arquivar",
+      restore: "Restaurar",
+      duplicate: "Duplicar"
+    },
+    form: {
+      create: "Criar",
+      save: "Guardar",
+      cancel: "Cancelar"
+    },
+    archive: {
+      title: "Arquivar registo?",
+      message: "Registos arquivados ficam ocultos nas listas por defeito. Pode restaurá-los mais tarde.",
+      restoreMessage: "Restaurar este registo para as listas ativas?",
+      confirm: "Confirmar",
+      cancel: "Cancelar"
+    },
+    error: { generic: "Ocorreu um erro. Tente novamente." },
+    rolePreview: {
+      badge: "Papel (pré-visualização)",
+      label: "Papel de pré-visualização",
+      roles: {
+        owner: "Proprietário",
+        sales: "Comercial",
+        production_manager: "Gestor de produção",
+        warehouse_manager: "Gestor de armazém"
+      }
+    },
+    commandPalette: {
+      placeholder: "Pesquisar módulos e registos…",
+      noResults: "Sem resultados",
+      close: "Fechar",
+      groups: {
+        navigation: "Navegação",
+        create: "Criação rápida",
+        leads: "Leads",
+        customers: "Clientes",
+        products: "Produtos",
+        quotes: "Orçamentos",
+        production: "Produção",
+        machines: "Máquinas",
+        inventory: "Inventário"
+      },
+      create: {
+        lead: "Novo lead",
+        customer: "Novo cliente",
+        product: "Novo produto",
+        quote: "Novo orçamento",
+        production: "Nova ordem de produção",
+        machine: "Nova máquina",
+        inventory: "Novo item de inventário"
+      }
+    },
+    quickCreate: {
+      trigger: "Criar",
+      lead: "Lead",
+      customer: "Cliente",
+      product: "Produto",
+      quote: "Orçamento",
+      production: "Ordem de produção",
+      machine: "Máquina",
+      inventory: "Item de inventário"
+    },
+    customizeDialog: {
+      title: "Personalizar painel",
+      message: "A personalização do painel não está disponível nesta pré-visualização MVP local.",
+      close: "Fechar"
+    }
+  },
   quotationsModule: {
     title: "Orçamentos",
-    description: "Orçamentos persistentes criados pelo fluxo demo.",
+    description: "Criar, aprovar e gerir orçamentos de clientes.",
     loading: "A carregar orçamentos…",
     empty: "Ainda sem orçamentos.",
+    actions: { create: "Novo orçamento", approve: "Aprovar" },
+    form: {
+      createTitle: "Criar orçamento",
+      customer: "Cliente",
+      product: "Produto",
+      quantity: "Quantidade",
+      printColors: "Cores de impressão",
+      notes: "Notas",
+      selectCustomer: "Selecionar cliente",
+      selectProduct: "Selecionar produto",
+      required: "Cliente e produto são obrigatórios."
+    },
     statuses: {
       draft: "Rascunho",
       sent: "Enviado",
-      approved: "Aprovado"
+      approved: "Aprovado",
+      rejected: "Rejeitado"
     },
     table: {
       number: "Número",
@@ -1028,10 +1226,20 @@ export const dictionary: Dictionary = {
   },
   productionModule: {
     title: "Ordens de produção",
-    description: "Ordens persistentes ligadas a orçamentos aprovados.",
+    description: "Atribuir máquinas, atualizar estado e abrir cartões de trabalho.",
     loading: "A carregar ordens…",
     empty: "Ainda sem ordens de produção.",
     openJobCard: "Cartão de trabalho",
+    actions: {
+      assignMachine: "Atribuir máquina",
+      start: "Iniciar produção",
+      complete: "Marcar concluída"
+    },
+    form: {
+      assignMachine: "Atribuir máquina",
+      machine: "Máquina",
+      selectMachine: "Selecionar máquina"
+    },
     statuses: {
       scheduled: "Agendado",
       "in-progress": "Em curso",
