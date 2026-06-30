@@ -29,6 +29,7 @@ import type {
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { usePersistence } from "@/persistence/provider";
+import { useCustomizerSimulations } from "@/persistence/hooks";
 import type { OutreachMessage } from "@/domain/types";
 import type { ProductEmailSnapshot } from "@/domain/product-types";
 import {
@@ -119,6 +120,12 @@ export function LeadOpsDetailWorkspace({
   const [isSending, setIsSending] = useState(false);
   const [providerModel, setProviderModel] = useState<string | null>(null);
   const [providerMode, setProviderMode] = useState(dictionary.leadops.detailWorkspace.simulationMode);
+  const [attachSimulationMockup, setAttachSimulationMockup] = useState(false);
+  const { simulations: leadSimulations } = useCustomizerSimulations();
+  const leadCustomizerSimulation = useMemo(
+    () => leadSimulations.find((simulation) => simulation.leadId === lead.id) ?? null,
+    [lead.id, leadSimulations]
+  );
   const sequence = buildSequencePreview(message);
   const workflowState = useMemo<LeadOpsWorkflowState>(
     () => ({
@@ -641,6 +648,31 @@ export function LeadOpsDetailWorkspace({
                 />
               </div>
             ) : null}
+          </Panel>
+
+          <Panel title={dictionary.customizerModule.leadopsMedia.title}>
+            <p className="text-sm text-slate-400">{dictionary.customizerModule.leadopsMedia.description}</p>
+            <label className="mt-4 flex items-center gap-2 text-sm text-slate-200">
+              <input
+                checked={attachSimulationMockup}
+                onChange={(event) => setAttachSimulationMockup(event.target.checked)}
+                type="checkbox"
+              />
+              {dictionary.customizerModule.leadopsMedia.optIn}
+            </label>
+            {attachSimulationMockup ? (
+              <div className="mt-4 rounded-lg border border-dashed border-slate-700 bg-slate-950/40 p-4 text-sm text-slate-300">
+                {leadCustomizerSimulation?.mockupAssetId
+                  ? dictionary.customizerModule.leadopsMedia.mockupReady
+                  : dictionary.customizerModule.leadopsMedia.mockupPlaceholder}
+              </div>
+            ) : null}
+            <Link
+              className="mt-4 inline-flex rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800"
+              href={`/${locale}/quotations/customizer?leadId=${lead.id}`}
+            >
+              {dictionary.customizerModule.leadopsMedia.openCustomizer}
+            </Link>
           </Panel>
 
           <section className="grid gap-4 xl:grid-cols-2">

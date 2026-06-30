@@ -22,6 +22,11 @@ import type {
   UpdateUserProfileInput,
   UserProfile
 } from "@/domain/profile-types";
+import type {
+  CreateCustomizerSimulationInput,
+  CustomizerSimulation,
+  UpdateCustomizerSimulationInput
+} from "@/domain/customizer-types";
 import type { CreateProductInput, Product, UpdateProductInput } from "@/domain/product-types";
 import type {
   ActivityEvent,
@@ -261,6 +266,20 @@ export interface ActivityRepository {
   append(tenantId: string, event: CreateActivityEventInput): Promise<ActivityEvent>;
 }
 
+export interface CustomizerSimulationRepository {
+  list(tenantId: string, options?: ListOptions): Promise<CustomizerSimulation[]>;
+  getById(tenantId: string, id: string): Promise<CustomizerSimulation | null>;
+  create(tenantId: string, input: CreateCustomizerSimulationInput): Promise<CustomizerSimulation>;
+  update(
+    tenantId: string,
+    id: string,
+    input: UpdateCustomizerSimulationInput
+  ): Promise<CustomizerSimulation>;
+  duplicate(tenantId: string, id: string): Promise<CustomizerSimulation>;
+  archive(tenantId: string, id: string, input?: ArchiveInput): Promise<CustomizerSimulation>;
+  restore(tenantId: string, id: string): Promise<CustomizerSimulation>;
+}
+
 export interface MetaRepository {
   get(key: string): Promise<string | null>;
   set(key: string, value: string): Promise<void>;
@@ -285,6 +304,7 @@ export interface LocalRepositoryBundle {
   senderIdentities: SenderIdentityRepository;
   localAssets: LocalAssetRepository;
   products: ProductRepository;
+  customizerSimulations: CustomizerSimulationRepository;
   reset(): Promise<void>;
   seed(tenantId: string): Promise<void>;
   importBackupData?(backup: import("@/features/backup/service").ForgeOSBackup): Promise<void>;

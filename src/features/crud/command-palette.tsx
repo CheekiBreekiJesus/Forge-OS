@@ -174,6 +174,7 @@ export function CommandPalette({
       { key: "customer", label: copy.create.customer, module: "customers" },
       { key: "product", label: copy.create.product, module: "products" },
       { key: "quote", label: copy.create.quote, module: "orders" },
+      { key: "customizer", label: copy.create.customizer, module: "orders" },
       { key: "production", label: copy.create.production, module: "production" },
       { key: "machine", label: copy.create.machine, module: "machines" },
       { key: "inventory", label: copy.create.inventory, module: "inventory" }

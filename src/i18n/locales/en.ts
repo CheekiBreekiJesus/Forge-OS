@@ -1170,6 +1170,7 @@ export const dictionary: Dictionary = {
         customer: "New customer",
         product: "New product",
         quote: "New quotation",
+        customizer: "New cup simulation",
         production: "New production order",
         machine: "New machine",
         inventory: "New inventory item"
@@ -1181,6 +1182,7 @@ export const dictionary: Dictionary = {
       customer: "Customer",
       product: "Product",
       quote: "Quotation",
+      customizer: "Cup customizer",
       production: "Production order",
       machine: "Machine",
       inventory: "Inventory item"
@@ -1196,6 +1198,11 @@ export const dictionary: Dictionary = {
     description: "Create, approve, and manage customer quotations.",
     loading: "Loading quotations…",
     empty: "No quotations yet.",
+    tabs: {
+      label: "Quotations navigation",
+      quotations: "Quotations",
+      customizer: "Cup Customizer"
+    },
     actions: { create: "New quotation", approve: "Approve" },
     form: {
       createTitle: "Create quotation",
@@ -1220,8 +1227,12 @@ export const dictionary: Dictionary = {
       product: "Product",
       quantity: "Quantity",
       status: "Status",
+      source: "Source",
       total: "Total",
-      created: "Created"
+      created: "Created",
+      manual: "Manual",
+      fromCustomizer: "Customizer",
+      fromCustomizerEstimate: "Customizer (estimate)"
     }
   },
   productionModule: {
@@ -1287,6 +1298,175 @@ export const dictionary: Dictionary = {
       ink: "Predicted ink",
       loading: "Stacks/boxes",
       qrUrl: "QR URL"
+    }
+  },
+  customizerModule: {
+    title: "Cup Customizer",
+    description: "Configure cups, preview artwork, and generate estimate quotations.",
+    loading: "Loading customizer…",
+    emptyProducts: "No cup products in the catalog. Add personalized cup products first.",
+    emptySimulations: "No saved simulations yet.",
+    sections: {
+      context: "Customer and product",
+      configuration: "Configuration",
+      artwork: "Artwork",
+      simulations: "Saved simulations",
+      pricing: "Pricing estimate"
+    },
+    form: {
+      customer: "Customer",
+      lead: "Lead",
+      product: "Product",
+      quantity: "Quantity",
+      material: "Material",
+      cupSize: "Cup size",
+      cupType: "Cup type",
+      printColors: "Print colours",
+      printArea: "Print area",
+      artworkPosition: "Artwork position",
+      deliveryDate: "Desired delivery date",
+      notes: "Notes",
+      selectCustomer: "Select customer (optional)",
+      selectLead: "Select lead (optional)",
+      required: "Select a cup product to continue."
+    },
+    printAreas: { wrap: "Wrap", front: "Front", back: "Back" },
+    artworkPositions: { left: "Left", center: "Centre", right: "Right" },
+    artwork: {
+      upload: "Upload artwork",
+      useLogo: "Use company logo",
+      useProductImage: "Use product image",
+      uploaded: "Artwork uploaded.",
+      logoApplied: "Company logo applied to preview.",
+      productImageApplied: "Product image applied to preview.",
+      noLogo: "Upload a company logo in Settings first.",
+      noProductImage: "This product has no image URL."
+    },
+    preview: { label: "Cup preview" },
+    pricing: {
+      estimateBadge: "Estimate",
+      unitPrice: "Unit price",
+      setupCost: "Setup",
+      subtotal: "Subtotal",
+      vat: "VAT",
+      total: "Total",
+      assumptions: "Assumptions",
+      manualOverride: "Manual unit price override",
+      overrideReason: "Override reason",
+      selectProduct: "Select a product to calculate pricing."
+    },
+    actions: {
+      save: "Save simulation",
+      saved: "Simulation saved.",
+      convertToQuote: "Create quotation from simulation",
+      converted: "Quotation created.",
+      newSimulation: "New simulation",
+      openCustomizer: "Open Cup Customizer",
+      openInCustomizer: "Open in customizer",
+      customize: "Customize",
+      openForCustomer: "Customize cups"
+    },
+    statuses: {
+      draft: "Draft",
+      saved: "Saved",
+      converted: "Converted",
+      archived: "Archived"
+    },
+    leadopsMedia: {
+      title: "Customizer mockup",
+      description: "Optionally attach a cup customizer mockup when following up with this lead.",
+      optIn: "Attach simulation mockup to outreach (placeholder)",
+      mockupPlaceholder: "No mockup saved yet — open the customizer to create a simulation for this lead.",
+      mockupReady: "A simulation mockup is linked to this lead.",
+      openCustomizer: "Open Cup Customizer for this lead"
+    }
+  },
+  onboardingModule: {
+    title: "Getting started",
+    subtitle: "Complete these steps to validate the local MVP workflow.",
+    dismiss: "Dismiss",
+    progress: "{completed} of {total} complete",
+    items: {
+      company_profile: "Complete company profile",
+      company_logo: "Upload company logo",
+      sender_identity: "Configure default sender",
+      abacus_configured: "Review AI provider settings",
+      product_urls: "Add product page URLs",
+      product_image: "Add product images",
+      leads_imported: "Import or create leads",
+      first_email: "Generate first outreach email",
+      first_quotation: "Create first quotation",
+      customizer_tested: "Test Cup Customizer",
+      backup_exported: "Export local backup"
+    }
+  },
+  notificationsModule: {
+    title: "Notifications",
+    trigger: "Notifications",
+    close: "Close notifications",
+    loading: "Loading…",
+    empty: "No notifications",
+    markAllRead: "Mark all read"
+  },
+  hostedFeatures: {
+    close: "Close",
+    localMvpNote: "These capabilities require a hosted ForgeOS deployment. The local MVP uses IndexedDB and simulation modes.",
+    features: {
+      google: {
+        title: "Google sign-in",
+        description: "Authenticate users with Google OAuth via Supabase Auth.",
+        requirements: [
+          "Configure Google OAuth client in Google Cloud Console",
+          "Enable Google provider in Supabase Auth",
+          "Set redirect URLs for production domain"
+        ]
+      },
+      microsoft: {
+        title: "Microsoft sign-in",
+        description: "Authenticate users with Microsoft Entra ID via Supabase Auth.",
+        requirements: [
+          "Register ForgeOS app in Microsoft Entra ID",
+          "Enable Microsoft provider in Supabase Auth",
+          "Configure tenant and redirect URIs"
+        ]
+      },
+      supabase: {
+        title: "Supabase sync",
+        description: "Move persistence and authentication to hosted PostgreSQL.",
+        requirements: [
+          "Set NEXT_PUBLIC_SUPABASE_URL and anon key",
+          "Apply migrations under supabase/migrations/",
+          "Configure RLS policies per tenant"
+        ]
+      },
+      smartlead: {
+        title: "Smartlead live delivery",
+        description: "Send outreach campaigns through Smartlead instead of simulation.",
+        requirements: [
+          "Set SMARTLEAD_API_KEY and campaign ID",
+          "Set OUTREACH_DELIVERY_PROVIDER=smartlead",
+          "Validate sender domains in Smartlead"
+        ]
+      },
+      "hosted-storage": {
+        title: "Hosted storage",
+        description: "Store logos, artwork, and mockups in cloud object storage.",
+        requirements: [
+          "Configure Supabase Storage or S3 bucket",
+          "Migrate local assets on tenant onboarding",
+          "Use signed URLs in customer-facing emails"
+        ]
+      },
+      "cup-customizer": {
+        title: "Cup Customizer",
+        description: "In-app cup configuration is active in this local build.",
+        requirements: ["Uses @cup-customizer package with operational pricing rules"]
+      },
+      "local-db": {
+        title: "Local database",
+        description: "IndexedDB persistence for offline-first MVP.",
+        requirements: ["Export backups regularly from Settings → Backup"]
+      }
     }
   }
 };

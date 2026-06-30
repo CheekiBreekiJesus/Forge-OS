@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import type { CustomizerSimulation } from "@/domain/customizer-types";
 import type { Machine, InventoryItem } from "@/domain/operations-types";
 import type { Product } from "@/domain/product-types";
 import type { Lead, ProductionOrder, Quote, Customer, ActivityEvent } from "@/domain/types";
@@ -288,4 +289,61 @@ export function useProducts(includeArchived = false): {
   }, [reload, dataVersion]);
 
   return { products, loading, reload };
+}
+
+export function useCustomizerSimulations(includeArchived = false): {
+  simulations: CustomizerSimulation[];
+  loading: boolean;
+  reload: () => Promise<void>;
+} {
+  const { tenantId, state, dataVersion } = usePersistence();
+  const [simulations, setSimulations] = useState<CustomizerSimulation[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const reload = useCallback(async () => {
+    if (state.status !== "ready") return;
+    setLoading(true);
+    const rows = await state.repos.customizerSimulations.list(tenantId, toListOptions(includeArchived));
+    setSimulations(rows);
+    setLoading(false);
+  }, [state, tenantId, includeArchived]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- repository read on mount
+    void reload();
+  }, [reload, dataVersion]);
+
+  return { simulations, loading, reload };
+}
+
+export function useCustomizerSimulationById(simulationId: string | null): {
+  simulation: CustomizerSimulation | null;
+  loading: boolean;
+} {
+  const { tenantId, state, dataVersion } = usePersistence();
+  const [simulation, setSimulation] = useState<CustomizerSimulation | null>(null);
+  const [loading, setLoading] = useState(Boolean(simulationId));
+
+  useEffect(() => {
+    if (!simulationId || state.status !== "ready") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- clear when id removed
+      setSimulation(null);
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      setLoading(true);
+      const row = await state.repos.customizerSimulations.getById(tenantId, simulationId);
+      if (!cancelled) {
+        setSimulation(row);
+        setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [state, tenantId, simulationId, dataVersion]);
+
+  return { simulation, loading };
 }

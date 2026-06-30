@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { AppFrame, panelClass } from "@/components/app-frame";
+import { OnboardingChecklist } from "@/components/onboarding-checklist";
 import { useActivities, useDashboardMetrics } from "@/persistence/hooks";
 import { usePersistenceLoading } from "@/persistence/provider";
 import type { Dictionary } from "@/i18n/dictionaries";
@@ -74,6 +75,8 @@ export function DashboardClientShell({ dictionary, locale }: DashboardClientShel
           </Link>
         </div>
       </section>
+
+      <OnboardingChecklist dictionary={dictionary} locale={locale} />
 
       {loading ? (
         <div className={`${panelClass} p-8 text-center text-slate-400`}>

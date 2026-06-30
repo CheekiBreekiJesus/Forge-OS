@@ -22,6 +22,7 @@ import type {
   SenderIdentity,
   UserProfile
 } from "@/domain/profile-types";
+import type { CustomizerSimulation } from "@/domain/customizer-types";
 import type { Product } from "@/domain/product-types";
 import { DEFAULT_ARCHIVABLE } from "@/persistence/archive-utils";
 
@@ -53,6 +54,7 @@ export class ForgeOSDatabase extends Dexie {
   machines!: Table<Machine, string>;
   inventoryItems!: Table<InventoryItem, string>;
   stockMovements!: Table<StockMovement, string>;
+  customizerSimulations!: Table<CustomizerSimulation, string>;
 
   constructor(name: string = LOCAL_DB_NAME) {
     super(name);
@@ -91,7 +93,7 @@ export class ForgeOSDatabase extends Dexie {
         await tx.table("meta").put({ key: "schemaVersion", value: "2" });
       });
 
-    this.version(SCHEMA_VERSION)
+    this.version(3)
       .stores({
         meta: "key",
         leads: "id, tenantId, email, crmStatus, outreachStatus, active, [tenantId+email]",
@@ -169,6 +171,41 @@ export class ForgeOSDatabase extends Dexie {
           if (row.archiveReason === undefined) row.archiveReason = defaults.archiveReason;
         });
 
+        await tx.table("meta").put({ key: "schemaVersion", value: "3" });
+      });
+
+    this.version(SCHEMA_VERSION)
+      .stores({
+        meta: "key",
+        leads: "id, tenantId, email, crmStatus, outreachStatus, active, [tenantId+email]",
+        customers: "id, tenantId, leadId, active, [tenantId+leadId]",
+        customerContacts: "id, tenantId, customerId, active, [tenantId+customerId]",
+        opportunities: "id, tenantId, leadId, customerId, [tenantId+leadId]",
+        quotes:
+          "id, tenantId, quoteNumber, leadId, customerId, status, active, simulationId, [tenantId+leadId]",
+        productionOrders:
+          "id, tenantId, orderNumber, quoteId, status, machineId, active, [tenantId+quoteId]",
+        outreachMessages: "id, tenantId, leadId, [tenantId+leadId]",
+        campaigns: "id, tenantId",
+        activities: "id, tenantId, occurredAt, action, [tenantId+occurredAt]",
+        companyProfiles: "id, tenantId, [tenantId+id]",
+        userProfiles: "id, tenantId, email, active, [tenantId+email]",
+        senderIdentities:
+          "id, tenantId, userProfileId, companyProfileId, isDefault, active, [tenantId+isDefault]",
+        localAssets: "id, tenantId, assetType, [tenantId+assetType]",
+        products: "id, tenantId, sku, category, active, [tenantId+sku]",
+        machines: "id, tenantId, code, status, active, [tenantId+code]",
+        inventoryItems: "id, tenantId, sku, active, [tenantId+sku]",
+        stockMovements: "id, tenantId, inventoryItemId, [tenantId+inventoryItemId]",
+        customizerSimulations:
+          "id, tenantId, customerId, leadId, productId, quoteId, status, active, [tenantId+status]"
+      })
+      .upgrade(async (tx) => {
+        await tx.table("quotes").toCollection().modify((row: Record<string, unknown>) => {
+          if (row.simulationId === undefined) row.simulationId = null;
+          if (row.mockupAssetId === undefined) row.mockupAssetId = null;
+          if (row.isEstimate === undefined) row.isEstimate = false;
+        });
         await tx.table("meta").put({ key: "schemaVersion", value: String(SCHEMA_VERSION) });
       });
   }

@@ -4,7 +4,7 @@ ForgeOS is **not production-ready**. This document describes gaps between the cu
 
 ## 1. Current local MVP
 
-- IndexedDB persistence (`forgeos:jhgomes:development`) — schema v3 with machines, inventory, customer contacts
+- IndexedDB persistence (`forgeos:jhgomes:development`) — schema v4 with customizer simulations
 - Single implicit tenant (`tenant_jh_gomes`)
 - Demo workflow creates durable leads → customers → quotes → production orders
 - Outreach uses shared repository + server AI gateway
@@ -74,7 +74,7 @@ ForgeOS is **not production-ready**. This document describes gaps between the cu
 
 - [ ] Supabase Storage for company logos and product images
 - [ ] Public CDN URLs for embeddable outreach HTML
-- [ ] Migrate `LocalAsset` blobs to hosted storage
+- [ ] Migrate `LocalAsset` blobs to hosted storage (including customizer artwork/mockups)
 - [ ] Sender identity approval locks with immutable snapshots (local MVP done)
 
 ## 14. Email client integration
@@ -131,6 +131,7 @@ ForgeOS is **not production-ready**. This document describes gaps between the cu
 - [x] Reset/reseed
 - [x] Deterministic E2E (no paid AI in CI)
 - [x] Abacus remains server-side optional
+- [x] Cup Customizer in-app (`/quotations/customizer`) with simulation → quotation conversion
 
 ### STAGING READY
 

@@ -7,6 +7,7 @@ import type { Locale } from "@/i18n/config";
 import { supportedLocales } from "@/i18n/config";
 import { CommandPalette, useCommandPaletteShortcut } from "@/features/crud/command-palette";
 import { QuickCreateMenu } from "@/features/crud/quick-create-menu";
+import { NotificationCenter } from "@/components/notification-center";
 import {
   PREVIEW_ROLES,
   readPreviewRole,
@@ -59,6 +60,7 @@ export function AppFrameClient({
       </button>
 
       <div className="ml-auto flex items-center gap-2">
+        <NotificationCenter dictionary={dictionary} locale={locale} />
         <QuickCreateMenu dictionary={dictionary} locale={locale} previewRole={previewRole} />
 
         <label className="hidden items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-xs text-amber-200 sm:flex">
@@ -114,6 +116,7 @@ export function AppFrameClient({
             customer: `/${locale}/customers#create`,
             product: `/${locale}/products#create`,
             quote: `/${locale}/quotations#create`,
+            customizer: `/${locale}/quotations/customizer#create`,
             production: `/${locale}/production#create`,
             machine: `/${locale}/machines#create`,
             inventory: `/${locale}/inventory#create`

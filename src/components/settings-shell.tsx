@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { AppFrame, panelClass } from "@/components/app-frame";
 import { exportBackup, validateBackup } from "@/features/backup/service";
 import { getClientIntegrationCards, type IntegrationCard } from "@/features/integrations/status";
+import { HostedFeaturesDialog } from "@/components/hosted-features";
 import { renderSignature } from "@/features/email-composition/signature";
 import { validateLocalAsset } from "@/features/email-composition/local-asset";
 import { isValidPublicUrl, normalizeUrl } from "@/features/email-composition/url-utils";
@@ -75,7 +76,7 @@ export function SettingsShell({ dictionary, locale }: SettingsShellProps) {
           {section === "profile" ? <ProfileSection s={s} /> : null}
           {section === "senders" ? <SendersSection locale={locale} s={s} /> : null}
           {section === "team" ? <TeamSection s={s} /> : null}
-          {section === "integrations" ? <IntegrationsSection s={s} /> : null}
+          {section === "integrations" ? <IntegrationsSection dictionary={dictionary} s={s} /> : null}
           {section === "backup" ? <BackupSection s={s} /> : null}
         </div>
       </div>
@@ -428,9 +429,16 @@ function TeamSection({ s }: { s: Dictionary["settings"] }) {
   );
 }
 
-function IntegrationsSection({ s }: { s: Dictionary["settings"] }) {
+function IntegrationsSection({
+  dictionary,
+  s
+}: {
+  dictionary: Dictionary;
+  s: Dictionary["settings"];
+}) {
   const cards = getClientIntegrationCards();
   const [diag, setDiag] = useState<string | null>(null);
+  const [hostedCard, setHostedCard] = useState<IntegrationCard | null>(null);
 
   return (
     <Panel title={s.sections.integrations}>
@@ -439,12 +447,19 @@ function IntegrationsSection({ s }: { s: Dictionary["settings"] }) {
           <IntegrationCardView
             card={card}
             key={card.id}
-            onDiagnostic={() => setDiag(`${card.name}: ${card.status} — ${card.detail}`)}
+            onDiagnostic={() => {
+              if (card.status === "hosted-feature") {
+                setHostedCard(card);
+                return;
+              }
+              setDiag(`${card.name}: ${card.status} — ${card.detail}`);
+            }}
             s={s}
           />
         ))}
       </div>
       {diag ? <p className="mt-4 text-sm text-slate-300">{diag}</p> : null}
+      <HostedFeaturesDialog card={hostedCard} dictionary={dictionary} onClose={() => setHostedCard(null)} />
     </Panel>
   );
 }
@@ -495,6 +510,8 @@ function BackupSection({ s }: { s: Dictionary["settings"] }) {
     a.download = `forgeos-backup-${tenantId}-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    await state.repos.meta.set("lastBackupExportedAt", new Date().toISOString());
+    notifyDataChanged();
     setFeedback(s.backup.exported);
   }
 

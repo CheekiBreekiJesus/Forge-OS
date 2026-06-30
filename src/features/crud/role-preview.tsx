@@ -32,8 +32,8 @@ const ROLE_MODULES: Record<PreviewRole, ModuleKey[]> = {
 };
 
 const ROLE_CREATE_ACTIONS: Record<PreviewRole, string[]> = {
-  owner: ["lead", "customer", "product", "quote", "production", "machine", "inventory"],
-  sales: ["lead", "customer", "quote"],
+  owner: ["lead", "customer", "product", "quote", "customizer", "production", "machine", "inventory"],
+  sales: ["lead", "customer", "quote", "customizer"],
   production_manager: ["quote", "production", "machine"],
   warehouse_manager: ["inventory", "machine"]
 };

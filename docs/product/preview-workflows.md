@@ -7,7 +7,7 @@ Local-only preview features for demonstrating role-based navigation and quick ac
 | Role | Visible modules | Quick create |
 | --- | --- | --- |
 | Owner | All MVP modules + Outreach | All entity types |
-| Sales | Dashboard, customers, products, quotations, outreach, settings | Lead, customer, quotation |
+| Sales | Dashboard, customers, products, quotations, outreach, settings | Lead, customer, quotation, cup customizer |
 | Production manager | Dashboard, products, quotations, production, machines, settings | Quotation, production, machine |
 | Warehouse manager | Dashboard, products, inventory, machines, settings | Inventory, machine |
 
@@ -21,7 +21,11 @@ Switch via header badge **Preview role** / **Papel (pré-visualização)**.
 
 ## Quick create menu
 
-Header **Create** / **Criar** dropdown deep-links to module hash routes (`#create`, `#create-lead`).
+Header **Create** / **Criar** dropdown deep-links to module hash routes (`#create`, `#create-lead`). Includes **Cup Customizer** at `/quotations/customizer#create`.
+
+## Cup Customizer
+
+In-app cup configuration, artwork preview, and estimate pricing at `/[locale]/quotations/customizer`. See `docs/architecture/cup-customizer-integration.md`.
 
 ## Customize dashboard
 

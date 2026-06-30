@@ -794,6 +794,7 @@ export type Dictionary = {
         customer: string;
         product: string;
         quote: string;
+        customizer: string;
         production: string;
         machine: string;
         inventory: string;
@@ -808,6 +809,7 @@ export type Dictionary = {
       production: string;
       machine: string;
       inventory: string;
+      customizer: string;
     };
     customizeDialog: {
       title: string;
@@ -820,6 +822,11 @@ export type Dictionary = {
     description: string;
     loading: string;
     empty: string;
+    tabs: {
+      label: string;
+      quotations: string;
+      customizer: string;
+    };
     actions: { create: string; approve: string };
     form: {
       createTitle: string;
@@ -839,8 +846,12 @@ export type Dictionary = {
       product: string;
       quantity: string;
       status: string;
+      source: string;
       total: string;
       created: string;
+      manual: string;
+      fromCustomizer: string;
+      fromCustomizerEstimate: string;
     };
   };
   productionModule: {
@@ -901,6 +912,130 @@ export type Dictionary = {
       loading: string;
       qrUrl: string;
     };
+  };
+  customizerModule: {
+    title: string;
+    description: string;
+    loading: string;
+    emptyProducts: string;
+    emptySimulations: string;
+    sections: {
+      context: string;
+      configuration: string;
+      artwork: string;
+      simulations: string;
+      pricing: string;
+    };
+    form: {
+      customer: string;
+      lead: string;
+      product: string;
+      quantity: string;
+      material: string;
+      cupSize: string;
+      cupType: string;
+      printColors: string;
+      printArea: string;
+      artworkPosition: string;
+      deliveryDate: string;
+      notes: string;
+      selectCustomer: string;
+      selectLead: string;
+      required: string;
+    };
+    printAreas: Record<"wrap" | "front" | "back", string>;
+    artworkPositions: Record<"left" | "center" | "right", string>;
+    artwork: {
+      upload: string;
+      useLogo: string;
+      useProductImage: string;
+      uploaded: string;
+      logoApplied: string;
+      productImageApplied: string;
+      noLogo: string;
+      noProductImage: string;
+    };
+    preview: {
+      label: string;
+    };
+    pricing: {
+      estimateBadge: string;
+      unitPrice: string;
+      setupCost: string;
+      subtotal: string;
+      vat: string;
+      total: string;
+      assumptions: string;
+      manualOverride: string;
+      overrideReason: string;
+      selectProduct: string;
+    };
+    actions: {
+      save: string;
+      saved: string;
+      convertToQuote: string;
+      converted: string;
+      newSimulation: string;
+      openCustomizer: string;
+      openInCustomizer: string;
+      customize: string;
+      openForCustomer: string;
+    };
+    statuses: Record<"draft" | "saved" | "converted" | "archived", string>;
+    leadopsMedia: {
+      title: string;
+      description: string;
+      optIn: string;
+      mockupPlaceholder: string;
+      mockupReady: string;
+      openCustomizer: string;
+    };
+  };
+  onboardingModule: {
+    title: string;
+    subtitle: string;
+    dismiss: string;
+    progress: string;
+    items: Record<
+      | "company_profile"
+      | "company_logo"
+      | "sender_identity"
+      | "abacus_configured"
+      | "product_urls"
+      | "product_image"
+      | "leads_imported"
+      | "first_email"
+      | "first_quotation"
+      | "customizer_tested"
+      | "backup_exported",
+      string
+    >;
+  };
+  notificationsModule: {
+    title: string;
+    trigger: string;
+    close: string;
+    loading: string;
+    empty: string;
+    markAllRead: string;
+  };
+  hostedFeatures: {
+    close: string;
+    localMvpNote: string;
+    features: Record<
+      | "google"
+      | "microsoft"
+      | "supabase"
+      | "smartlead"
+      | "hosted-storage"
+      | "cup-customizer"
+      | "local-db",
+      {
+        title: string;
+        description: string;
+        requirements: string[];
+      }
+    >;
   };
 };
 

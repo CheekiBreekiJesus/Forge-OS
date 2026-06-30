@@ -2,7 +2,7 @@
 
 ## Current local MVP
 
-- Login page offers **Google** and **Microsoft** buttons that open an information dialog
+- Login page offers **Google** and **Microsoft** buttons that open the hosted-features information dialog (via Settings → Integrations)
 - No fake OAuth — local demo login continues to dashboard
 - User profiles and sender identities are stored in IndexedDB
 
@@ -32,5 +32,5 @@ Google or Microsoft login
 
 - Supabase Auth + OAuth provider configuration
 - Workspace membership and role enforcement
-- Hosted asset CDN for embeddable email images
+- Hosted asset CDN for embeddable email images and cup customizer mockups
 - Optional mailbox send API (Gmail API / Microsoft Graph) — not in local MVP

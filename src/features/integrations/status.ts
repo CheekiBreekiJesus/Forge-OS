@@ -87,6 +87,20 @@ export function getIntegrationCards(): IntegrationCard[] {
       id: "ollama",
       name: "Ollama",
       status: hasEnv("OLLAMA_BASE_URL") ? "configured" : "not-configured"
+    },
+    {
+      description: "In-app cup configuration, preview, and estimate pricing.",
+      detail: "ForgeOS Cup Customizer package active in local IndexedDB MVP.",
+      id: "cup-customizer",
+      name: "Cup Customizer",
+      status: "configured"
+    },
+    {
+      description: "Browser IndexedDB persistence for tenant data.",
+      detail: "Local database active — export backups from Settings.",
+      id: "local-db",
+      name: "Local database",
+      status: "local-only"
     }
   ];
 }
@@ -102,14 +116,14 @@ export function getClientIntegrationCards(): IntegrationCard[] {
     },
     {
       description: "Campaign email delivery.",
-      detail: "Simulation mode active in local MVP.",
+      detail: "Simulation mode active in local MVP. Enable Smartlead live in hosted deployment.",
       id: "smartlead",
       name: "Smartlead",
       status: "local-only"
     },
     {
       description: "PostgreSQL persistence and authentication.",
-      detail: "Not connected — local IndexedDB MVP active.",
+      detail: "Not connected — local IndexedDB MVP active. Sync requires hosted Supabase.",
       id: "supabase",
       name: "Supabase",
       status: "local-only"
@@ -129,11 +143,32 @@ export function getClientIntegrationCards(): IntegrationCard[] {
       status: "hosted-feature"
     },
     {
+      description: "Hosted object storage for logos, artwork, and mockups.",
+      detail: "Local blob storage active. S3/Supabase Storage available in hosted deployment.",
+      id: "hosted-storage",
+      name: "Hosted storage",
+      status: "hosted-feature"
+    },
+    {
       description: "Local LLM inference.",
       detail: "Optional — configure OLLAMA_BASE_URL for local models.",
       id: "ollama",
       name: "Ollama",
       status: "not-configured"
+    },
+    {
+      description: "In-app cup configuration, preview, and estimate pricing.",
+      detail: "Package @cup-customizer wired to quotations workflow.",
+      id: "cup-customizer",
+      name: "Cup Customizer",
+      status: "configured"
+    },
+    {
+      description: "Browser IndexedDB persistence for tenant data.",
+      detail: "Dexie schema v4 with customizer simulations table.",
+      id: "local-db",
+      name: "Local database",
+      status: "local-only"
     }
   ];
 }

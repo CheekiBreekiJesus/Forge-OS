@@ -41,6 +41,7 @@ import {
   createUserProfileRepository
 } from "./profile-repositories";
 import { createProductRepository, demoProductToCreateInput } from "./product-repositories";
+import { createCustomizerSimulationRepository } from "./customizer-repositories";
 import {
   createCustomerContactRepository,
   createInventoryRepository,
@@ -504,6 +505,9 @@ export function createQuoteRepository(
         discount: input.discount ?? 0,
         validityDate: input.validityDate ?? null,
         notes: input.notes?.trim() ?? "",
+        simulationId: input.simulationId ?? null,
+        mockupAssetId: input.mockupAssetId ?? null,
+        isEstimate: input.isEstimate ?? false,
         ...DEFAULT_ARCHIVABLE,
         createdAt: timestamp,
         updatedAt: timestamp
@@ -1097,7 +1101,8 @@ export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
       db.machines,
       db.inventoryItems,
       db.stockMovements,
-      db.customerContacts
+      db.customerContacts,
+      db.customizerSimulations
     ],
     async () => {
       await db.meta.clear();
@@ -1118,6 +1123,7 @@ export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
       await db.inventoryItems.clear();
       await db.stockMovements.clear();
       await db.customerContacts.clear();
+      await db.customizerSimulations.clear();
     }
   );
 }
@@ -1194,6 +1200,7 @@ export function createLocalRepositoryBundle(db: ForgeOSDatabase) {
   const senderIdentities = createSenderIdentityRepository(db);
   const localAssets = createLocalAssetRepository(db);
   const products = createProductRepository(db, activities);
+  const customizerSimulations = createCustomizerSimulationRepository(db, activities);
 
   return {
     meta,
@@ -1213,6 +1220,7 @@ export function createLocalRepositoryBundle(db: ForgeOSDatabase) {
     senderIdentities,
     localAssets,
     products,
+    customizerSimulations,
     async reset() {
       await resetDatabase(db);
     },

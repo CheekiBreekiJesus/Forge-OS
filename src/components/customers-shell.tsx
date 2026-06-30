@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useCallback, useMemo, useState } from "react";
 import { AppFrame } from "@/components/app-frame";
 import {
@@ -170,7 +171,17 @@ export function CustomersShell({ dictionary, locale }: CustomersShellProps) {
   return (
     <AppFrame activeModule="customers" dictionary={dictionary} locale={locale}>
       <PageHeader
-        actions={<PrimaryActionButton onClick={openCreate}>{copy.actions.create}</PrimaryActionButton>}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Link
+              className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800"
+              href={`/${locale}/quotations/customizer`}
+            >
+              {dictionary.customizerModule.actions.openCustomizer}
+            </Link>
+            <PrimaryActionButton onClick={openCreate}>{copy.actions.create}</PrimaryActionButton>
+          </div>
+        }
         backHref={getLocalizedModuleHref(locale, "dashboard")}
         backLabel={dictionary.modulePage.backToDashboard}
         description={copy.description}
@@ -203,6 +214,13 @@ export function CustomersShell({ dictionary, locale }: CustomersShellProps) {
                 actions={[
                   { key: "edit", label: shared.actions.edit, onClick: () => openEdit(c) },
                   {
+                    key: "customizer",
+                    label: dictionary.customizerModule.actions.openForCustomer,
+                    onClick: () => {
+                      window.location.href = `/${locale}/quotations/customizer?customerId=${c.id}`;
+                    }
+                  },
+                  {
                     key: "archive",
                     label: isArchivedRecord(c) ? shared.actions.restore : shared.actions.archive,
                     destructive: !isArchivedRecord(c),
@@ -223,6 +241,13 @@ export function CustomersShell({ dictionary, locale }: CustomersShellProps) {
               <RowActionMenu
                 actions={[
                   { key: "edit", label: shared.actions.edit, onClick: () => openEdit(c) },
+                  {
+                    key: "customizer",
+                    label: dictionary.customizerModule.actions.openForCustomer,
+                    onClick: () => {
+                      window.location.href = `/${locale}/quotations/customizer?customerId=${c.id}`;
+                    }
+                  },
                   {
                     key: "archive",
                     label: isArchivedRecord(c) ? shared.actions.restore : shared.actions.archive,

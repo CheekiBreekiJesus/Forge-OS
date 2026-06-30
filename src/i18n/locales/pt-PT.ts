@@ -1170,6 +1170,7 @@ export const dictionary: Dictionary = {
         customer: "Novo cliente",
         product: "Novo produto",
         quote: "Novo orçamento",
+        customizer: "Nova simulação de copos",
         production: "Nova ordem de produção",
         machine: "Nova máquina",
         inventory: "Novo item de inventário"
@@ -1181,6 +1182,7 @@ export const dictionary: Dictionary = {
       customer: "Cliente",
       product: "Produto",
       quote: "Orçamento",
+      customizer: "Personalizador de copos",
       production: "Ordem de produção",
       machine: "Máquina",
       inventory: "Item de inventário"
@@ -1196,6 +1198,11 @@ export const dictionary: Dictionary = {
     description: "Criar, aprovar e gerir orçamentos de clientes.",
     loading: "A carregar orçamentos…",
     empty: "Ainda sem orçamentos.",
+    tabs: {
+      label: "Navegação de orçamentos",
+      quotations: "Orçamentos",
+      customizer: "Personalizador de Copos"
+    },
     actions: { create: "Novo orçamento", approve: "Aprovar" },
     form: {
       createTitle: "Criar orçamento",
@@ -1220,8 +1227,12 @@ export const dictionary: Dictionary = {
       product: "Produto",
       quantity: "Quantidade",
       status: "Estado",
+      source: "Origem",
       total: "Total",
-      created: "Criado"
+      created: "Criado",
+      manual: "Manual",
+      fromCustomizer: "Personalizador",
+      fromCustomizerEstimate: "Personalizador (estimativa)"
     }
   },
   productionModule: {
@@ -1287,6 +1298,175 @@ export const dictionary: Dictionary = {
       ink: "Tinta prevista",
       loading: "Pilhas/caixas",
       qrUrl: "URL QR"
+    }
+  },
+  customizerModule: {
+    title: "Personalizador de Copos",
+    description: "Configure copos, pré-visualize arte e gere orçamentos estimados.",
+    loading: "A carregar personalizador…",
+    emptyProducts: "Sem produtos de copos no catálogo. Adicione copos personalizáveis primeiro.",
+    emptySimulations: "Ainda sem simulações guardadas.",
+    sections: {
+      context: "Cliente e produto",
+      configuration: "Configuração",
+      artwork: "Arte",
+      simulations: "Simulações guardadas",
+      pricing: "Estimativa de preço"
+    },
+    form: {
+      customer: "Cliente",
+      lead: "Lead",
+      product: "Produto",
+      quantity: "Quantidade",
+      material: "Material",
+      cupSize: "Tamanho do copo",
+      cupType: "Tipo de copo",
+      printColors: "Cores de impressão",
+      printArea: "Área de impressão",
+      artworkPosition: "Posição da arte",
+      deliveryDate: "Data de entrega desejada",
+      notes: "Notas",
+      selectCustomer: "Selecionar cliente (opcional)",
+      selectLead: "Selecionar lead (opcional)",
+      required: "Selecione um produto de copo para continuar."
+    },
+    printAreas: { wrap: "Volta completa", front: "Frente", back: "Verso" },
+    artworkPositions: { left: "Esquerda", center: "Centro", right: "Direita" },
+    artwork: {
+      upload: "Carregar arte",
+      useLogo: "Usar logótipo da empresa",
+      useProductImage: "Usar imagem do produto",
+      uploaded: "Arte carregada.",
+      logoApplied: "Logótipo aplicado à pré-visualização.",
+      productImageApplied: "Imagem do produto aplicada à pré-visualização.",
+      noLogo: "Carregue primeiro o logótipo em Definições.",
+      noProductImage: "Este produto não tem URL de imagem."
+    },
+    preview: { label: "Pré-visualização do copo" },
+    pricing: {
+      estimateBadge: "Estimativa",
+      unitPrice: "Preço unitário",
+      setupCost: "Setup",
+      subtotal: "Subtotal",
+      vat: "IVA",
+      total: "Total",
+      assumptions: "Pressupostos",
+      manualOverride: "Preço unitário manual",
+      overrideReason: "Motivo do ajuste",
+      selectProduct: "Selecione um produto para calcular o preço."
+    },
+    actions: {
+      save: "Guardar simulação",
+      saved: "Simulação guardada.",
+      convertToQuote: "Criar orçamento a partir da simulação",
+      converted: "Orçamento criado.",
+      newSimulation: "Nova simulação",
+      openCustomizer: "Abrir Personalizador de Copos",
+      openInCustomizer: "Abrir no personalizador",
+      customize: "Personalizar",
+      openForCustomer: "Personalizar copos"
+    },
+    statuses: {
+      draft: "Rascunho",
+      saved: "Guardada",
+      converted: "Convertida",
+      archived: "Arquivada"
+    },
+    leadopsMedia: {
+      title: "Mockup do personalizador",
+      description: "Opcionalmente anexe um mockup do personalizador de copos no seguimento deste lead.",
+      optIn: "Anexar mockup da simulação ao outreach (marcador de posição)",
+      mockupPlaceholder: "Ainda sem mockup — abra o personalizador para criar uma simulação para este lead.",
+      mockupReady: "Existe uma simulação com mockup associada a este lead.",
+      openCustomizer: "Abrir Personalizador de Copos para este lead"
+    }
+  },
+  onboardingModule: {
+    title: "Primeiros passos",
+    subtitle: "Conclua estes passos para validar o fluxo MVP local.",
+    dismiss: "Dispensar",
+    progress: "{completed} de {total} concluídos",
+    items: {
+      company_profile: "Completar perfil da empresa",
+      company_logo: "Carregar logótipo",
+      sender_identity: "Configurar remetente predefinido",
+      abacus_configured: "Rever definições do fornecedor de IA",
+      product_urls: "Adicionar URLs de produtos",
+      product_image: "Adicionar imagens de produtos",
+      leads_imported: "Importar ou criar leads",
+      first_email: "Gerar primeiro email de outreach",
+      first_quotation: "Criar primeiro orçamento",
+      customizer_tested: "Testar Personalizador de Copos",
+      backup_exported: "Exportar backup local"
+    }
+  },
+  notificationsModule: {
+    title: "Notificações",
+    trigger: "Notificações",
+    close: "Fechar notificações",
+    loading: "A carregar…",
+    empty: "Sem notificações",
+    markAllRead: "Marcar todas como lidas"
+  },
+  hostedFeatures: {
+    close: "Fechar",
+    localMvpNote: "Estas capacidades requerem uma implementação alojada do ForgeOS. O MVP local usa IndexedDB e modos de simulação.",
+    features: {
+      google: {
+        title: "Início de sessão Google",
+        description: "Autenticar utilizadores com Google OAuth via Supabase Auth.",
+        requirements: [
+          "Configurar cliente OAuth no Google Cloud Console",
+          "Ativar fornecedor Google no Supabase Auth",
+          "Definir URLs de redirecionamento para o domínio de produção"
+        ]
+      },
+      microsoft: {
+        title: "Início de sessão Microsoft",
+        description: "Autenticar utilizadores com Microsoft Entra ID via Supabase Auth.",
+        requirements: [
+          "Registar aplicação ForgeOS no Microsoft Entra ID",
+          "Ativar fornecedor Microsoft no Supabase Auth",
+          "Configurar inquilino e URIs de redirecionamento"
+        ]
+      },
+      supabase: {
+        title: "Sincronização Supabase",
+        description: "Migrar persistência e autenticação para PostgreSQL alojado.",
+        requirements: [
+          "Definir NEXT_PUBLIC_SUPABASE_URL e chave anon",
+          "Aplicar migrações em supabase/migrations/",
+          "Configurar políticas RLS por inquilino"
+        ]
+      },
+      smartlead: {
+        title: "Envio Smartlead em produção",
+        description: "Enviar campanhas de outreach via Smartlead em vez de simulação.",
+        requirements: [
+          "Definir SMARTLEAD_API_KEY e ID de campanha",
+          "Definir OUTREACH_DELIVERY_PROVIDER=smartlead",
+          "Validar domínios de remetente no Smartlead"
+        ]
+      },
+      "hosted-storage": {
+        title: "Armazenamento alojado",
+        description: "Guardar logótipos, arte e mockups em armazenamento cloud.",
+        requirements: [
+          "Configurar Supabase Storage ou bucket S3",
+          "Migrar ativos locais no onboarding do inquilino",
+          "Usar URLs assinadas em emails para clientes"
+        ]
+      },
+      "cup-customizer": {
+        title: "Personalizador de Copos",
+        description: "A configuração de copos in-app está ativa nesta build local.",
+        requirements: ["Usa o pacote @cup-customizer com regras operacionais de preço"]
+      },
+      "local-db": {
+        title: "Base de dados local",
+        description: "Persistência IndexedDB para MVP offline-first.",
+        requirements: ["Exporte backups regularmente em Definições → Backup"]
+      }
     }
   }
 };

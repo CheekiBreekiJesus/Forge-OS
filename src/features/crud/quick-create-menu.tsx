@@ -46,6 +46,12 @@ export function QuickCreateMenu({ dictionary, locale, previewRole }: QuickCreate
       hash: "create"
     },
     {
+      key: "customizer",
+      label: copy.customizer,
+      href: `/${locale}/quotations/customizer`,
+      hash: "create"
+    },
+    {
       key: "production",
       label: copy.production,
       href: getLocalizedModuleHref(locale, "production"),

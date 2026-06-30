@@ -197,6 +197,9 @@ export type Quote = {
   discount: number;
   validityDate: string | null;
   notes: string;
+  simulationId: string | null;
+  mockupAssetId: string | null;
+  isEstimate: boolean;
   active: boolean;
   archivedAt: string | null;
   archivedBy: string | null;
@@ -221,6 +224,9 @@ export type CreateQuoteInput = {
   discount?: number;
   validityDate?: string | null;
   notes?: string;
+  simulationId?: string | null;
+  mockupAssetId?: string | null;
+  isEstimate?: boolean;
 };
 
 export type UpdateQuoteInput = Partial<
@@ -286,7 +292,9 @@ export type ActivityAction =
   | "stock_received"
   | "stock_consumed"
   | "stock_adjusted"
-  | "production_status_changed";
+  | "production_status_changed"
+  | "customizer_simulation_created"
+  | "customizer_simulation_converted";
 
 export type ActivityEntityType =
   | "lead"
@@ -298,7 +306,8 @@ export type ActivityEntityType =
   | "campaign"
   | "product"
   | "machine"
-  | "inventory";
+  | "inventory"
+  | "customizer_simulation";
 
 export type ActivityEvent = {
   id: string;

@@ -217,6 +217,17 @@ export function ProductCatalogShell({ dictionary, locale }: ProductCatalogShellP
               <RowActionMenu
                 actions={[
                   { key: "edit", label: shared.actions.edit, onClick: () => openEdit(p) },
+                  ...(p.personalizationAvailable || p.category.includes("cup")
+                    ? [
+                        {
+                          key: "customize",
+                          label: dictionary.customizerModule.actions.customize,
+                          onClick: () => {
+                            window.location.href = `/${locale}/quotations/customizer?productId=${p.id}`;
+                          }
+                        }
+                      ]
+                    : []),
                   {
                     key: "dup",
                     label: shared.actions.duplicate,

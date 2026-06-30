@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useMemo, useState } from "react";
 import { AppFrame } from "@/components/app-frame";
 import {
@@ -19,6 +21,7 @@ import {
   selectClassName,
   textareaClassName
 } from "@/components/crud";
+import { QuotationsSubnav } from "@/components/quotations-subnav";
 import { toQuoteSummary } from "@/domain/mappers";
 import type { Quote } from "@/domain/types";
 import { filterBySearch, isArchivedRecord, useHashAction } from "@/features/crud/ui-utils";
@@ -51,7 +54,9 @@ const emptyForm: QuoteForm = {
 
 export function QuotationsShell({ dictionary, locale }: QuotationsShellProps) {
   const copy = dictionary.quotationsModule;
+  const customizerCopy = dictionary.customizerModule;
   const shared = dictionary.crudModule;
+  const router = useRouter();
   const loading = usePersistenceLoading();
   const { state, tenantId, notifyDataChanged } = usePersistence();
   const [showArchived, setShowArchived] = useState(false);
@@ -152,6 +157,18 @@ export function QuotationsShell({ dictionary, locale }: QuotationsShellProps) {
     { key: "quantity", header: copy.table.quantity, render: (q: (typeof filtered)[0]) => q.quantity.toLocaleString(locale) },
     { key: "status", header: copy.table.status, render: (q: (typeof filtered)[0]) => copy.statuses[q.status] },
     {
+      key: "source",
+      header: copy.table.source,
+      render: (q: (typeof filtered)[0]) => {
+        const quote = quoteById(q.id);
+        if (!quote) return "—";
+        if (quote.simulationId) {
+          return quote.isEstimate ? copy.table.fromCustomizerEstimate : copy.table.fromCustomizer;
+        }
+        return copy.table.manual;
+      }
+    },
+    {
       key: "total",
       header: copy.table.total,
       render: (q: (typeof filtered)[0]) =>
@@ -162,12 +179,24 @@ export function QuotationsShell({ dictionary, locale }: QuotationsShellProps) {
   return (
     <AppFrame activeModule="orders" dictionary={dictionary} locale={locale}>
       <PageHeader
-        actions={<PrimaryActionButton onClick={openCreate}>{copy.actions.create}</PrimaryActionButton>}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Link
+              className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800"
+              href={`/${locale}/quotations/customizer`}
+            >
+              {customizerCopy.actions.openCustomizer}
+            </Link>
+            <PrimaryActionButton onClick={openCreate}>{copy.actions.create}</PrimaryActionButton>
+          </div>
+        }
         backHref={getLocalizedModuleHref(locale, "dashboard")}
         backLabel={dictionary.modulePage.backToDashboard}
         description={copy.description}
         title={copy.title}
       />
+
+      <QuotationsSubnav dictionary={dictionary} locale={locale} />
 
       <SearchAndFilterBar
         onSearchChange={setSearch}
@@ -190,6 +219,18 @@ export function QuotationsShell({ dictionary, locale }: QuotationsShellProps) {
               return (
                 <RowActionMenu
                   actions={[
+                    ...(quote?.simulationId
+                      ? [
+                          {
+                            key: "customizer",
+                            label: customizerCopy.actions.openInCustomizer,
+                            onClick: () =>
+                              router.push(
+                                `/${locale}/quotations/customizer?simulationId=${quote.simulationId}`
+                              )
+                          }
+                        ]
+                      : []),
                     {
                       key: "approve",
                       label: copy.actions.approve,
