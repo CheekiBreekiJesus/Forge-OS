@@ -797,6 +797,9 @@ export const dictionary: Dictionary = {
       sending: "A enviar...",
       confirmSend: "Confirmar envio ou simulação desta mensagem?",
       deterministicMode: "Geração determinística",
+      fallbackNotice:
+        "Não foi possível utilizar o fornecedor de IA configurado. Foi utilizada a geração local.",
+      modelLabel: "Modelo",
       liveAiMode: "IA configurada",
       simulationMode: "Modo de simulação",
       liveProviderMode: "Provider live",

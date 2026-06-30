@@ -34,9 +34,10 @@ The fix uses a form submit handler and a server API route at `/api/leadops/gener
 
 Domain logic remains in `src/features/leadops/`.
 
-New boundaries:
+Boundaries:
 
-- `providers.ts`: deterministic generation, OpenAI fallback provider, simulation delivery, Smartlead adapter.
+- `providers.ts`: LeadOps adapter for AI Gateway generation, deterministic fallback metadata, simulation delivery, Smartlead adapter.
+- `src/lib/ai/`: shared provider registry, provider config, retry/fallback policy, and structured generation capability.
 - `import.ts`: CSV parsing, field alias mapping, validation, and duplicate detection.
 - `/api/leadops/generate`: server-side generation endpoint.
 - `/api/leadops/send`: server-side delivery endpoint.
@@ -54,8 +55,10 @@ Supabase schema direction already exists in `supabase/migrations/202606300001_le
 Generation:
 
 - Deterministic generation is always available.
-- If `OPENAI_API_KEY` and `OPENAI_OUTREACH_MODEL` exist, the server attempts OpenAI Responses API generation.
-- Invalid or failed OpenAI responses fall back to deterministic generation.
+- The server routes live generation through the shared AI Gateway.
+- Abacus.AI is the default configured Outreach provider.
+- Invalid, unconfigured, or failed provider responses fall back to deterministic generation only when deterministic fallback is enabled.
+- The gateway does not silently cascade from one paid provider to another.
 - API keys are never sent to the browser.
 
 Delivery:
@@ -91,8 +94,13 @@ Supported placeholders are documented in `.env.example`:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `AI_DEFAULT_PROVIDER`
+- `AI_FALLBACK_PROVIDER`
+- `AI_OUTREACH_PROVIDER`
+- `ABACUS_API_KEY`
+- `ABACUS_MODEL`
 - `OPENAI_API_KEY`
-- `OPENAI_OUTREACH_MODEL`
+- `OPENAI_MODEL`
 - `OUTREACH_DELIVERY_PROVIDER`
 - `SMARTLEAD_API_KEY`
 - `SMARTLEAD_API_BASE_URL`
@@ -100,11 +108,11 @@ Supported placeholders are documented in `.env.example`:
 
 ## Known Limitations
 
-- Browser plugin automation was unavailable in this Codex session.
-- Playwright is not installed in the repository, so no committed E2E suite was added.
 - Supabase runtime repositories are not wired yet.
-- Smartlead and OpenAI live modes were implemented behind server-side boundaries but were not credential-verified.
+- Smartlead live delivery requires local credentials.
+- Anthropic and Google provider entries are placeholders until native adapters are implemented.
 - CSV import previews records but does not persist them.
+- Abacus uses a Python subprocess bridge; review before serverless deployment.
 
 ## Test Strategy
 
@@ -116,35 +124,39 @@ Added or extended Vitest coverage for:
 - product recommendation rules;
 - CSV parsing, validation, duplicate detection, and quoted fields.
 
+Playwright E2E coverage was added for the core Outreach workflow with mocked generation and deterministic delivery.
+
 ## Validation Results
 
-Executed on 2026-06-30:
+Executed on 2026-06-30 after Abacus live verification:
 
 ```bash
 npm install
 npm run lint
 npm run typecheck
 npm test
+npm run test:e2e
 npm run build
 npm run validate
+npm run ai:models -- --provider abacus
+npm run ai:doctor -- --provider abacus
+npm run ai:doctor -- --provider abacus --live
 ```
 
-Results:
+Live verification summary:
 
-- `npm install`: completed, 0 vulnerabilities.
-- `npm run lint`: passed.
-- `npm run typecheck`: passed.
-- `npm test`: passed, 5 files and 50 tests.
-- `npm run build`: passed, including `/api/leadops/generate` and `/api/leadops/send`.
-- `npm run validate`: passed.
+- Python: `.venv\Scripts\python.exe` (3.10.11)
+- Abacus SDK: `1.4.102`
+- Models discovered: `87`
+- Selected model: `OPENAI_GPT5_4_MINI`
+- Live doctor: direct Abacus success, no fallback
+- Live outreach generation: direct Abacus success, European Portuguese output
 
-HTTP checks against the existing local dev server at `http://127.0.0.1:3000` returned `200` for:
+Manual browser verification performed on:
 
 - `/pt-PT/leadops`
 - `/pt-PT/leadops/leadops_001`
 - `/en/leadops/leadops_001`
-
-The generation API returned deterministic output for `/api/leadops/generate` without external credentials.
 
 ## Setup And Troubleshooting
 
@@ -171,8 +183,8 @@ npm run validate
 Generation failures:
 
 - Confirm the route `/api/leadops/generate` returns `200`.
-- If OpenAI credentials are absent, deterministic generation should still work.
-- If OpenAI credentials are present and provider output fails validation, the UI should show deterministic fallback mode.
+- If Abacus credentials are absent, deterministic generation should still work.
+- If live provider output fails validation, the UI should show deterministic fallback mode when deterministic fallback is enabled.
 
 Delivery failures:
 

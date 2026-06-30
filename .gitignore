@@ -4,6 +4,11 @@ out
 build
 dist
 
+.venv
+
+test-results/
+playwright-report/
+
 .env
 .env*.local
 
@@ -27,6 +32,7 @@ __pycache__/
 qa/reports/*
 !qa/reports/.gitkeep
 !qa/reports/health-report.schema.json
+qa/ai/
 
 # Local customer data-preparation inputs/outputs
 scripts/data-preparation/local/

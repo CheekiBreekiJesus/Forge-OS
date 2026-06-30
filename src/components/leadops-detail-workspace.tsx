@@ -77,6 +77,7 @@ export function LeadOpsDetailWorkspace({
   const [activities, setActivities] = useState<LeadOpsActivity[]>(savedWorkflow?.activities ?? []);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [providerModel, setProviderModel] = useState<string | null>(null);
   const [providerMode, setProviderMode] = useState(dictionary.leadops.detailWorkspace.simulationMode);
   const sequence = buildSequencePreview(message);
   const workflowState = useMemo<LeadOpsWorkflowState>(
@@ -129,22 +130,30 @@ export function LeadOpsDetailWorkspace({
       }
 
       const result = (await response.json()) as {
+        fallbackUsed?: boolean;
         message: LeadOpsGeneratedMessage;
         mode: string;
+        model?: string;
+        provider?: string;
         warning?: string;
       };
 
       setMessage(result.message);
+      setProviderModel(result.model ?? null);
       setProviderMode(
-        result.mode === "openai"
-          ? dictionary.leadops.detailWorkspace.liveAiMode
-          : dictionary.leadops.detailWorkspace.deterministicMode
+        result.fallbackUsed || result.mode === "fallback" || result.mode === "deterministic"
+          ? dictionary.leadops.detailWorkspace.deterministicMode
+          : result.mode === "openai" || result.mode === "abacus"
+            ? dictionary.leadops.detailWorkspace.liveAiMode
+            : dictionary.leadops.detailWorkspace.deterministicMode
       );
       setProviderState("draft");
       setActivities((current) => appendEvent(current, leadState, "message-generated"));
       setFeedback({
-        kind: "success",
-        message: result.warning ?? dictionary.leadops.detailWorkspace.generatedSuccess
+        kind: result.fallbackUsed ? "error" : "success",
+        message: result.fallbackUsed
+          ? dictionary.leadops.detailWorkspace.fallbackNotice
+          : result.warning ?? dictionary.leadops.detailWorkspace.generatedSuccess
       });
     } catch {
       setFeedback({ kind: "error", message: dictionary.leadops.detailWorkspace.generationError });
@@ -424,14 +433,21 @@ export function LeadOpsDetailWorkspace({
               <button
                 className="self-end rounded-lg bg-orange-500 px-4 py-2 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-70"
                 disabled={isGenerating}
-                type="submit"
+                onClick={(event) => {
+                  event.preventDefault();
+                  void generateMessage();
+                }}
+                type="button"
               >
                 {isGenerating
                   ? dictionary.leadops.detailWorkspace.generationLoading
                   : dictionary.leadops.detailWorkspace.generate}
               </button>
               <BadgeLine label={dictionary.leadops.detailWorkspace.providerMode} value={providerMode} />
-              <BadgeLine label={dictionary.leadops.detailWorkspace.method} value={message?.generationMethod ?? "-"} />
+              <BadgeLine
+                label={dictionary.leadops.detailWorkspace.modelLabel}
+                value={providerModel ?? message?.generationMethod ?? "-"}
+              />
               <BadgeLine
                 label={dictionary.leadops.detailWorkspace.edited}
                 value={message?.edited ? dictionary.leadops.detailWorkspace.edited : "-"}

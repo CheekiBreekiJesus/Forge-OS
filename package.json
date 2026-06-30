@@ -8,8 +8,14 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest run src",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "typecheck": "tsc --noEmit",
     "validate": "npm run lint && npm run typecheck && npm test && npm run build",
+    "ai:models": "tsx scripts/ai/models.ts",
+    "ai:doctor": "tsx scripts/ai/doctor.ts",
+    "ai:compare": "tsx scripts/ai/compare.ts",
+    "ai:env-template": "tsx scripts/ai/env-template.ts",
     "agent:maintain": "tsx scripts/agent-orchestrator/maintain.ts",
     "agent:health": "tsx scripts/agent-orchestrator/health.ts",
     "agent:test": "vitest run scripts/agent-orchestrator",
@@ -21,6 +27,7 @@
     "react-dom": "19.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "1.53.1",
     "@types/node": "22.15.32",
     "@types/react": "19.0.12",
     "@types/react-dom": "19.0.4",

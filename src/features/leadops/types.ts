@@ -132,7 +132,7 @@ export type LeadOpsCompanyContext = {
 export type LeadOpsGeneratedMessage = {
   subject: string;
   body: string;
-  generationMethod: "deterministic-template" | "openai" | "deterministic-fallback";
+  generationMethod: "deterministic-template" | "abacus" | "openai" | "deterministic-fallback";
   approved: boolean;
   edited: boolean;
   providerNotice?: string;

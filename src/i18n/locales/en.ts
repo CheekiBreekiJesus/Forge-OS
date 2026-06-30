@@ -797,6 +797,9 @@ export const dictionary: Dictionary = {
       sending: "Sending...",
       confirmSend: "Confirm send or simulation for this message?",
       deterministicMode: "Deterministic generation",
+      fallbackNotice:
+        "The configured AI provider could not be used. Local generation was used instead.",
+      modelLabel: "Model",
       liveAiMode: "AI configured",
       simulationMode: "Simulation Mode",
       liveProviderMode: "Live Provider Mode",

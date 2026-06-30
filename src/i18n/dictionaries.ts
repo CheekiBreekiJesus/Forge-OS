@@ -449,6 +449,8 @@ export type Dictionary = {
       sending: string;
       confirmSend: string;
       deterministicMode: string;
+      fallbackNotice: string;
+      modelLabel: string;
       liveAiMode: string;
       simulationMode: string;
       liveProviderMode: string;

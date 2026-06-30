@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import * as python from "@/lib/ai/python";
 import { deliverOutreachMessage, generateOutreachEmail } from "./providers";
 import {
   getTenantCampaigns,
@@ -39,9 +40,9 @@ afterEach(() => {
 });
 
 describe("LeadOps providers", () => {
-  it("uses deterministic generation when OpenAI is not configured", async () => {
-    vi.stubEnv("OPENAI_API_KEY", "");
-    vi.stubEnv("OPENAI_OUTREACH_MODEL", "");
+  it("uses deterministic generation when Abacus is not configured", async () => {
+    vi.stubEnv("AI_OUTREACH_PROVIDER", "abacus");
+    vi.stubEnv("ABACUS_API_KEY", "");
 
     const result = await generateOutreachEmail({
       campaign,
@@ -51,19 +52,16 @@ describe("LeadOps providers", () => {
       tone: "friendly"
     });
 
-    expect(result.mode).toBe("deterministic");
+    expect(result.mode).toBe("fallback");
+    expect(result.fallbackUsed).toBe(true);
     expect(result.message.body).toContain("copos de plástico personalizados");
   });
 
-  it("falls back safely when OpenAI fails", async () => {
-    vi.stubEnv("OPENAI_API_KEY", "test-key");
-    vi.stubEnv("OPENAI_OUTREACH_MODEL", "test-model");
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: false
-      })
-    );
+  it("falls back safely when Abacus is unavailable", async () => {
+    vi.spyOn(python, "resolvePythonBin").mockReturnValue("missing-python-bin");
+    vi.stubEnv("AI_OUTREACH_PROVIDER", "abacus");
+    vi.stubEnv("ABACUS_API_KEY", "test-key");
+    vi.stubEnv("ABACUS_PYTHON_BIN", "missing-python-bin");
 
     const result = await generateOutreachEmail({
       campaign,
@@ -75,6 +73,7 @@ describe("LeadOps providers", () => {
 
     expect(result.mode).toBe("fallback");
     expect(result.message.generationMethod).toBe("deterministic-fallback");
+    expect(result.provider).toBe("deterministic");
   });
 
   it("uses simulation delivery by default", async () => {

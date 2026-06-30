@@ -3,6 +3,7 @@ import {
   generatePtPtEmail,
   validateQueue
 } from "./workflow";
+import { generateOutreachEmailWithAI } from "@/lib/ai/capabilities/outreach-email";
 import type {
   LeadOpsCampaign,
   LeadOpsCompanyContext,
@@ -22,9 +23,16 @@ export type OutreachGenerationRequest = {
 };
 
 export type OutreachGenerationResult = {
+  body?: string;
+  contextUsed?: string[];
+  fallbackUsed?: boolean;
   message: LeadOpsGeneratedMessage;
-  mode: "deterministic" | "openai" | "fallback";
+  mode: "deterministic" | "abacus" | "openai" | "fallback" | string;
+  model?: string;
+  provider?: string;
+  subject?: string;
   warning?: string;
+  warnings?: string[];
 };
 
 export type OutreachDeliveryResult = {
@@ -37,79 +45,59 @@ export type OutreachDeliveryResult = {
 export function generateDeterministicOutreachEmail(
   request: OutreachGenerationRequest
 ): OutreachGenerationResult {
-  return {
-    message: generatePtPtEmail(request),
-    mode: "deterministic"
-  };
+  const result = generateFallbackMessage(request);
+  return result;
 }
 
 export async function generateOutreachEmail(
   request: OutreachGenerationRequest
 ): Promise<OutreachGenerationResult> {
-  const deterministic = generateDeterministicOutreachEmail(request);
-  const apiKey = process.env.OPENAI_API_KEY;
-  const model = process.env.OPENAI_OUTREACH_MODEL;
+  const result = await generateOutreachEmailWithAI(request);
+  const generationMethod = result.fallbackUsed
+    ? "deterministic-fallback"
+    : result.provider === "abacus"
+      ? "abacus"
+      : result.provider === "openai"
+        ? "openai"
+        : "deterministic-template";
 
-  if (!apiKey || !model) {
-    return deterministic;
-  }
+  return {
+    body: result.body,
+    contextUsed: result.contextUsed,
+    fallbackUsed: result.fallbackUsed,
+    message: {
+      approved: false,
+      body: result.body,
+      edited: false,
+      generationMethod,
+      providerNotice: result.warnings.join(" "),
+      subject: result.subject
+    },
+    mode: result.fallbackUsed ? "fallback" : result.provider,
+    model: result.model,
+    provider: result.provider,
+    subject: result.subject,
+    warning: result.warnings[0],
+    warnings: result.warnings
+  };
+}
 
-  try {
-    const response = await fetch("https://api.openai.com/v1/responses", {
-      body: JSON.stringify({
-        input: buildOpenAiPrompt(request),
-        model,
-        text: {
-          format: {
-            name: "outreach_email",
-            schema: {
-              additionalProperties: false,
-              properties: {
-                body: { type: "string" },
-                subject: { type: "string" }
-              },
-              required: ["subject", "body"],
-              type: "object"
-            },
-            type: "json_schema"
-          }
-        }
-      }),
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json"
-      },
-      method: "POST"
-    });
+function generateFallbackMessage(request: OutreachGenerationRequest): OutreachGenerationResult {
+  const message = generatePtPtEmail(request);
 
-    if (!response.ok) {
-      return fallbackWithWarning(deterministic, "OpenAI generation failed; deterministic fallback used.");
-    }
-
-    const payload = await response.json();
-    const parsed = parseOpenAiMessage(payload);
-
-    if (!parsed) {
-      return fallbackWithWarning(
-        deterministic,
-        "OpenAI returned invalid content; deterministic fallback used."
-      );
-    }
-
-    return {
-      message: {
-        ...deterministic.message,
-        approved: false,
-        body: parsed.body,
-        edited: false,
-        generationMethod: "openai",
-        subject: parsed.subject
-      },
-      mode: "openai"
-    };
-  } catch {
-    return fallbackWithWarning(deterministic, "OpenAI request failed; deterministic fallback used.");
-  }
+  return {
+    body: message.body,
+    contextUsed: request.context.hasWebsiteContext
+      ? ["stored website context", "lead industry", "lead location", "selected products"]
+      : ["lead industry", "lead location", "selected products"],
+    fallbackUsed: true,
+    message,
+    mode: "deterministic",
+    model: "deterministic-template",
+    provider: "deterministic",
+    subject: message.subject,
+    warnings: []
+  };
 }
 
 export async function deliverOutreachMessage(
@@ -196,68 +184,4 @@ export async function deliverOutreachMessage(
       providerStatus: "failed"
     };
   }
-}
-
-function fallbackWithWarning(
-  deterministic: OutreachGenerationResult,
-  warning: string
-): OutreachGenerationResult {
-  return {
-    message: {
-      ...deterministic.message,
-      generationMethod: "deterministic-fallback",
-      providerNotice: warning
-    },
-    mode: "fallback",
-    warning
-  };
-}
-
-function buildOpenAiPrompt(request: OutreachGenerationRequest): string {
-  const selectedProducts = request.productKeys.join(", ");
-  const websiteContext = request.context.hasWebsiteContext
-    ? request.context.summary
-    : "No stored website context. Do not claim website review.";
-
-  return [
-    "Generate a concise European Portuguese cold outreach email for ForgeOS Outreach.",
-    "Return only JSON with subject and body.",
-    "Keep JH Gomes personalized plastic cups as the main offer.",
-    "Avoid unverifiable claims, fake urgency, discounts, invented customers, certifications, delivery dates, or production capacity.",
-    "Mention secondary products only when relevant.",
-    `Lead: ${request.lead.companyName}, contact ${request.lead.contactName}, industry ${request.lead.industry}, location ${request.lead.location}.`,
-    `Campaign objective: ${request.campaign.name}.`,
-    `Tone: ${request.tone}.`,
-    `Selected products: ${selectedProducts}.`,
-    `Stored company context: ${websiteContext}.`
-  ].join("\n");
-}
-
-function parseOpenAiMessage(payload: unknown): { body: string; subject: string } | null {
-  if (!payload || typeof payload !== "object") {
-    return null;
-  }
-
-  const maybeOutputText = (payload as { output_text?: unknown }).output_text;
-  const text = typeof maybeOutputText === "string" ? maybeOutputText : "";
-
-  try {
-    const parsed = JSON.parse(text) as { body?: unknown; subject?: unknown };
-
-    if (
-      typeof parsed.subject === "string" &&
-      parsed.subject.trim().length > 0 &&
-      typeof parsed.body === "string" &&
-      parsed.body.trim().length > 0
-    ) {
-      return {
-        body: parsed.body.trim(),
-        subject: parsed.subject.trim()
-      };
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
 }
