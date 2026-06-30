@@ -169,7 +169,7 @@ The root route redirects to Portuguese (`pt-PT`).
 - Quotations
 - Inventory
 - Production orders
-- LeadOps and email outreach
+- Outreach / Contactos Comerciais email workflow
 - AI Copilot
 - Internal newsletter
 
@@ -201,9 +201,9 @@ The root route redirects to Portuguese (`pt-PT`).
 
 ---
 
-## 🧠 LeadOps direction
+## 🧠 Outreach direction
 
-LeadOps is the planned commercial outreach module for turning standardized lead databases into controlled, personalized campaigns.
+Outreach, shown in Portuguese as Contactos Comerciais, is the commercial outreach module for turning standardized lead databases into controlled, personalized campaigns. The internal feature and route name remain `leadops` for compatibility.
 
 The intended workflow is:
 
@@ -227,7 +227,7 @@ The architecture is designed to support provider abstractions for:
 - Mock provider simulation
 - Future n8n orchestration
 
-Live email delivery and external AI calls are intentionally excluded from the current public demo.
+Deterministic generation and simulation delivery work without credentials. OpenAI and Smartlead boundaries are server-side and remain optional for configured environments.
 
 ---
 
@@ -469,7 +469,7 @@ The repository may become private as the project moves from public prototype wor
 
 ### Near term
 
-- Complete the LeadOps dashboard and lead workspace
+- Complete the Outreach dashboard and lead workspace
 - Add deterministic personalized email generation
 - Add campaign and sequence simulation
 - Connect persistent Supabase repositories

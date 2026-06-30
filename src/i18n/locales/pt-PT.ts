@@ -18,7 +18,7 @@ export const dictionary: Dictionary = {
     machines: "Máquinas",
     maintenance: "Manutenção",
     marketing: "Marketing",
-    leadops: "LeadOps",
+    leadops: "Contactos Comerciais",
     settings: "Definições"
   },
   dashboard: {
@@ -644,11 +644,11 @@ export const dictionary: Dictionary = {
     note: "Supabase Auth deve substituir este placeholder no MVP persistente."
   },
   leadops: {
-    eyebrow: "Operações de leads outbound",
-    title: "Painel LeadOps",
+    eyebrow: "Contactos comerciais outbound",
+    title: "Contactos Comerciais",
     description:
       "Reveja leads importados, progresso de campanhas e estado de outreach para o tenant demo. Os dados são sintéticos e isolados por tenant.",
-    backToDashboard: "Voltar ao LeadOps",
+    backToDashboard: "Voltar aos Contactos Comerciais",
     searchPlaceholder: "Pesquisar empresa, contacto, email, localização, origem ou website",
     clearFilters: "Limpar filtros",
     resultCount: "{count} leads visíveis",
@@ -661,13 +661,14 @@ export const dictionary: Dictionary = {
     noResultsDescription: "Experimente limpar filtros ou alargar os termos de pesquisa.",
     detailEyebrow: "Detalhe do lead",
     detailTitle: "Perfil do lead",
-    detailDescription: "Placeholder mínimo para o próximo incremento de detalhe e compositor de email LeadOps.",
-    detailPlaceholder: "Compositor de email, linha temporal e atribuição a campanhas serão adicionados num incremento posterior.",
+    detailDescription: "Workspace de contacto comercial para gerar, rever, aprovar e simular envio de mensagens.",
+    detailPlaceholder: "Compositor de email, linha temporal e atribuição a campanhas.",
     sections: {
       kpis: "KPIs de outreach",
       campaigns: "Resumo de campanhas",
       activity: "Atividade recente",
-      leads: "Lista de leads"
+      leads: "Lista de leads",
+      import: "Importar CSV"
     },
     kpis: {
       totalLeads: "Total de leads",
@@ -700,6 +701,14 @@ export const dictionary: Dictionary = {
       language: "Idioma",
       viewLead: "Abrir lead",
       selectedCount: "{count} selecionados"
+    },
+    import: {
+      chooseCsv: "Escolher CSV",
+      description: "Pré-visualize uma base de contactos antes de importar. O demo não grava dados reais.",
+      duplicateEmails: "Emails duplicados",
+      invalidRows: "Inválidos",
+      reviewRows: "Revisão",
+      validRows: "Válidos"
     },
     statuses: {
       ready: "Pronto",
@@ -764,9 +773,11 @@ export const dictionary: Dictionary = {
       friendly: "Próximo",
       direct: "Direto",
       generate: "Gerar email PT-PT",
+      generationLoading: "A gerar...",
       subject: "Assunto",
       body: "Mensagem",
       method: "Método",
+      providerMode: "Modo",
       edited: "Editado",
       approved: "Aprovado",
       notApproved: "Por aprovar",
@@ -779,6 +790,19 @@ export const dictionary: Dictionary = {
       sentAt: "Enviado em",
       success: "Operação concluída.",
       error: "Ação bloqueada.",
+      generatedSuccess: "Email gerado e pronto para revisão.",
+      generationError: "Não foi possível gerar o email. Tente novamente.",
+      providerQueuedSuccess: "Mensagem submetida ao provider live e mantida como em fila.",
+      sentSuccess: "Envio simulado concluído.",
+      sending: "A enviar...",
+      confirmSend: "Confirmar envio ou simulação desta mensagem?",
+      deterministicMode: "Geração determinística",
+      liveAiMode: "IA configurada",
+      simulationMode: "Modo de simulação",
+      liveProviderMode: "Provider live",
+      providerErrorMode: "Erro do provider",
+      providerError: "O provider não concluiu o envio.",
+      savedDraftLoaded: "Rascunho local restaurado.",
       sequenceDelay: "Atraso",
       importTotal: "Importados",
       importValid: "Válidos",

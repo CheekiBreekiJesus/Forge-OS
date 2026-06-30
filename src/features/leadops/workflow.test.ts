@@ -175,6 +175,40 @@ describe("LeadOps demo workflow", () => {
     expect(secondAttempt.campaign?.sentCount).toBe(sent.campaign?.sentCount);
   });
 
+  it("blocks duplicate queue attempts after send", () => {
+    const sent = simulateSend(
+      queueApprovedMessage(
+        buildState({
+          message: {
+            ...buildState().message!,
+            approved: true
+          },
+          providerState: "approved"
+        })
+      )
+    );
+
+    const validation = validateQueue(sent);
+
+    expect(validation.ok).toBe(false);
+    expect(validation.reason).toBe("already-sent");
+  });
+
+  it("requires campaign assignment before queueing", () => {
+    const validation = validateQueue(
+      buildState({
+        campaign: null,
+        message: {
+          ...buildState().message!,
+          approved: true
+        }
+      })
+    );
+
+    expect(validation.ok).toBe(false);
+    expect(validation.reason).toBe("missing-campaign");
+  });
+
   it("audit events appear in transition order", () => {
     const generated = appendEvent([], leadWithContext, "message-generated");
     const edited = appendEvent(generated, leadWithContext, "message-edited");
@@ -227,9 +261,7 @@ describe("LeadOps demo workflow", () => {
   });
 
   it("recommends deterministic products by industry", () => {
-    expect(recommendProductsForLead(leadWithContext).map((item) => item.key)).toContain(
-      "customized-plastic-cups"
-    );
+    expect(recommendProductsForLead(leadWithContext)[0]?.key).toBe("customized-plastic-cups");
   });
 
   it("getCompanyContext uses correct Portuguese diacritics in notes and summary", () => {

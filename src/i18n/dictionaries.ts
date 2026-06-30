@@ -331,6 +331,7 @@ export type Dictionary = {
       campaigns: string;
       activity: string;
       leads: string;
+      import: string;
     };
     kpis: {
       totalLeads: string;
@@ -363,6 +364,14 @@ export type Dictionary = {
       language: string;
       viewLead: string;
       selectedCount: string;
+    };
+    import: {
+      chooseCsv: string;
+      description: string;
+      duplicateEmails: string;
+      invalidRows: string;
+      reviewRows: string;
+      validRows: string;
     };
     statuses: Record<
       "ready" | "queued" | "contacted" | "replied" | "positive_reply" | "bounced",
@@ -416,9 +425,11 @@ export type Dictionary = {
       friendly: string;
       direct: string;
       generate: string;
+      generationLoading: string;
       subject: string;
       body: string;
       method: string;
+      providerMode: string;
       edited: string;
       approved: string;
       notApproved: string;
@@ -431,6 +442,19 @@ export type Dictionary = {
       sentAt: string;
       success: string;
       error: string;
+      generatedSuccess: string;
+      generationError: string;
+      providerQueuedSuccess: string;
+      sentSuccess: string;
+      sending: string;
+      confirmSend: string;
+      deterministicMode: string;
+      liveAiMode: string;
+      simulationMode: string;
+      liveProviderMode: string;
+      providerErrorMode: string;
+      providerError: string;
+      savedDraftLoaded: string;
       sequenceDelay: string;
       importTotal: string;
       importValid: string;

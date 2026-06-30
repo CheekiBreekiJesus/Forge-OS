@@ -4,6 +4,7 @@ import Link from "next/link";
 import React, { useMemo, useState } from "react";
 import { AppFrame, panelClass } from "@/components/app-frame";
 import { clearLeadOpsFilters, hasActiveFilters } from "@/features/leadops/filters";
+import { parseLeadCsv, type LeadImportResult } from "@/features/leadops/import";
 import { calculateLeadOpsKpis, getCampaignProgress } from "@/features/leadops/kpis";
 import { getLocalizedLeadDetailHref } from "@/features/leadops/lookup";
 import {
@@ -50,6 +51,7 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<LeadOpsFilters>({ ...EMPTY_LEADOPS_FILTERS });
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
+  const [importResult, setImportResult] = useState<LeadImportResult | null>(null);
 
   const kpis = useMemo(
     () => calculateLeadOpsKpis(tenantLeads, tenantCampaigns),
@@ -69,6 +71,18 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
   function handleClearFilters() {
     setFilters(clearLeadOpsFilters());
     setSearchQuery("");
+  }
+
+  function handleCsvImport(file: File | null) {
+    if (!file) {
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+      setImportResult(parseLeadCsv(String(reader.result ?? "")));
+    });
+    reader.readAsText(file);
   }
 
   function formatKpiValue(key: (typeof kpiKeys)[number]): string {
@@ -156,6 +170,30 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
             ))}
           </div>
         </article>
+      </section>
+
+      <section className={`${panelClass} mb-4 p-5`}>
+        <PanelHeading title={copy.sections.import} />
+        <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <p className="max-w-2xl text-sm text-slate-400">{copy.import.description}</p>
+          <label className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-slate-700 bg-slate-950/70 px-4 py-2 text-sm font-semibold text-slate-100 hover:bg-slate-800">
+            {copy.import.chooseCsv}
+            <input
+              accept=".csv,text/csv"
+              className="sr-only"
+              onChange={(event) => handleCsvImport(event.target.files?.[0] ?? null)}
+              type="file"
+            />
+          </label>
+        </div>
+        {importResult ? (
+          <div className="mt-4 grid gap-3 sm:grid-cols-4">
+            <ImportMetric label={copy.import.validRows} value={importResult.validRows.length} />
+            <ImportMetric label={copy.import.reviewRows} value={importResult.reviewRows.length} />
+            <ImportMetric label={copy.import.invalidRows} value={importResult.invalidRows.length} />
+            <ImportMetric label={copy.import.duplicateEmails} value={importResult.duplicateEmails.length} />
+          </div>
+        ) : null}
       </section>
 
       <section className={`${panelClass} p-5`}>
@@ -314,6 +352,15 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
         ) : null}
       </section>
     </AppFrame>
+  );
+}
+
+function ImportMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg border border-slate-800 bg-slate-950/40 p-3">
+      <div className="text-xs uppercase tracking-wide text-slate-500">{label}</div>
+      <div className="mt-1 text-xl font-bold text-slate-100">{value}</div>
+    </div>
   );
 }
 

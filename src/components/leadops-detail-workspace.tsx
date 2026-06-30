@@ -1,13 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { AppFrame, panelClass } from "@/components/app-frame";
 import { getLocalizedLeadOpsHref } from "@/features/leadops/lookup";
 import {
   appendEvent,
   buildSequencePreview,
-  generatePtPtEmail,
   getCompanyContext,
   leadOpsProductCatalog,
   markMessageEdited,
@@ -41,6 +40,8 @@ export function LeadOpsDetailWorkspace({
   lead,
   locale
 }: LeadOpsDetailWorkspaceProps) {
+  const storageKey = `forgeos:outreach:${lead.tenantId}:${lead.id}`;
+  const savedWorkflow = useMemo(() => readSavedWorkflow(storageKey), [storageKey]);
   const context = useMemo(() => getCompanyContext(lead), [lead]);
   const recommendations = useMemo(() => recommendProductsForLead(lead), [lead]);
   const [tone, setTone] = useState<LeadOpsTone>("professional");
@@ -48,24 +49,38 @@ export function LeadOpsDetailWorkspace({
     recommendations.slice(0, 2).map((item) => item.key)
   );
   const [selectedCampaignId, setSelectedCampaignId] = useState(
-    lead.campaignId ?? campaigns.find((campaign) => campaign.status === "active")?.id ?? campaigns[0]?.id
+    savedWorkflow?.campaign?.id ??
+      lead.campaignId ??
+      campaigns.find((campaign) => campaign.status === "active")?.id ??
+      campaigns[0]?.id
   );
   const selectedCampaign =
     campaigns.find((campaign) => campaign.id === selectedCampaignId) ?? campaigns[0] ?? null;
-  const [message, setMessage] = useState<LeadOpsGeneratedMessage | null>(null);
-  const [leadState, setLeadState] = useState<LeadOpsLead>(lead);
-  const [campaignState, setCampaignState] = useState<LeadOpsCampaign | null>(selectedCampaign);
-  const [providerState, setProviderState] = useState(lead.providerState ?? "not_ready");
-  const [queuedAt, setQueuedAt] = useState<string | null>(null);
-  const [sentAt, setSentAt] = useState<string | null>(null);
-  const [metricsUpdated, setMetricsUpdated] = useState(false);
-  const [feedback, setFeedback] = useState<{ kind: "success" | "error"; message: string } | null>(null);
-  const [activities, setActivities] = useState<LeadOpsActivity[]>([]);
+  const [message, setMessage] = useState<LeadOpsGeneratedMessage | null>(
+    savedWorkflow?.message ?? null
+  );
+  const [leadState, setLeadState] = useState<LeadOpsLead>(savedWorkflow?.lead ?? lead);
+  const [campaignState, setCampaignState] = useState<LeadOpsCampaign | null>(
+    savedWorkflow?.campaign ?? selectedCampaign
+  );
+  const [providerState, setProviderState] = useState(
+    savedWorkflow?.providerState ?? lead.providerState ?? "not_ready"
+  );
+  const [queuedAt, setQueuedAt] = useState<string | null>(savedWorkflow?.queuedAt ?? null);
+  const [sentAt, setSentAt] = useState<string | null>(savedWorkflow?.sentAt ?? null);
+  const [metricsUpdated, setMetricsUpdated] = useState(Boolean(savedWorkflow?.metricsUpdated));
+  const [feedback, setFeedback] = useState<{ kind: "success" | "error"; message: string } | null>(
+    savedWorkflow
+      ? { kind: "success", message: dictionary.leadops.detailWorkspace.savedDraftLoaded }
+      : null
+  );
+  const [activities, setActivities] = useState<LeadOpsActivity[]>(savedWorkflow?.activities ?? []);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [providerMode, setProviderMode] = useState(dictionary.leadops.detailWorkspace.simulationMode);
   const sequence = buildSequencePreview(message);
-  const queueValidation = validateQueue(currentWorkflowState());
-
-  function currentWorkflowState(): LeadOpsWorkflowState {
-    return {
+  const workflowState = useMemo<LeadOpsWorkflowState>(
+    () => ({
       activities,
       campaign: campaignState,
       lead: leadState,
@@ -74,25 +89,68 @@ export function LeadOpsDetailWorkspace({
       providerState,
       queuedAt,
       sentAt
-    };
-  }
+    }),
+    [activities, campaignState, leadState, message, metricsUpdated, providerState, queuedAt, sentAt]
+  );
+  const queueValidation = validateQueue(workflowState);
 
-  function generateMessage() {
+  useEffect(() => {
+    window.localStorage.setItem(storageKey, JSON.stringify(workflowState));
+  }, [storageKey, workflowState]);
+
+  async function generateMessage(event?: FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
+
     if (!selectedCampaign) {
+      setFeedback({ kind: "error", message: dictionary.leadops.detailWorkspace.noCampaign });
       return;
     }
 
-    const nextMessage = generatePtPtEmail({
-      campaign: selectedCampaign,
-      context,
-      lead: leadState,
-      productKeys: selectedProducts,
-      tone
-    });
-    setMessage(nextMessage);
-    setProviderState("draft");
-    setActivities((current) => appendEvent(current, leadState, "message-generated"));
-    setFeedback({ kind: "success", message: dictionary.leadops.detailWorkspace.success });
+    setIsGenerating(true);
+    setFeedback(null);
+
+    try {
+      const response = await fetch("/api/leadops/generate", {
+        body: JSON.stringify({
+          campaign: selectedCampaign,
+          context,
+          lead: leadState,
+          productKeys: selectedProducts,
+          tone
+        }),
+        headers: {
+          "Content-Type": "application/json"
+        },
+        method: "POST"
+      });
+
+      if (!response.ok) {
+        throw new Error("generation-failed");
+      }
+
+      const result = (await response.json()) as {
+        message: LeadOpsGeneratedMessage;
+        mode: string;
+        warning?: string;
+      };
+
+      setMessage(result.message);
+      setProviderMode(
+        result.mode === "openai"
+          ? dictionary.leadops.detailWorkspace.liveAiMode
+          : dictionary.leadops.detailWorkspace.deterministicMode
+      );
+      setProviderState("draft");
+      setActivities((current) => appendEvent(current, leadState, "message-generated"));
+      setFeedback({
+        kind: "success",
+        message: result.warning ?? dictionary.leadops.detailWorkspace.generatedSuccess
+      });
+    } catch {
+      setFeedback({ kind: "error", message: dictionary.leadops.detailWorkspace.generationError });
+    } finally {
+      setIsGenerating(false);
+    }
   }
 
   function editMessage(field: "subject" | "body", value: string) {
@@ -134,7 +192,7 @@ export function LeadOpsDetailWorkspace({
   }
 
   function queueMessage() {
-    const state = currentWorkflowState();
+    const state = workflowState;
     const validation = validateQueue(state);
 
     if (!validation.ok) {
@@ -148,16 +206,61 @@ export function LeadOpsDetailWorkspace({
     setFeedback({ kind: "success", message: validation.message });
   }
 
-  function sendMessage() {
-    const next = simulateSend(currentWorkflowState());
-    applyWorkflowState(next);
-    setFeedback({
-      kind: next.providerState === "sent" ? "success" : "error",
-      message:
-        next.providerState === "sent"
-          ? dictionary.leadops.detailWorkspace.success
-          : dictionary.leadops.detailWorkspace.queueRequired
-    });
+  async function sendMessage() {
+    if (!window.confirm(dictionary.leadops.detailWorkspace.confirmSend)) {
+      return;
+    }
+
+    setIsSending(true);
+    setFeedback(null);
+
+    try {
+      const response = await fetch("/api/leadops/send", {
+        body: JSON.stringify(workflowState),
+        headers: {
+          "Content-Type": "application/json"
+        },
+        method: "POST"
+      });
+      const result = (await response.json()) as {
+        error?: string;
+        mode?: string;
+        providerStatus?: string;
+      };
+
+      if (!response.ok || result.providerStatus === "failed" || result.providerStatus === "blocked") {
+        setProviderMode(result.mode ?? dictionary.leadops.detailWorkspace.providerErrorMode);
+        setFeedback({
+          kind: "error",
+          message: result.error ?? dictionary.leadops.detailWorkspace.providerError
+        });
+        return;
+      }
+
+      if (result.mode === "smartlead") {
+        setProviderMode(dictionary.leadops.detailWorkspace.liveProviderMode);
+        setFeedback({
+          kind: "success",
+          message: dictionary.leadops.detailWorkspace.providerQueuedSuccess
+        });
+        return;
+      }
+
+      const next = simulateSend(workflowState);
+      applyWorkflowState(next);
+      setProviderMode(dictionary.leadops.detailWorkspace.simulationMode);
+      setFeedback({
+        kind: next.providerState === "sent" ? "success" : "error",
+        message:
+          next.providerState === "sent"
+            ? dictionary.leadops.detailWorkspace.sentSuccess
+            : dictionary.leadops.detailWorkspace.queueRequired
+      });
+    } catch {
+      setFeedback({ kind: "error", message: dictionary.leadops.detailWorkspace.providerError });
+    } finally {
+      setIsSending(false);
+    }
   }
 
   function applyWorkflowState(next: LeadOpsWorkflowState) {
@@ -303,7 +406,7 @@ export function LeadOpsDetailWorkspace({
                 {dictionary.leadops.detailWorkspace.personalizationWarning}
               </div>
             ) : null}
-            <div className="mb-4 flex flex-wrap gap-3">
+            <form className="mb-4 flex flex-wrap gap-3" onSubmit={generateMessage}>
               <label className="grid gap-1 text-sm">
                 <span className="text-xs uppercase tracking-wide text-slate-500">
                   {dictionary.leadops.detailWorkspace.tone}
@@ -319,12 +422,15 @@ export function LeadOpsDetailWorkspace({
                 </select>
               </label>
               <button
-                className="self-end rounded-lg bg-orange-500 px-4 py-2 text-sm font-bold text-white"
-                onClick={generateMessage}
-                type="button"
+                className="self-end rounded-lg bg-orange-500 px-4 py-2 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-70"
+                disabled={isGenerating}
+                type="submit"
               >
-                {dictionary.leadops.detailWorkspace.generate}
+                {isGenerating
+                  ? dictionary.leadops.detailWorkspace.generationLoading
+                  : dictionary.leadops.detailWorkspace.generate}
               </button>
+              <BadgeLine label={dictionary.leadops.detailWorkspace.providerMode} value={providerMode} />
               <BadgeLine label={dictionary.leadops.detailWorkspace.method} value={message?.generationMethod ?? "-"} />
               <BadgeLine
                 label={dictionary.leadops.detailWorkspace.edited}
@@ -334,7 +440,7 @@ export function LeadOpsDetailWorkspace({
                 label={dictionary.leadops.detailWorkspace.approved}
                 value={message?.approved ? dictionary.leadops.detailWorkspace.approved : dictionary.leadops.detailWorkspace.notApproved}
               />
-            </div>
+            </form>
             <label className="grid gap-2 text-sm">
               <span className="text-xs uppercase tracking-wide text-slate-500">
                 {dictionary.leadops.detailWorkspace.subject}
@@ -410,10 +516,13 @@ export function LeadOpsDetailWorkspace({
               </button>
               <button
                 className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-sm font-bold text-slate-100"
+                disabled={isSending || providerState === "sent"}
                 onClick={sendMessage}
                 type="button"
               >
-                {dictionary.leadops.detailWorkspace.simulateSend}
+                {isSending
+                  ? dictionary.leadops.detailWorkspace.sending
+                  : dictionary.leadops.detailWorkspace.simulateSend}
               </button>
             </div>
             <div className="mt-4 grid gap-3 text-sm md:grid-cols-3">
@@ -480,4 +589,23 @@ function BadgeLine({ label, value }: { label: string; value: string }) {
       <span className="font-semibold text-slate-200">{value}</span>
     </div>
   );
+}
+
+function readSavedWorkflow(storageKey: string): Partial<LeadOpsWorkflowState> | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const saved = window.localStorage.getItem(storageKey);
+
+  if (!saved) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(saved) as Partial<LeadOpsWorkflowState>;
+  } catch {
+    window.localStorage.removeItem(storageKey);
+    return null;
+  }
 }

@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "test": "vitest run src",
     "typecheck": "tsc --noEmit",
+    "validate": "npm run lint && npm run typecheck && npm test && npm run build",
     "agent:maintain": "tsx scripts/agent-orchestrator/maintain.ts",
     "agent:health": "tsx scripts/agent-orchestrator/health.ts",
     "agent:test": "vitest run scripts/agent-orchestrator",

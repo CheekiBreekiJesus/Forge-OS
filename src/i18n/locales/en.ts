@@ -18,7 +18,7 @@ export const dictionary: Dictionary = {
     machines: "Machines",
     maintenance: "Maintenance",
     marketing: "Marketing",
-    leadops: "LeadOps",
+    leadops: "Outreach",
     settings: "Settings"
   },
   dashboard: {
@@ -644,11 +644,11 @@ export const dictionary: Dictionary = {
     note: "Supabase Auth will replace this placeholder in the persistent MVP."
   },
   leadops: {
-    eyebrow: "Outbound lead operations",
-    title: "LeadOps dashboard",
+    eyebrow: "Outbound commercial contacts",
+    title: "Outreach",
     description:
       "Review imported leads, campaign progress, and outreach status for the demo tenant. Data is synthetic and tenant-scoped.",
-    backToDashboard: "Back to LeadOps",
+    backToDashboard: "Back to Outreach",
     searchPlaceholder: "Search company, contact, email, location, source, or website",
     clearFilters: "Clear filters",
     resultCount: "{count} leads shown",
@@ -661,13 +661,14 @@ export const dictionary: Dictionary = {
     noResultsDescription: "Try clearing filters or broadening your search terms.",
     detailEyebrow: "Lead detail",
     detailTitle: "Lead profile",
-    detailDescription: "Minimal placeholder for the next LeadOps detail and email-composer increment.",
-    detailPlaceholder: "Email composer, timeline, and campaign assignment will be added in a later increment.",
+    detailDescription: "Commercial contact workspace for generating, reviewing, approving, and simulating outreach messages.",
+    detailPlaceholder: "Email composer, timeline, and campaign assignment.",
     sections: {
       kpis: "Outreach KPIs",
       campaigns: "Campaign overview",
       activity: "Recent activity",
-      leads: "Lead list"
+      leads: "Lead list",
+      import: "Import CSV"
     },
     kpis: {
       totalLeads: "Total leads",
@@ -700,6 +701,14 @@ export const dictionary: Dictionary = {
       language: "Language",
       viewLead: "Open lead",
       selectedCount: "{count} selected"
+    },
+    import: {
+      chooseCsv: "Choose CSV",
+      description: "Preview a contact database before importing. The demo does not persist real data.",
+      duplicateEmails: "Duplicate emails",
+      invalidRows: "Invalid",
+      reviewRows: "Review",
+      validRows: "Valid"
     },
     statuses: {
       ready: "Ready",
@@ -764,9 +773,11 @@ export const dictionary: Dictionary = {
       friendly: "Friendly",
       direct: "Direct",
       generate: "Generate PT-PT email",
+      generationLoading: "Generating...",
       subject: "Subject",
       body: "Message",
       method: "Method",
+      providerMode: "Mode",
       edited: "Edited",
       approved: "Approved",
       notApproved: "Not approved",
@@ -779,6 +790,19 @@ export const dictionary: Dictionary = {
       sentAt: "Sent at",
       success: "Operation complete.",
       error: "Action blocked.",
+      generatedSuccess: "Email generated and ready for review.",
+      generationError: "The email could not be generated. Try again.",
+      providerQueuedSuccess: "Message submitted to the live provider and kept queued.",
+      sentSuccess: "Simulated send complete.",
+      sending: "Sending...",
+      confirmSend: "Confirm send or simulation for this message?",
+      deterministicMode: "Deterministic generation",
+      liveAiMode: "AI configured",
+      simulationMode: "Simulation Mode",
+      liveProviderMode: "Live Provider Mode",
+      providerErrorMode: "Provider Error",
+      providerError: "The provider did not complete delivery.",
+      savedDraftLoaded: "Local draft restored.",
       sequenceDelay: "Delay",
       importTotal: "Imported",
       importValid: "Valid",

@@ -65,15 +65,19 @@ export function getCompanyContext(lead: LeadOpsLead): LeadOpsCompanyContext {
 
 export function recommendProductsForLead(lead: LeadOpsLead): LeadOpsProductRecommendation[] {
   const industry = lead.industry.toLowerCase();
-  const keys: LeadOpsProductKey[] = industry.includes("hospitality")
-    ? ["customized-plastic-cups", "customized-paper-cups", "packaging-products"]
+  const secondaryKeys: LeadOpsProductKey[] = industry.includes("hospitality")
+    ? ["customized-paper-cups", "packaging-products"]
     : industry.includes("event")
-      ? ["customized-plastic-cups", "paper-cups", "disposable-food-service"]
+      ? ["paper-cups", "disposable-food-service"]
       : industry.includes("food")
         ? ["customized-paper-cups", "paper-cups", "biodegradable-cutlery", "disposable-food-service"]
         : industry.includes("packaging")
           ? ["packaging-products", "biodegradable-cutlery", "disposable-food-service"]
           : ["paper-cups", "disposable-food-service", "packaging-products"];
+  const keys: LeadOpsProductKey[] = [
+    "customized-plastic-cups",
+    ...secondaryKeys.filter((key) => key !== "customized-plastic-cups")
+  ];
 
   return keys.map((key) => ({
     key,
@@ -95,10 +99,11 @@ export function generatePtPtEmail({
   productKeys: LeadOpsProductKey[];
   tone: LeadOpsTone;
 }): LeadOpsGeneratedMessage {
-  const products = productKeys.length
-    ? productKeys.map((key) => leadOpsProductCatalog[key].ptLabel)
-    : recommendProductsForLead(lead).map((item) => leadOpsProductCatalog[item.key].ptLabel);
-  const hasCupProduct = productKeys.some((key) => key.includes("cups"));
+  const resolvedProductKeys = productKeys.length
+    ? productKeys
+    : recommendProductsForLead(lead).map((item) => item.key);
+  const products = resolvedProductKeys.map((key) => leadOpsProductCatalog[key].ptLabel);
+  const hasCupProduct = resolvedProductKeys.some((key) => key.includes("cups"));
   const greeting = tone === "direct" ? "Bom dia" : `Bom dia ${lead.contactName.split(" ")[0]}`;
   const contextSentence = context.hasWebsiteContext
     ? `Vi o contexto da ${lead.companyName} associado a ${lead.industry.toLowerCase()} em ${lead.location}, e pareceu-me haver potencial para consumíveis personalizados.`
@@ -165,8 +170,16 @@ export function buildSequencePreview(message: LeadOpsGeneratedMessage | null): L
 }
 
 export function validateQueue(state: LeadOpsWorkflowState): LeadOpsQueueValidation {
+  if (state.providerState === "sent" || state.sentAt) {
+    return { message: "Mensagem já enviada; envio duplicado bloqueado.", ok: false, reason: "already-sent" };
+  }
+
   if (!state.lead.email) {
     return { message: "O lead não tem email válido para fila.", ok: false, reason: "missing-email" };
+  }
+
+  if (!state.campaign) {
+    return { message: "Associe a mensagem a uma campanha antes de colocar em fila.", ok: false, reason: "missing-campaign" };
   }
 
   if (state.lead.consentStatus === "unsubscribed") {
@@ -178,7 +191,7 @@ export function validateQueue(state: LeadOpsWorkflowState): LeadOpsQueueValidati
   }
 
   if (!state.message?.subject || !state.message.body) {
-    return { message: "Gere e preencha a mensagem antes de colocar em fila.", ok: false, reason: "missing-email" };
+    return { message: "Gere e preencha a mensagem antes de colocar em fila.", ok: false, reason: "missing-message" };
   }
 
   if (!state.message.approved) {
@@ -212,7 +225,7 @@ export function queueApprovedMessage(state: LeadOpsWorkflowState): LeadOpsWorkfl
 }
 
 export function simulateSend(state: LeadOpsWorkflowState): LeadOpsWorkflowState {
-  if (state.providerState !== "queued" || !state.campaign) {
+  if (state.providerState !== "queued" || !state.campaign || state.sentAt) {
     return state;
   }
 

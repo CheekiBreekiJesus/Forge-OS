@@ -14,7 +14,13 @@ export type LeadOpsCampaignStatus = "active" | "paused" | "completed";
 
 export type LeadOpsConsentStatus = "unknown" | "subscribed" | "unsubscribed";
 
-export type LeadOpsProviderState = "not_ready" | "draft" | "approved" | "queued" | "sent" | "blocked";
+export type LeadOpsProviderState =
+  | "not_ready"
+  | "draft"
+  | "approved"
+  | "queued"
+  | "sent"
+  | "blocked";
 
 export type LeadOpsTone = "professional" | "friendly" | "direct";
 
@@ -126,9 +132,10 @@ export type LeadOpsCompanyContext = {
 export type LeadOpsGeneratedMessage = {
   subject: string;
   body: string;
-  generationMethod: "deterministic-template";
+  generationMethod: "deterministic-template" | "openai" | "deterministic-fallback";
   approved: boolean;
   edited: boolean;
+  providerNotice?: string;
 };
 
 export type LeadOpsSequenceStep = {
@@ -140,7 +147,15 @@ export type LeadOpsSequenceStep = {
 
 export type LeadOpsQueueValidation = {
   ok: boolean;
-  reason: "ok" | "missing-email" | "unapproved" | "unsubscribed" | "bounced";
+  reason:
+    | "ok"
+    | "missing-email"
+    | "missing-campaign"
+    | "missing-message"
+    | "unapproved"
+    | "unsubscribed"
+    | "bounced"
+    | "already-sent";
   message: string;
 };
 
