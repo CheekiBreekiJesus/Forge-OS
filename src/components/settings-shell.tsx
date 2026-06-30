@@ -110,9 +110,15 @@ function CompanySection({ s }: { s: Dictionary["settings"] }) {
   async function save(e: FormEvent) {
     e.preventDefault();
     if (state.status !== "ready" || !form) return;
-    if (form.websiteUrl && !isValidPublicUrl(normalizeUrl(form.websiteUrl))) {
-      setFeedback(s.company.invalidWebsite);
-      return;
+    const website = form.websiteUrl.trim();
+    if (website) {
+      const candidate = /^https?:\/\//i.test(website) || website.includes("://")
+        ? website
+        : normalizeUrl(website);
+      if (!isValidPublicUrl(candidate)) {
+        setFeedback(s.company.invalidWebsite);
+        return;
+      }
     }
     await state.repos.companyProfiles.update(tenantId, form.id, form);
     notifyDataChanged();
@@ -496,7 +502,7 @@ function IntegrationCardView({
 }
 
 function BackupSection({ s }: { s: Dictionary["settings"] }) {
-  const { state, tenantId, notifyDataChanged } = usePersistence();
+  const { state, tenantId, notifyDataChanged, refresh } = usePersistence();
   const [feedback, setFeedback] = useState<string | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
 
@@ -525,6 +531,7 @@ function BackupSection({ s }: { s: Dictionary["settings"] }) {
     }
     await state.repos.reset();
     await state.repos.importBackupData?.(data);
+    await refresh();
     notifyDataChanged();
     setFeedback(s.backup.imported);
   }

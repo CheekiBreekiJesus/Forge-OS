@@ -1,0 +1,5 @@
+company,contact,email,region,industry
+Acceptance Mixed Valid,Valid User,acceptance.mixed.valid@example.invalid,Lisbon,Hospitality
+Dup Row A,Person A,dup.mixed@example.invalid,Porto,Events
+Dup Row B,Person B,dup.mixed@example.invalid,Coimbra,Events
+Invalid Row,,not-an-email,Lisbon,Hospitality

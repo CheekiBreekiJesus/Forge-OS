@@ -186,11 +186,19 @@ export async function createDemoQuotation(
         throw new PersistenceError("duplicate", "Quotation already exists for this lead.");
       }
 
-      const product =
+      const demoProduct =
         demoProducts.find((p) => p.id === input.productId) ?? demoProducts[0];
+      const dbProduct = await repos.products.getBySku(tenantId, demoProduct.sku);
+      if (!dbProduct) {
+        throw new PersistenceError(
+          "missing_link",
+          "Product catalog is not ready. Reload and try again."
+        );
+      }
+      const resolvedProductId = dbProduct.id;
       const breakdown = calculatePersonalizedCupQuote({
         printColorCount: input.printColorCount,
-        product,
+        product: demoProduct,
         quantity: input.quantity
       });
 
@@ -198,15 +206,15 @@ export async function createDemoQuotation(
         leadId: input.leadId,
         customerId: input.customerId,
         opportunityId: input.opportunityId,
-        productId: product.id,
-        productName: product.name,
+        productId: resolvedProductId,
+        productName: dbProduct?.name ?? demoProduct.name,
         quantity: input.quantity,
         printColorCount: input.printColorCount,
         subtotal: breakdown.subtotal,
         vat: breakdown.vat,
         total: breakdown.total,
         setupCost: breakdown.setupCost,
-        unitPrice: product.basePrice
+        unitPrice: dbProduct?.basePrice ?? demoProduct.basePrice
       });
 
       await repos.leads.update(tenantId, input.leadId, { crmStatus: "quoted" });
@@ -230,7 +238,7 @@ export async function createDemoQuotation(
           product: quote.productName,
           quantity: quote.quantity,
           setupCost: breakdown.setupCost,
-          unitPrice: product.basePrice,
+          unitPrice: dbProduct?.basePrice ?? demoProduct.basePrice,
           total: quote.total
         }
       };

@@ -158,13 +158,6 @@ export function CommandPalette({
       });
     }
 
-    items.push({
-      id: "nav-settings",
-      group: copy.groups.navigation,
-      label: dictionary.navigation.settings,
-      href: getLocalizedModuleHref(locale, "settings")
-    });
-
     return items;
   }, [copy.groups.navigation, dictionary.navigation, locale, previewRole]);
 

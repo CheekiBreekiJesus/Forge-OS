@@ -715,7 +715,19 @@ export function createProductionOrderRepository(
         : quote.customerId
           ? await customers.getById(tenantId, quote.customerId)
           : null;
-      const compatible = await machines.listForProduct(tenantId, input.productId);
+      let resolvedProductId = input.productId || quote.productId;
+      let product = await db.products.get(resolvedProductId);
+      if (!product || product.tenantId !== tenantId) {
+        const demoProduct = demoProducts.find((row) => row.id === resolvedProductId);
+        if (demoProduct) {
+          const productRepo = createProductRepository(db);
+          product = (await productRepo.getBySku(tenantId, demoProduct.sku)) ?? undefined;
+          if (product) resolvedProductId = product.id;
+        }
+      } else {
+        resolvedProductId = product.id;
+      }
+      const compatible = await machines.listForProduct(tenantId, resolvedProductId);
       const machine = compatible[0] ?? (await machines.list(tenantId))[0];
       if (!machine) {
         throw new PersistenceError("missing_link", "No compatible machine available.");
@@ -729,7 +741,7 @@ export function createProductionOrderRepository(
         quoteId: input.quoteId,
         customerId: customer?.id ?? quote.customerId,
         customerName: input.customerName ?? resolveCustomerName(customer),
-        productId: input.productId,
+        productId: resolvedProductId,
         productName: input.productName,
         quantity: input.quantity,
         completedQuantity: 0,
@@ -993,7 +1005,14 @@ export async function seedDatabase(
   if (!force && existingVersion === String(SEED_VERSION)) {
     const leadCount = await db.leads.where("tenantId").equals(tenantId).count();
     const profileCount = await db.companyProfiles.where("tenantId").equals(tenantId).count();
-    if (leadCount > 0 && profileCount > 0) return false;
+    if (leadCount > 0 && profileCount > 0) {
+      const productRows = await db.products.where("tenantId").equals(tenantId).toArray();
+      const machineCount = await db.machines.where("tenantId").equals(tenantId).count();
+      if (machineCount === 0 && productRows.length > 0) {
+        await seedOperationsDefaults(db, tenantId, productRows);
+      }
+      return false;
+    }
   }
 
   const timestamp = nowIso();
@@ -1077,6 +1096,12 @@ export async function seedDatabase(
     await seedProfileDefaults(db, tenantId);
   }
 
+  const productRows = await db.products.where("tenantId").equals(tenantId).toArray();
+  const machineCount = await db.machines.where("tenantId").equals(tenantId).count();
+  if (machineCount === 0 && productRows.length > 0) {
+    await seedOperationsDefaults(db, tenantId, productRows);
+  }
+
   return true;
 }
 
@@ -1133,6 +1158,7 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
   await db.transaction(
     "rw",
     [
+      db.meta,
       db.leads,
       db.customers,
       db.opportunities,
@@ -1145,14 +1171,18 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
       db.userProfiles,
       db.senderIdentities,
       db.localAssets,
-      db.products
+      db.products,
+      db.machines,
+      db.inventoryItems,
+      db.stockMovements,
+      db.customizerSimulations
     ],
     async () => {
       await db.leads.bulkPut(tables.leads);
       await db.customers.bulkPut(tables.customers);
       await db.opportunities.bulkPut(tables.opportunities);
       await db.quotes.bulkPut(tables.quotes);
-      await db.productionOrders.bulkPut(tables.productionOrders);
+      await db.productionOrders.bulkPut(tables.productionOrders ?? []);
       await db.outreachMessages.bulkPut(tables.outreachMessages);
       await db.campaigns.bulkPut(tables.campaigns);
       await db.activities.bulkPut(tables.activities);
@@ -1172,8 +1202,14 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
         }
       }
       await db.meta.put({ key: "tenantId", value: tenantId });
+      await db.meta.put({ key: "seedVersion", value: String(SEED_VERSION) });
     }
   );
+  const productRows = await db.products.where("tenantId").equals(tenantId).toArray();
+  const machineCount = await db.machines.where("tenantId").equals(tenantId).count();
+  if (machineCount === 0 && productRows.length > 0) {
+    await seedOperationsDefaults(db, tenantId, productRows);
+  }
 }
 
 export function createLocalRepositoryBundle(db: ForgeOSDatabase) {

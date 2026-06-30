@@ -115,7 +115,7 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
   const searchParams = useSearchParams();
   const loading = usePersistenceLoading();
   const { state, tenantId, notifyDataChanged } = usePersistence();
-  const { products } = useProducts();
+  const { products, loading: productsLoading } = useProducts();
   const { customers } = useCustomers();
   const { leads } = useTenantLeads();
   const { profile } = useCompanyProfile();
@@ -453,7 +453,7 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
       {feedback ? <p className="mb-4 text-sm text-emerald-300">{feedback}</p> : null}
       <FormFieldError message={formError} />
 
-      {loading || simulationsLoading ? (
+      {loading || productsLoading || simulationsLoading ? (
         <LoadingState message={copy.loading} />
       ) : cupProducts.length === 0 ? (
         <div className={`${panelClass} p-8 text-center text-slate-400`}>{copy.emptyProducts}</div>

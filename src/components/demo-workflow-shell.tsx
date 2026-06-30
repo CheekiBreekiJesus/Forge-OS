@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   approveDemoQuotation,
   assignDemoMachine,
@@ -57,6 +57,27 @@ const DEMO_STEPS = [
 
 type StepKey = (typeof DEMO_STEPS)[number];
 
+const DEMO_CTX_STORAGE_KEY = "forgeos:demo:workflow-ctx";
+const DEMO_STEP_STORAGE_KEY = "forgeos:demo:workflow-step";
+
+function readStoredDemoStep(): number {
+  if (typeof window === "undefined") return 0;
+  const raw = window.sessionStorage.getItem(DEMO_STEP_STORAGE_KEY);
+  const parsed = raw ? Number.parseInt(raw, 10) : 0;
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+}
+
+function readStoredDemoContext(): WorkflowContext | null {
+  if (typeof window === "undefined") return null;
+  const raw = window.sessionStorage.getItem(DEMO_CTX_STORAGE_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as WorkflowContext;
+  } catch {
+    return null;
+  }
+}
+
 export function DemoWorkflowShell({ dictionary, locale }: DemoWorkflowShellProps) {
   const copy = dictionary.demoWorkflow;
   const persistenceLoading = usePersistenceLoading();
@@ -65,14 +86,14 @@ export function DemoWorkflowShell({ dictionary, locale }: DemoWorkflowShellProps
 
   const router = useRouter();
   const cupProducts = demoProducts.filter((p) => p.category === "personalized-cups");
-  const [stepIndex, setStepIndex] = useState(0);
+  const [stepIndex, setStepIndex] = useState(readStoredDemoStep);
   const [selectedProductId, setSelectedProductId] = useState(cupProducts[1]?.id ?? cupProducts[0]?.id);
   const [quantity, setQuantity] = useState(12000);
   const [companyName, setCompanyName] = useState("Demo Hospitality Client");
   const [contactName, setContactName] = useState("Ana Martins");
   const [email, setEmail] = useState(() => `demo.${Date.now()}@example.invalid`);
   const [inventory, setInventory] = useState(demoInventoryItems);
-  const [ctx, setCtx] = useState<WorkflowContext>({
+  const [ctx, setCtx] = useState<WorkflowContext>(() => readStoredDemoContext() ?? {
     leadId: null,
     customerId: null,
     opportunityId: null,
@@ -86,6 +107,15 @@ export function DemoWorkflowShell({ dictionary, locale }: DemoWorkflowShellProps
   const product = demoProducts.find((p) => p.id === selectedProductId) ?? cupProducts[0];
   const machine = findCompatibleMachine(product);
   const currentStep = DEMO_STEPS[Math.min(stepIndex, DEMO_STEPS.length - 1)];
+
+  useEffect(() => {
+    window.sessionStorage.setItem(DEMO_CTX_STORAGE_KEY, JSON.stringify(ctx));
+    window.sessionStorage.setItem(DEMO_STEP_STORAGE_KEY, String(stepIndex));
+  }, [ctx, stepIndex]);
+
+  const advanceStep = useCallback(() => {
+    setStepIndex((index) => Math.min(index + 1, DEMO_STEPS.length));
+  }, []);
 
   const runAction = useCallback(
     async (action: () => Promise<DemoActionResult>) => {
@@ -148,6 +178,7 @@ export function DemoWorkflowShell({ dictionary, locale }: DemoWorkflowShellProps
         break;
       case "openOutreach":
         if (ctx.leadId) {
+          advanceStep();
           router.push(getLocalizedLeadDetailHref(locale, ctx.leadId));
         }
         break;
@@ -187,6 +218,7 @@ export function DemoWorkflowShell({ dictionary, locale }: DemoWorkflowShellProps
         break;
       case "openJobCard":
         if (ctx.productionOrderId) {
+          advanceStep();
           router.push(`/${locale}/jobs/${ctx.productionOrderId}`);
         }
         break;
@@ -301,6 +333,8 @@ export function DemoWorkflowShell({ dictionary, locale }: DemoWorkflowShellProps
                     productionOrderId: null
                   });
                   setStepIndex(0);
+                  window.sessionStorage.removeItem(DEMO_CTX_STORAGE_KEY);
+                  window.sessionStorage.removeItem(DEMO_STEP_STORAGE_KEY);
                   setShowResetConfirm(false);
                 });
               }}
