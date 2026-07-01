@@ -5,6 +5,7 @@ import type {
   CustomerContact,
   InventoryItem,
   Machine,
+  StockChangeInput,
   StockMovement,
   UpdateInventoryItemInput,
   UpdateMachineInput
@@ -46,7 +47,11 @@ import type {
   UpdateQuoteInput
 } from "@/domain/types";
 import type { ArchiveInput, ListOptions } from "@/persistence/archive-utils";
-import type { StockChangeInput } from "@/domain/operations-types";
+import type {
+  ImportBatchRepository,
+  ImportRowRepository,
+  LeadContactRepository
+} from "@/persistence/indexeddb/import-repositories";
 
 export type { ListOptions, ArchiveInput };
 
@@ -305,6 +310,9 @@ export interface LocalRepositoryBundle {
   localAssets: LocalAssetRepository;
   products: ProductRepository;
   customizerSimulations: CustomizerSimulationRepository;
+  importBatches: ImportBatchRepository;
+  importRows: ImportRowRepository;
+  leadContacts: LeadContactRepository;
   reset(): Promise<void>;
   resetDemoData(tenantId: string): Promise<void>;
   seed(tenantId: string): Promise<void>;

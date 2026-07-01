@@ -1,5 +1,9 @@
 import type { LeadOpsCampaign, LeadOpsLead } from "@/features/leadops/types";
 import { DEFAULT_ARCHIVABLE } from "@/persistence/archive-utils";
+import {
+  normalizeOrganizationComparisonKey,
+  normalizeWebsite
+} from "@/features/leadops/import-normalization";
 import type { Campaign, Customer, Lead, Opportunity, ProductionOrder, Quote } from "./types";
 
 export function toLeadOpsLead(lead: Lead): LeadOpsLead {
@@ -36,16 +40,21 @@ export function toLeadOpsCampaign(campaign: Campaign): LeadOpsCampaign {
 
 export function leadFromLeadOpsSeed(seed: LeadOpsLead, overrides?: Partial<Lead>): Lead {
   const now = new Date().toISOString();
+  const websiteResult = normalizeWebsite(seed.website ?? "");
   return {
     id: seed.id,
     tenantId: seed.tenantId,
     companyName: seed.companyName,
+    normalizedCompanyName: normalizeOrganizationComparisonKey(seed.companyName),
     contactName: seed.contactName,
     email: seed.email,
     phone: "",
-    website: seed.website,
+    normalizedPhone: "",
+    website: websiteResult.display,
+    websiteDomain: websiteResult.domain,
     facebookUrl: null,
     location: seed.location,
+    country: "Portugal",
     industry: seed.industry,
     crmStatus:
       seed.status === "positive_reply" || seed.status === "replied"
@@ -57,6 +66,7 @@ export function leadFromLeadOpsSeed(seed: LeadOpsLead, overrides?: Partial<Lead>
     quality: seed.quality,
     source: seed.source,
     sourceDatabase: seed.sourceDatabase,
+    sourceImportId: null,
     contactSource: seed.sourceDatabase,
     language: seed.language,
     campaignId: seed.campaignId,

@@ -828,7 +828,7 @@ export const dictionary: Dictionary = {
       campaigns: "Resumo de campanhas",
       activity: "Atividade recente",
       leads: "Lista de leads",
-      import: "Importar CSV"
+      import: "Importar CSV/XLSX"
     },
     actions: {
       createLead: "Novo lead",
@@ -876,15 +876,51 @@ export const dictionary: Dictionary = {
     },
     import: {
       chooseCsv: "Escolher CSV",
-      description: "Carregue uma base de contactos, reveja a classificação e confirme para gravar as linhas válidas.",
+      chooseFile: "Escolher CSV ou XLSX",
+      description:
+        "Carregue uma base de contactos (CSV ou XLSX), reveja o mapeamento e a validação, e confirme para gravar organizações e contactos.",
       duplicateEmails: "Emails duplicados",
+      duplicateRows: "Emails duplicados",
       invalidRows: "Inválidos",
       reviewRows: "Revisão",
       validRows: "Válidos",
+      totalRows: "Total de linhas",
+      possibleDuplicates: "Possíveis duplicados",
+      missingEmailRows: "Sem email",
       confirmImport: "Confirmar importação",
       importing: "A importar…",
       summary: "Importados {imported} leads. Ignorados {skipped} duplicados.",
-      failed: "A importação falhou."
+      failed: "A importação falhou.",
+      fileHint: "Máx. 5 MB. Suporta CSV e XLSX.",
+      mappingTitle: "Mapeamento de campos",
+      unmapped: "Não mapeado",
+      cancel: "Cancelar",
+      continuePreview: "Continuar para pré-visualização",
+      repeatImportWarning: "Este ficheiro corresponde a uma importação concluída anteriormente.",
+      repeatImportConfirm: "Permitir reimportação",
+      filterStatus: "Filtrar",
+      filterAll: "Todas as linhas",
+      copyErrors: "Copiar resumo de erros",
+      attachStrongDuplicates: "Anexar novos dados a correspondências organizacionais fortes",
+      approvePossible: "Aprovar",
+      backToMapping: "Voltar ao mapeamento",
+      retryMapping: "Aplicar alterações de mapeamento",
+      importAnother: "Importar outro ficheiro",
+      messages: "Mensagens",
+      fields: {
+        companyName: "Nome da empresa",
+        contactName: "Pessoa de contacto",
+        email: "Email",
+        phone: "Telefone",
+        website: "Website",
+        region: "Região",
+        country: "País",
+        industry: "Categoria",
+        notes: "Notas",
+        sourceDatabase: "Origem",
+        status: "Estado",
+        language: "Idioma"
+      }
     },
     statuses: {
       ready: "Pronto",

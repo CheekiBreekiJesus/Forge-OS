@@ -15,9 +15,10 @@ import type {
   ProductionOrder,
   Quote
 } from "@/domain/types";
+import type { ImportBatch, ImportRow, LeadContact } from "@/domain/import-types";
 import type { LocalRepositoryBundle } from "@/persistence/interfaces";
 
-export const BACKUP_VERSION = 2 as const;
+export const BACKUP_VERSION = 3 as const;
 
 export type ForgeOSBackup = {
   version: typeof BACKUP_VERSION;
@@ -36,6 +37,9 @@ export type ForgeOSBackup = {
     userProfiles: UserProfile[];
     senderIdentities: SenderIdentity[];
     products: Product[];
+    importBatches: ImportBatch[];
+    importRows: ImportRow[];
+    leadContacts: LeadContact[];
   };
   localAssets?: Array<Omit<LocalAsset, "blob"> & { blobBase64: string }>;
 };
@@ -58,6 +62,9 @@ export async function exportBackup(
     userProfiles,
     senderIdentities,
     products,
+    importBatches,
+    importRows,
+    leadContacts,
     assets
   ] = await Promise.all([
     repos.leads.list(tenantId),
@@ -72,6 +79,15 @@ export async function exportBackup(
     repos.userProfiles.list(tenantId),
     repos.senderIdentities.listAll(tenantId),
     repos.products.list(tenantId),
+    repos.importBatches.list(tenantId),
+    Promise.resolve([] as ImportRow[]).then(async () => {
+      const batches = await repos.importBatches.list(tenantId);
+      const rows = await Promise.all(
+        batches.map((batch) => repos.importRows.listForBatch(tenantId, batch.id))
+      );
+      return rows.flat();
+    }),
+    repos.leadContacts.list(tenantId),
     includeAssets ? repos.localAssets.list(tenantId) : Promise.resolve([])
   ]);
 
@@ -89,7 +105,10 @@ export async function exportBackup(
       products,
       quotes,
       senderIdentities,
-      userProfiles
+      userProfiles,
+      importBatches,
+      importRows,
+      leadContacts
     },
     tenantId,
     version: BACKUP_VERSION

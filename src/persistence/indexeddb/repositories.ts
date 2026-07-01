@@ -23,7 +23,12 @@ import {
 } from "@/features/leadops/seed";
 import { recordActivity } from "@/features/crud/activity-recorder";
 import { resolveCustomerName } from "@/features/crud/relationships";
-import { normalizeEmail } from "@/features/crud/validation";
+import {
+  normalizeEmail,
+  normalizeOrganizationComparisonKey,
+  normalizePhone,
+  normalizeWebsite
+} from "@/features/leadops/import-normalization";
 import {
   createArchivePatch,
   createRestorePatch,
@@ -42,6 +47,11 @@ import {
 } from "./profile-repositories";
 import { createProductRepository, demoProductToCreateInput } from "./product-repositories";
 import { createCustomizerSimulationRepository } from "./customizer-repositories";
+import {
+  createImportBatchRepository,
+  createImportRowRepository,
+  createLeadContactRepository
+} from "./import-repositories";
 import {
   createCustomerContactRepository,
   createInventoryRepository,
@@ -106,27 +116,36 @@ export function createLeadRepository(
     },
     async create(tenantId, input) {
       const email = normalizeEmail(input.email);
-      const existing = await this.getByEmail(tenantId, email);
-      if (existing && isActiveRecord(existing)) {
-        throw new PersistenceError("duplicate", "A lead with this email already exists.");
+      if (email) {
+        const existing = await this.getByEmail(tenantId, email);
+        if (existing && isActiveRecord(existing)) {
+          throw new PersistenceError("duplicate", "A lead with this email already exists.");
+        }
       }
+      const phoneResult = normalizePhone(input.phone ?? "");
+      const websiteResult = normalizeWebsite(input.website ?? "");
       const timestamp = nowIso();
       const lead: Lead = {
         id: createRecordId("lead"),
         tenantId,
         companyName: input.companyName.trim(),
+        normalizedCompanyName: normalizeOrganizationComparisonKey(input.companyName),
         contactName: input.contactName.trim(),
         email,
-        phone: input.phone?.trim() ?? "",
-        website: input.website ?? null,
+        phone: phoneResult.display,
+        normalizedPhone: phoneResult.normalized,
+        website: websiteResult.display,
+        websiteDomain: websiteResult.domain,
         facebookUrl: input.facebookUrl ?? null,
         location: input.location?.trim() ?? "",
+        country: input.country?.trim() ?? "Portugal",
         industry: input.industry?.trim() ?? "General",
         crmStatus: "new",
         outreachStatus: input.outreachStatus ?? "ready",
         quality: input.quality ?? "medium",
         source: input.source?.trim() ?? "manual",
         sourceDatabase: input.sourceDatabase?.trim() ?? "Manual",
+        sourceImportId: input.sourceImportId ?? null,
         contactSource: input.contactSource?.trim() ?? input.sourceDatabase?.trim() ?? "Manual",
         language: input.language ?? "pt-PT",
         campaignId: null,
@@ -1237,7 +1256,10 @@ export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
       db.inventoryItems,
       db.stockMovements,
       db.customerContacts,
-      db.customizerSimulations
+      db.customizerSimulations,
+      db.importBatches,
+      db.importRows,
+      db.leadContacts
     ],
     async () => {
       await db.meta.clear();
@@ -1259,6 +1281,9 @@ export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
       await db.stockMovements.clear();
       await db.customerContacts.clear();
       await db.customizerSimulations.clear();
+      await db.importBatches.clear();
+      await db.importRows.clear();
+      await db.leadContacts.clear();
     }
   );
 }
@@ -1285,7 +1310,10 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
       db.machines,
       db.inventoryItems,
       db.stockMovements,
-      db.customizerSimulations
+      db.customizerSimulations,
+      db.importBatches,
+      db.importRows,
+      db.leadContacts
     ],
     async () => {
       await db.leads.bulkPut(tables.leads);
@@ -1300,6 +1328,9 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
       await db.userProfiles.bulkPut(tables.userProfiles);
       await db.senderIdentities.bulkPut(tables.senderIdentities);
       await db.products.bulkPut(tables.products);
+      await db.importBatches.bulkPut(tables.importBatches ?? []);
+      await db.importRows.bulkPut(tables.importRows ?? []);
+      await db.leadContacts.bulkPut(tables.leadContacts ?? []);
       if (localAssets) {
         for (const asset of localAssets) {
           const binary = atob(asset.blobBase64);
@@ -1347,6 +1378,9 @@ export function createLocalRepositoryBundle(db: ForgeOSDatabase) {
   const localAssets = createLocalAssetRepository(db);
   const products = createProductRepository(db, activities);
   const customizerSimulations = createCustomizerSimulationRepository(db, activities);
+  const importBatches = createImportBatchRepository(db);
+  const importRows = createImportRowRepository(db);
+  const leadContacts = createLeadContactRepository(db);
 
   return {
     meta,
@@ -1367,6 +1401,9 @@ export function createLocalRepositoryBundle(db: ForgeOSDatabase) {
     localAssets,
     products,
     customizerSimulations,
+    importBatches,
+    importRows,
+    leadContacts,
     async reset() {
       await resetDatabase(db);
     },

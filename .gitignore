@@ -46,4 +46,6 @@ scripts/data-preparation/customer-config*.json
 scripts/data-preparation/customer-config*.yaml
 scripts/data-preparation/customer-config*.yml
 *_Lead_Database_Standardized.xlsx
-*lead*_standardized*.xlsx
+# Private lead import/export working folders (local only)
+data/imports/
+data/exports/

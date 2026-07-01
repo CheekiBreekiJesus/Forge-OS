@@ -2,7 +2,7 @@
 
 import React, { FormEvent, useCallback, useMemo, useState } from "react";
 import { convertDemoLead } from "@/application/demo-workflow-service";
-import { persistImportedLeads, validateCsvFile } from "@/application/csv-import-service";
+import { LeadOpsImportWizard } from "@/components/leadops-import-wizard";
 import { AppFrame, panelClass } from "@/components/app-frame";
 import {
   ArchiveConfirmationDialog,
@@ -17,7 +17,6 @@ import { toLeadOpsLead } from "@/domain/mappers";
 import { isValidEmail } from "@/features/crud/validation";
 import { isArchivedRecord, useHashAction } from "@/features/crud/ui-utils";
 import { clearLeadOpsFilters, hasActiveFilters } from "@/features/leadops/filters";
-import { parseLeadCsv, type LeadImportResult } from "@/features/leadops/import";
 import { calculateLeadOpsKpis, getCampaignProgress } from "@/features/leadops/kpis";
 import { getLocalizedLeadDetailHref } from "@/features/leadops/lookup";
 import { getFilterOptions } from "@/features/leadops/seed";
@@ -67,9 +66,6 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
   const { activities: domainActivities } = useActivities();
   const { state, tenantId, notifyDataChanged } = usePersistence();
   const [campaigns, setCampaigns] = useState<LeadOpsCampaign[]>([]);
-  const [importResult, setImportResult] = useState<LeadImportResult | null>(null);
-  const [importSummary, setImportSummary] = useState<string | null>(null);
-  const [importing, setImporting] = useState(false);
 
   const tenantLeads = useMemo(
     () => domainLeads.map(toLeadOpsLead),
@@ -222,46 +218,12 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
     setSearchQuery("");
   }
 
-  function handleCsvImport(file: File | null) {
-    if (!file) return;
-    const validationError = validateCsvFile(file);
-    if (validationError) {
-      setImportSummary(validationError);
-      return;
-    }
-    const reader = new FileReader();
-    reader.addEventListener("load", () => {
-      setImportResult(parseLeadCsv(String(reader.result ?? "")));
-      setImportSummary(null);
-    });
-    reader.readAsText(file);
+  async function handleImportComplete() {
+    await reloadLeads();
+    notifyDataChanged();
   }
 
-  async function confirmCsvImport() {
-    if (!importResult || state.status !== "ready") return;
-    setImporting(true);
-    try {
-      const result = await persistImportedLeads(
-        state.repos,
-        state.tenantId,
-        importResult.validRows,
-        "CSV Import"
-      );
-      setImportSummary(
-        copy.import.summary
-          .replace("{imported}", String(result.imported))
-          .replace("{skipped}", String(result.skipped))
-      );
-      await reloadLeads();
-      setImportResult(null);
-    } catch (error) {
-      setImportSummary(error instanceof Error ? error.message : copy.import.failed);
-    } finally {
-      setImporting(false);
-    }
-  }
-
-  if (persistenceLoading || leadsLoading) {
+  if (persistenceLoading || (leadsLoading && domainLeads.length === 0)) {
     return (
       <AppFrame activeModule="marketing" dictionary={dictionary} locale={locale} supplementalRoute="leadops">
         <div className={`${panelClass} p-8 text-center text-slate-400`}>
@@ -358,44 +320,7 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
         </article>
       </section>
 
-      <section className={`${panelClass} mb-4 p-5`}>
-        <PanelHeading title={copy.sections.import} />
-        <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <p className="max-w-2xl text-sm text-slate-400">{copy.import.description}</p>
-          <label className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-slate-700 bg-slate-950/70 px-4 py-2 text-sm font-semibold text-slate-100 hover:bg-slate-800">
-            {copy.import.chooseCsv}
-            <input
-              accept=".csv,text/csv"
-              className="sr-only"
-              onChange={(event) => handleCsvImport(event.target.files?.[0] ?? null)}
-              type="file"
-            />
-          </label>
-        </div>
-        {importResult ? (
-          <div className="mt-4">
-            <div className="grid gap-3 sm:grid-cols-4">
-              <ImportMetric label={copy.import.validRows} value={importResult.validRows.length} />
-              <ImportMetric label={copy.import.reviewRows} value={importResult.reviewRows.length} />
-              <ImportMetric label={copy.import.invalidRows} value={importResult.invalidRows.length} />
-              <ImportMetric label={copy.import.duplicateEmails} value={importResult.duplicateEmails.length} />
-            </div>
-            {importResult.validRows.length > 0 ? (
-              <button
-                className="mt-4 rounded-lg bg-orange-500 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
-                disabled={importing}
-                onClick={() => void confirmCsvImport()}
-                type="button"
-              >
-                {importing ? copy.import.importing : copy.import.confirmImport}
-              </button>
-            ) : null}
-          </div>
-        ) : null}
-        {importSummary ? (
-          <p className="mt-4 text-sm text-emerald-200">{importSummary}</p>
-        ) : null}
-      </section>
+      <LeadOpsImportWizard copy={copy} onImportComplete={handleImportComplete} />
 
       <section className={`${panelClass} p-5`}>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -615,15 +540,6 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
         title={shared.archive.title}
       />
     </AppFrame>
-  );
-}
-
-function ImportMetric({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-lg border border-slate-800 bg-slate-950/40 p-3">
-      <div className="text-xs uppercase tracking-wide text-slate-500">{label}</div>
-      <div className="mt-1 text-xl font-bold text-slate-100">{value}</div>
-    </div>
   );
 }
 

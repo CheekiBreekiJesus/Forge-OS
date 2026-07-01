@@ -828,7 +828,7 @@ export const dictionary: Dictionary = {
       campaigns: "Campaign overview",
       activity: "Recent activity",
       leads: "Lead list",
-      import: "Import CSV"
+      import: "Import CSV/XLSX"
     },
     actions: {
       createLead: "New lead",
@@ -876,15 +876,51 @@ export const dictionary: Dictionary = {
     },
     import: {
       chooseCsv: "Choose CSV",
-      description: "Upload a contact database, review classification, then confirm to persist valid rows.",
+      chooseFile: "Choose CSV or XLSX",
+      description:
+        "Upload a contact database (CSV or XLSX), review field mapping and validation, then confirm to persist organizations and contacts.",
       duplicateEmails: "Duplicate emails",
+      duplicateRows: "Duplicates",
       invalidRows: "Invalid",
       reviewRows: "Review",
       validRows: "Valid",
+      totalRows: "Total rows",
+      possibleDuplicates: "Possible duplicates",
+      missingEmailRows: "Missing email",
       confirmImport: "Confirm import",
       importing: "Importing…",
       summary: "Imported {imported} leads. Skipped {skipped} duplicates.",
-      failed: "Import failed."
+      failed: "Import failed.",
+      fileHint: "Max 5 MB. CSV and XLSX supported.",
+      mappingTitle: "Field mapping",
+      unmapped: "Not mapped",
+      cancel: "Cancel",
+      continuePreview: "Continue to preview",
+      repeatImportWarning: "This file matches a previously completed import.",
+      repeatImportConfirm: "Allow re-import anyway",
+      filterStatus: "Filter",
+      filterAll: "All rows",
+      copyErrors: "Copy error summary",
+      attachStrongDuplicates: "Attach new data to strong organization matches",
+      approvePossible: "Approve",
+      backToMapping: "Back to mapping",
+      retryMapping: "Apply mapping changes",
+      importAnother: "Import another file",
+      messages: "Messages",
+      fields: {
+        companyName: "Organization name",
+        contactName: "Contact person",
+        email: "Email",
+        phone: "Phone",
+        website: "Website",
+        region: "Region",
+        country: "Country",
+        industry: "Category",
+        notes: "Notes",
+        sourceDatabase: "Source",
+        status: "Status",
+        language: "Language"
+      }
     },
     statuses: {
       ready: "Ready",

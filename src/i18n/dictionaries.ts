@@ -531,15 +531,51 @@ export type Dictionary = {
     };
     import: {
       chooseCsv: string;
+      chooseFile: string;
       description: string;
       duplicateEmails: string;
+      duplicateRows: string;
       invalidRows: string;
       reviewRows: string;
       validRows: string;
+      totalRows: string;
+      possibleDuplicates: string;
+      missingEmailRows: string;
       confirmImport: string;
       importing: string;
       summary: string;
       failed: string;
+      fileHint: string;
+      mappingTitle: string;
+      unmapped: string;
+      cancel: string;
+      continuePreview: string;
+      repeatImportWarning: string;
+      repeatImportConfirm: string;
+      filterStatus: string;
+      filterAll: string;
+      copyErrors: string;
+      attachStrongDuplicates: string;
+      approvePossible: string;
+      backToMapping: string;
+      retryMapping: string;
+      importAnother: string;
+      messages: string;
+      fields: Record<
+        | "companyName"
+        | "contactName"
+        | "email"
+        | "phone"
+        | "website"
+        | "region"
+        | "country"
+        | "industry"
+        | "notes"
+        | "sourceDatabase"
+        | "status"
+        | "language",
+        string
+      >;
     };
     statuses: Record<
       "ready" | "queued" | "contacted" | "replied" | "positive_reply" | "bounced",
