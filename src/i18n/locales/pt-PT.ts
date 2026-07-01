@@ -1054,6 +1054,65 @@ export const dictionary: Dictionary = {
         skipped: "Ignorados"
       }
     },
+    suppression: {
+      title: "Lista de supressão",
+      description: "Emails bloqueados não podem ser aprovados, abertos no Gmail/Outlook ou marcados como enviados até remoção permitida.",
+      emailPlaceholder: "Email a suprimir",
+      notesPlaceholder: "Notas (opcional)",
+      searchPlaceholder: "Pesquisar emails suprimidos",
+      allReasons: "Todos os motivos",
+      allSources: "Todas as origens",
+      add: "Adicionar supressão",
+      remove: "Remover",
+      created: "Supressão adicionada.",
+      removed: "Supressão removida.",
+      error: "Falha na ação de supressão.",
+      removeConfirm: "Remover supressão de {email}?",
+      elevatedRequired: "Este motivo requer permissão elevada, confirmação e motivo documentado de remoção.",
+      elevatedConfirmLabel: "Confirmo remoção elevada",
+      removalReasonPlaceholder: "Motivo da remoção",
+      confirmRemove: "Confirmar remoção",
+      viewContact: "Ver contacto",
+      viewCampaign: "Ver campanha",
+      reasons: {
+        manual: "Manual",
+        unsubscribe: "Cancelamento",
+        invalid_address: "Endereço inválido",
+        duplicate: "Duplicado",
+        legal_request: "Pedido legal",
+        other: "Outro"
+      },
+      sources: {
+        operator: "Operador",
+        import: "Importação",
+        campaign: "Campanha",
+        lead_detail: "Detalhe do lead",
+        system: "Sistema"
+      },
+      columns: {
+        email: "Email",
+        reason: "Motivo",
+        source: "Origem",
+        createdAt: "Criado",
+        actions: "Ações"
+      }
+    },
+    operationalSummary: {
+      title: "Resumo operacional de outreach",
+      description: "Métricas locais reais de leads importados, campanhas e envios manuais. Sem métricas de entrega de fornecedor.",
+      metrics: {
+        importedOrganizations: "Organizações importadas",
+        validContacts: "Contactos válidos",
+        invalidOrMissingEmailContacts: "Email inválido/ausente",
+        draftCampaigns: "Campanhas em rascunho",
+        draftsAwaitingReview: "Rascunhos por rever",
+        approvedRecipients: "Destinatários aprovados",
+        openedExternally: "Abertos externamente",
+        manuallySent: "Enviados manualmente",
+        suppressed: "Emails suprimidos",
+        recentWarnings: "Avisos recentes"
+      }
+    },
     table: {
       company: "Empresa",
       contact: "Contacto",

@@ -4,6 +4,8 @@ import React, { FormEvent, useCallback, useMemo, useState } from "react";
 import { convertDemoLead } from "@/application/demo-workflow-service";
 import { LeadOpsImportWizard } from "@/components/leadops-import-wizard";
 import { LeadOpsLeadManagementPanel } from "@/components/leadops-lead-management-panel";
+import { LeadOpsOperationalSummary } from "@/components/leadops-operational-summary";
+import { LeadOpsSuppressionPanel } from "@/components/leadops-suppression-panel";
 import { AppFrame, panelClass } from "@/components/app-frame";
 import {
   ArchiveConfirmationDialog,
@@ -237,6 +239,14 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
             </article>
           ))}
         </div>
+      </section>
+
+      <section className="mb-4">
+        <LeadOpsOperationalSummary dictionary={dictionary} />
+      </section>
+
+      <section className="mb-4">
+        <LeadOpsSuppressionPanel dictionary={dictionary} />
       </section>
 
       <section className="mb-4 grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">

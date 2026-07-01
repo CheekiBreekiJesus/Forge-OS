@@ -696,6 +696,56 @@ export type Dictionary = {
         skipped: string;
       };
     };
+    suppression: {
+      title: string;
+      description: string;
+      emailPlaceholder: string;
+      notesPlaceholder: string;
+      searchPlaceholder: string;
+      allReasons: string;
+      allSources: string;
+      add: string;
+      remove: string;
+      created: string;
+      removed: string;
+      error: string;
+      removeConfirm: string;
+      elevatedRequired: string;
+      elevatedConfirmLabel: string;
+      removalReasonPlaceholder: string;
+      confirmRemove: string;
+      viewContact: string;
+      viewCampaign: string;
+      reasons: Record<
+        "manual" | "unsubscribe" | "invalid_address" | "duplicate" | "legal_request" | "other",
+        string
+      >;
+      sources: Record<"operator" | "import" | "campaign" | "lead_detail" | "system", string>;
+      columns: {
+        email: string;
+        reason: string;
+        source: string;
+        createdAt: string;
+        actions: string;
+      };
+    };
+    operationalSummary: {
+      title: string;
+      description: string;
+      metrics: Record<
+        | "importedOrganizations"
+        | "validContacts"
+        | "invalidOrMissingEmailContacts"
+        | "draftCampaigns"
+        | "draftsAwaitingReview"
+        | "approvedRecipients"
+        | "openedExternally"
+        | "manuallySent"
+        | "suppressed"
+        | "recentWarnings",
+        string
+      >;
+    };
     table: {
       company: string;
       contact: string;

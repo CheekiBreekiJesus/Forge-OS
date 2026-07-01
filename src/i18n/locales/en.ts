@@ -1054,6 +1054,65 @@ export const dictionary: Dictionary = {
         skipped: "Skipped"
       }
     },
+    suppression: {
+      title: "Suppression list",
+      description: "Blocked emails cannot be approved, opened in Gmail/Outlook, or marked sent until suppression is removed where permitted.",
+      emailPlaceholder: "Email to suppress",
+      notesPlaceholder: "Notes (optional)",
+      searchPlaceholder: "Search suppressed emails",
+      allReasons: "All reasons",
+      allSources: "All sources",
+      add: "Add suppression",
+      remove: "Remove",
+      created: "Suppression added.",
+      removed: "Suppression removed.",
+      error: "Suppression action failed.",
+      removeConfirm: "Remove suppression for {email}?",
+      elevatedRequired: "This reason requires elevated permission, confirmation, and a documented removal reason.",
+      elevatedConfirmLabel: "I confirm elevated removal",
+      removalReasonPlaceholder: "Removal reason",
+      confirmRemove: "Confirm removal",
+      viewContact: "View contact",
+      viewCampaign: "View campaign",
+      reasons: {
+        manual: "Manual",
+        unsubscribe: "Unsubscribe",
+        invalid_address: "Invalid address",
+        duplicate: "Duplicate",
+        legal_request: "Legal request",
+        other: "Other"
+      },
+      sources: {
+        operator: "Operator",
+        import: "Import",
+        campaign: "Campaign",
+        lead_detail: "Lead detail",
+        system: "System"
+      },
+      columns: {
+        email: "Email",
+        reason: "Reason",
+        source: "Source",
+        createdAt: "Created",
+        actions: "Actions"
+      }
+    },
+    operationalSummary: {
+      title: "Operational outreach summary",
+      description: "Live local metrics from imported leads, campaigns, and manual send history. No provider delivery metrics are shown.",
+      metrics: {
+        importedOrganizations: "Imported organizations",
+        validContacts: "Valid contacts",
+        invalidOrMissingEmailContacts: "Invalid/missing email",
+        draftCampaigns: "Draft campaigns",
+        draftsAwaitingReview: "Drafts awaiting review",
+        approvedRecipients: "Approved recipients",
+        openedExternally: "Opened externally",
+        manuallySent: "Sent manually",
+        suppressed: "Suppressed emails",
+        recentWarnings: "Recent warnings"
+      }
+    },
     table: {
       company: "Company",
       contact: "Contact",
