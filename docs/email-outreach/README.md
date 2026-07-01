@@ -1,27 +1,40 @@
 # Email Outreach MVP
 
-Step 1 delivers local-first lead import for the LeadOps workspace.
+Manual outreach release candidate for ForgeOS LeadOps (local-first, Gmail/Outlook handoff).
 
-## Scope
+## Supported workflow
 
-- CSV and XLSX file import in the browser
-- Automatic and manual header mapping
-- Normalization, validation, and duplicate analysis
-- Import batch history and lead contact persistence
-- Backup/restore and demo reset compatibility
+1. Import leads (CSV/XLSX) — `docs/email-outreach/lead-import.md`
+2. Filter and create campaign — `docs/email-outreach/campaign-workflow.md`
+3. Edit template and generate deterministic drafts
+4. Review, approve, open Gmail/Outlook — `docs/email-outreach/manual-sending.md`
+5. Confirm manual send and record history
+6. Manage suppression and privacy — `docs/email-outreach/compliance-and-suppression.md`
 
-## Architecture
+## Architecture docs
 
-See [lead-import-plan.md](./lead-import-plan.md).
+| Topic | Document |
+|-------|----------|
+| Import | [lead-import.md](./lead-import.md) |
+| Campaigns | [campaign-workflow.md](./campaign-workflow.md) |
+| Manual send | [manual-sending.md](./manual-sending.md) |
+| Templates/drafts | [templates-and-drafts.md](./templates-and-drafts.md) |
+| Review/approval | [review-and-manual-send.md](./review-and-manual-send.md) |
+| Suppression | [compliance-and-suppression.md](./compliance-and-suppression.md) |
+| Troubleshooting | [troubleshooting.md](./troubleshooting.md) |
+
+## Release checkpoint
+
+See [docs/checkpoints/email-outreach-status.md](../checkpoints/email-outreach-status.md).
+
+## Out of scope (this milestone)
+
+- Live Brevo/provider delivery
+- Provider webhooks and bounce/complaint automation
+- Automated scheduling and bulk auto-send
+- Website enrichment and image generation
+- Marketing Studio integration
 
 ## Manual test route
 
-1. Open `/pt-PT/leadops` or `/en/leadops`
-2. Choose CSV or XLSX under **Import CSV/XLSX**
-3. Review mapping, preview counts, and row messages
-4. Confirm import
-5. Reload the page and verify imported organizations remain in the lead list
-
-## Out of scope (Step 1)
-
-Campaigns, AI draft generation, provider sending, web enrichment, background jobs, webhooks.
+`/pt-PT/leadops` → import → campaign → drafts → approve → Gmail → mark sent

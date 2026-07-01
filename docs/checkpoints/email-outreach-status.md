@@ -1,17 +1,35 @@
-# Email Outreach Status
+# Email Outreach Status — Release Checkpoint (Step 5)
 
-**Branch:** `feat/email-outreach-live-mvp`  
-**Step:** 1 — Lead import and persistent data foundation  
-**Status:** Complete
+Date: 2026-07-01  
+Branch: `feat/email-outreach-live-mvp`  
+Starting commit: `a88035b`
 
-## Delivered
+## Release readiness checklist
 
-- Schema v5 with `importBatches`, `importRows`, `leadContacts`, extended `Lead`
-- CSV/XLSX browser import wizard in LeadOps
-- Normalization, mapping, deduplication pipeline with tests
-- Backup v3 includes import data
-- Demo reset preserves imported operational leads
+- [x] Import → campaign → draft → approve → Gmail/Outlook → manual sent
+- [x] Tenant-scoped suppression with immediate enforcement
+- [x] Duplicate outreach prevention and cooldown warnings
+- [x] Manual sent history and idempotency keys
+- [x] Backup/restore v5 includes outreach operational data
+- [x] Demo reset preserves imported outreach data
+- [x] Operational dashboard metrics from local data
+- [x] CSV export formula injection protection
+- [x] Unit, integration, e2e, and acceptance tests passing
+- [ ] Live Brevo/provider delivery (deferred)
+- [ ] Provider webhooks for bounce/complaint (deferred)
 
-## Next (Step 2)
+## Schema
 
-Campaign selection, draft generation, and outreach workflow on imported leads.
+IndexedDB schema v9 — `emailSuppressions` table.
+
+## Backup version
+
+JSON backup v5 — adds `emailSuppressions`; accepts restore from v4 (empty suppressions).
+
+## Next milestone prerequisites (automated provider sending)
+
+1. Server-side provider credentials (never in browser)
+2. Outbound send queue with idempotent jobs
+3. Webhook endpoints for bounce, complaint, unsubscribe
+4. Delivery status model distinct from manual confirmation
+5. Rate limits and tenant billing guards
