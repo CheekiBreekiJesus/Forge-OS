@@ -33,3 +33,15 @@ Fallbacks never invent facts. Missing contact uses a neutral greeting; empty reg
 ## Default template
 
 Editable PT-PT default seeded on new draft campaigns via `default-templates.ts` (not hardcoded in renderer).
+
+## Workflow
+
+1. Open a draft campaign at `/pt-PT/leadops/campaigns/[campaignId]`.
+2. Edit subject and plain-text template; review available variables and sender warnings.
+3. Preview a sample recipient render and unresolved-variable counts.
+4. Generate deterministic drafts for included recipients.
+5. Review draft list filters (`PENDING`, `DRAFTED`, `NEEDS_REVIEW`, edited, unresolved).
+6. Edit an individual draft; reload to confirm exact persistence.
+7. Regenerate one draft only after confirming overwrite when manual edits exist.
+
+Step 4 (approval) builds on `NEEDS_REVIEW` blocking and sender completeness checks.
