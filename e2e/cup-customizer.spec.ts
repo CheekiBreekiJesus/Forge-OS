@@ -106,12 +106,27 @@ test.describe("Cup Customizer workflows", () => {
     await expect(page.getByRole("heading", { name: "Personalizador de Copos" })).toBeVisible();
   });
 
-  test("can save a simulation", async ({ page }) => {
+  test("can save and convert an artwork simulation", async ({ page }) => {
     await page.goto("/pt-PT/quotations/customizer");
     await waitForPersistence(page);
     await expect(page.getByText("Estimativa", { exact: true })).toBeVisible({ timeout: 15000 });
-    await page.getByRole("button", { name: "Guardar simulação" }).click();
-    await expect(page.getByText("Simulação guardada.")).toBeVisible({ timeout: 10000 });
+    await page.locator('input[type="file"]').setInputFiles("e2e/fixtures/logo.png");
+    await expect(page.getByText(/Arte carregada/i)).toBeVisible({ timeout: 10000 });
+    await page.getByLabel(/Escala da arte/i).fill("1.25");
+    await page.getByLabel(/Desvio horizontal/i).fill("8");
+    await page.getByLabel(/Desvio vertical/i).fill("-6");
+    await page.getByLabel(/Rota/i).fill("12");
+    await expect(page.getByTestId("cup-preview-artwork")).toBeVisible();
+    await page.getByRole("button", { name: /Guardar simula/i }).click();
+    await expect(page.getByText(/^Simulação guardada\.$/i)).toBeVisible({ timeout: 10000 });
+    await page.reload();
+    await waitForPersistence(page);
+    await expect(page.locator("li").filter({ hasText: /Guardada|Saved/i }).first()).toBeVisible({
+      timeout: 10000
+    });
+    await page.getByRole("button", { name: /Criar or/i }).click();
+    await expect(page).toHaveURL(/\/pt-PT\/quotations$/);
+    await expect(page.getByText(/QT-/).first()).toBeVisible({ timeout: 10000 });
   });
 
   test("onboarding checklist shows customizer step", async ({ page }) => {

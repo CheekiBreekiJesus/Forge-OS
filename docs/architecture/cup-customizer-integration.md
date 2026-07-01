@@ -44,6 +44,10 @@ All customizer output is labelled **Estimate** (`isEstimate: true`). Assumptions
 - Artwork uploads use `LocalAsset` with `validateLocalAsset`
 - Preview artwork uses blob/data URLs only (never embedded in outbound email HTML)
 - Company logo and product image shortcuts populate the `CupPreview` overlay
+- Saved simulations generate a tenant-local SVG mockup asset and store it in `CustomizerSimulation.mockupAssetId`
+- Quote conversion copies `mockupAssetId` to the generated quote so LeadOps/outreach can reference an internal mockup
+- Artwork transform fields are persisted on the simulation: `artworkScale`, `artworkOffsetX`, `artworkOffsetY`, and `artworkRotation`
+- Product image previews resolve catalog `imageUrl`, `thumbnailUrl`, then `image`; missing local demo image files fall back to the built-in cup preview with a visible unavailable-image message
 
 ## Entry points
 
@@ -59,6 +63,13 @@ All customizer output is labelled **Estimate** (`isEstimate: true`). Assumptions
 - `src/features/onboarding/checklist.test.ts`
 - `src/features/notifications/local-notifications.test.ts`
 - `e2e/cup-customizer.spec.ts`
+
+## Current limitations
+
+- The generated SVG mockup is a local operational reference, not a print-ready production proof.
+- Real uploaded artwork remains private in IndexedDB `LocalAsset`; outbound email must not embed blob URLs or local paths.
+- Demo product rows can contain relative image paths that are not backed by files under `public/`; the preview must tolerate this and use the fallback cup shell.
+- There is still no external JH Gomes customizer API contract in the repository.
 
 ## Future hosted integration
 

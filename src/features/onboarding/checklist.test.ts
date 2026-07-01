@@ -37,7 +37,11 @@ describe("onboarding checklist", () => {
 
     await repos.customizerSimulations.create(DEFAULT_TENANT_ID, {
       configuration: {
+        artworkOffsetX: 0,
+        artworkOffsetY: 0,
         artworkPosition: "center",
+        artworkRotation: 0,
+        artworkScale: 1,
         cupSize: "330 ml",
         cupType: "personalized-cups",
         desiredDeliveryDate: null,

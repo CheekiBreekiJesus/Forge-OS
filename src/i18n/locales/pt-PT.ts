@@ -1325,6 +1325,10 @@ export const dictionary: Dictionary = {
       printColors: "Cores de impressão",
       printArea: "Área de impressão",
       artworkPosition: "Posição da arte",
+      artworkScale: "Escala da arte",
+      artworkOffsetX: "Desvio horizontal",
+      artworkOffsetY: "Desvio vertical",
+      artworkRotation: "Rotação da arte",
       deliveryDate: "Data de entrega desejada",
       notes: "Notas",
       selectCustomer: "Selecionar cliente (opcional)",
@@ -1343,7 +1347,10 @@ export const dictionary: Dictionary = {
       noLogo: "Carregue primeiro o logótipo em Definições.",
       noProductImage: "Este produto não tem URL de imagem."
     },
-    preview: { label: "Pré-visualização do copo" },
+    preview: {
+      label: "Pré-visualização do copo",
+      brokenProductImage: "Imagem do produto indisponível; a usar pré-visualização base."
+    },
     pricing: {
       estimateBadge: "Estimativa",
       unitPrice: "Preço unitário",
@@ -1362,6 +1369,7 @@ export const dictionary: Dictionary = {
       convertToQuote: "Criar orçamento a partir da simulação",
       converted: "Orçamento criado.",
       newSimulation: "Nova simulação",
+      resetView: "Repor vista",
       openCustomizer: "Abrir Personalizador de Copos",
       openInCustomizer: "Abrir no personalizador",
       customize: "Personalizar",

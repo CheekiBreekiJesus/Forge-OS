@@ -51,6 +51,9 @@ type CupCustomizerShellProps = {
 const MATERIALS = ["PP", "Paper", "Reusable"];
 const PRINT_AREAS = ["wrap", "front", "back"];
 const ARTWORK_POSITIONS = ["left", "center", "right"];
+const DEFAULT_ARTWORK_SCALE = 1;
+const DEFAULT_ARTWORK_OFFSET = 0;
+const DEFAULT_ARTWORK_ROTATION = 0;
 
 function isCupProduct(product: Product): boolean {
   return (
@@ -63,6 +66,10 @@ function isCupProduct(product: Product): boolean {
 function defaultConfiguration(product: Product | null): CustomizerConfiguration {
   return {
     artworkPosition: "center",
+    artworkScale: DEFAULT_ARTWORK_SCALE,
+    artworkOffsetX: DEFAULT_ARTWORK_OFFSET,
+    artworkOffsetY: DEFAULT_ARTWORK_OFFSET,
+    artworkRotation: DEFAULT_ARTWORK_ROTATION,
     cupSize: product?.capacity ?? "330 ml",
     cupType: product?.category ?? "personalized-cups",
     desiredDeliveryDate: null,
@@ -70,6 +77,72 @@ function defaultConfiguration(product: Product | null): CustomizerConfiguration 
     printArea: product?.printArea ?? "wrap",
     printColorCount: 1
   };
+}
+
+function finiteNumber(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function normalizeConfiguration(
+  configuration: Partial<CustomizerConfiguration>,
+  product: Product | null
+): CustomizerConfiguration {
+  const defaults = defaultConfiguration(product);
+  return {
+    ...defaults,
+    ...configuration,
+    artworkOffsetX: finiteNumber(configuration.artworkOffsetX, defaults.artworkOffsetX),
+    artworkOffsetY: finiteNumber(configuration.artworkOffsetY, defaults.artworkOffsetY),
+    artworkRotation: finiteNumber(configuration.artworkRotation, defaults.artworkRotation),
+    artworkScale: finiteNumber(configuration.artworkScale, defaults.artworkScale),
+    desiredDeliveryDate: configuration.desiredDeliveryDate ?? defaults.desiredDeliveryDate,
+    printColorCount: finiteNumber(configuration.printColorCount, defaults.printColorCount)
+  };
+}
+
+function resolveProductPreviewUrl(product: Product | null): string | null {
+  if (!product) return null;
+  return product.imageUrl || product.thumbnailUrl || product.image || null;
+}
+
+function escapeSvgText(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+function buildMockupAssetBlob(
+  product: Product,
+  configuration: CustomizerConfiguration,
+  quantity: number,
+  pricing: CustomizerPricingSnapshot
+): Blob {
+  const artworkX = configuration.artworkPosition === "left" ? 168 : configuration.artworkPosition === "right" ? 312 : 240;
+  const artworkY = 225 + configuration.artworkOffsetY * 2;
+  const artworkWidth = Math.round(150 * configuration.artworkScale);
+  const artworkHeight = Math.round(105 * configuration.artworkScale);
+  const safeProductName = escapeSvgText(product.name);
+  const safeSku = escapeSvgText(product.sku);
+  const safePrintArea = escapeSvgText(configuration.printArea);
+  const safeMaterial = escapeSvgText(configuration.material);
+  const total = pricing.total.toFixed(2);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="540" viewBox="0 0 720 540" role="img" aria-label="ForgeOS cup mockup">
+  <rect width="720" height="540" fill="#0f172a"/>
+  <rect x="36" y="32" width="648" height="476" rx="24" fill="#111827" stroke="#334155"/>
+  <path d="M264 110h192l-32 310H296z" fill="#e2e8f0" stroke="#94a3b8" stroke-width="4"/>
+  <path d="M282 138h156l-18 252H300z" fill="#f8fafc" opacity="0.86"/>
+  <g transform="translate(${artworkX + configuration.artworkOffsetX * 2} ${artworkY}) rotate(${configuration.artworkRotation})">
+    <rect x="${-artworkWidth / 2}" y="${-artworkHeight / 2}" width="${artworkWidth}" height="${artworkHeight}" rx="12" fill="#f97316" opacity="0.88"/>
+    <text x="0" y="4" text-anchor="middle" fill="#fff7ed" font-family="Arial, sans-serif" font-size="18" font-weight="700">${safePrintArea}</text>
+  </g>
+  <text x="72" y="84" fill="#f8fafc" font-family="Arial, sans-serif" font-size="28" font-weight="700">${safeProductName}</text>
+  <text x="72" y="120" fill="#cbd5e1" font-family="Arial, sans-serif" font-size="16">SKU ${safeSku} | ${safeMaterial} | ${quantity} units</text>
+  <text x="72" y="460" fill="#fbbf24" font-family="Arial, sans-serif" font-size="18" font-weight="700">Estimated total EUR ${total}</text>
+  <text x="72" y="486" fill="#94a3b8" font-family="Arial, sans-serif" font-size="13">Local ForgeOS mockup. Artwork asset remains private in the tenant database.</text>
+</svg>`;
+  return new Blob([svg], { type: "image/svg+xml" });
 }
 
 function buildPricingSnapshot(
@@ -133,6 +206,8 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
   const [quantity, setQuantity] = useState(1000);
   const [notes, setNotes] = useState("");
   const [artworkAssetId, setArtworkAssetId] = useState<string | null>(null);
+  const [artworkAssetIsOwned, setArtworkAssetIsOwned] = useState(false);
+  const [mockupAssetId, setMockupAssetId] = useState<string | null>(null);
   const [artworkPreviewUrl, setArtworkPreviewUrl] = useState<string | null>(null);
   const [cupImageUrl, setCupImageUrl] = useState<string | null>(null);
   const [manualUnitPriceOverride, setManualUnitPriceOverride] = useState<number | null>(null);
@@ -170,8 +245,10 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
       setQuantity(1000);
       setNotes("");
       setArtworkAssetId(null);
+      setArtworkAssetIsOwned(false);
+      setMockupAssetId(null);
       setArtworkPreviewUrl(null);
-      setCupImageUrl(product?.imageUrl || product?.thumbnailUrl || null);
+      setCupImageUrl(resolveProductPreviewUrl(product));
       setManualUnitPriceOverride(null);
       setOverrideReason("");
       setFormError(null);
@@ -192,14 +269,16 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
       setCustomerId(simulation.customerId ?? "");
       setLeadId(simulation.leadId ?? "");
       setProductId(simulation.productId);
-      setConfiguration(simulation.configuration);
+      const product = cupProducts.find((row) => row.id === simulation.productId) ?? null;
+      setConfiguration(normalizeConfiguration(simulation.configuration, product));
       setQuantity(simulation.quantity);
       setNotes(simulation.notes);
       setArtworkAssetId(simulation.artworkAssetId);
+      setArtworkAssetIsOwned(false);
+      setMockupAssetId(simulation.mockupAssetId);
       setManualUnitPriceOverride(simulation.pricing.manualUnitPriceOverride);
       setOverrideReason(simulation.pricing.overrideReason ?? "");
-      const product = cupProducts.find((row) => row.id === simulation.productId);
-      setCupImageUrl(product?.imageUrl || product?.thumbnailUrl || null);
+      setCupImageUrl(resolveProductPreviewUrl(product));
       if (simulation.artworkAssetId && state.status === "ready") {
         const asset = await state.repos.localAssets.getById(tenantId, simulation.artworkAssetId);
         if (asset) {
@@ -241,15 +320,23 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
   useEffect(() => {
     if (!selectedProduct) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- sync product defaults into form
-    setCupImageUrl(selectedProduct.imageUrl || selectedProduct.thumbnailUrl || null);
-    setConfiguration((current) => ({
+    setCupImageUrl(resolveProductPreviewUrl(selectedProduct));
+    setConfiguration((current) => normalizeConfiguration({
       ...current,
       cupSize: selectedProduct.capacity,
       cupType: selectedProduct.category,
       material: selectedProduct.material,
       printArea: selectedProduct.printArea || current.printArea
-    }));
+    }, selectedProduct));
   }, [selectedProduct]);
+
+  useEffect(() => {
+    return () => {
+      if (artworkPreviewUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(artworkPreviewUrl);
+      }
+    };
+  }, [artworkPreviewUrl]);
 
   async function uploadArtwork(file: File) {
     if (state.status !== "ready") return;
@@ -258,7 +345,7 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
       setFormError(validation.error);
       return;
     }
-    if (artworkAssetId) {
+    if (artworkAssetId && artworkAssetIsOwned) {
       await state.repos.localAssets.delete(tenantId, artworkAssetId).catch(() => {});
     }
     const asset = await state.repos.localAssets.create(tenantId, {
@@ -269,6 +356,7 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
       size: validation.size
     });
     setArtworkAssetId(asset.id);
+    setArtworkAssetIsOwned(true);
     setArtworkPreviewUrl(URL.createObjectURL(file));
     notifyDataChanged();
     setFeedback(copy.artwork.uploaded);
@@ -285,27 +373,47 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
       return;
     }
     setArtworkAssetId(asset.id);
+    setArtworkAssetIsOwned(false);
     setArtworkPreviewUrl(URL.createObjectURL(asset.blob));
     setFeedback(copy.artwork.logoApplied);
   }
 
   async function applyProductImageArtwork() {
     if (!selectedProduct) return;
-    const url = selectedProduct.imageUrl || selectedProduct.thumbnailUrl;
+    const url = resolveProductPreviewUrl(selectedProduct);
     if (!url) {
       setFormError(copy.artwork.noProductImage);
       return;
     }
     try {
       const response = await fetch(url);
+      if (!response.ok || !response.headers.get("content-type")?.startsWith("image/")) {
+        throw new Error("Product image unavailable.");
+      }
       const blob = await response.blob();
       const dataUrl = await blobToDataUrl(blob);
       setArtworkPreviewUrl(dataUrl);
       setArtworkAssetId(null);
+      setArtworkAssetIsOwned(false);
       setFeedback(copy.artwork.productImageApplied);
     } catch {
       setFormError(copy.artwork.noProductImage);
     }
+  }
+
+  async function ensureMockupAsset(): Promise<string | null> {
+    if (state.status !== "ready" || !selectedProduct || !pricing) return mockupAssetId;
+    const blob = buildMockupAssetBlob(selectedProduct, configuration, quantity, pricing);
+    const safeSku = selectedProduct.sku.toLowerCase().replace(/[^a-z0-9-]+/g, "-") || "cup";
+    const asset = await state.repos.localAssets.create(tenantId, {
+      assetType: "product-image",
+      blob,
+      fileName: `${safeSku}-customizer-mockup.svg`,
+      mimeType: "image/svg+xml",
+      size: blob.size
+    });
+    setMockupAssetId(asset.id);
+    return asset.id;
   }
 
   async function handleSave() {
@@ -316,8 +424,10 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
     setSubmitting(true);
     setFormError(null);
     try {
+      const nextMockupAssetId = await ensureMockupAsset();
       const input = {
         artworkAssetId,
+        mockupAssetId: nextMockupAssetId,
         configuration,
         customerId: customerId || null,
         leadId: leadId || null,
@@ -352,10 +462,12 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
     }
     setSubmitting(true);
     try {
+      const nextMockupAssetId = await ensureMockupAsset();
       let simulationId = activeSimulationId;
       if (!simulationId) {
         const created = await state.repos.customizerSimulations.create(tenantId, {
           artworkAssetId,
+          mockupAssetId: nextMockupAssetId,
           configuration,
           customerId: customerId || null,
           leadId: leadId || null,
@@ -371,6 +483,7 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
       } else {
         await state.repos.customizerSimulations.update(tenantId, simulationId, {
           artworkAssetId,
+          mockupAssetId: nextMockupAssetId,
           configuration,
           customerId: customerId || null,
           leadId: leadId || null,
@@ -585,6 +698,78 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
                     ))}
                   </select>
                 </FormField>
+                <FormField label={copy.form.artworkScale}>
+                  <div className="flex items-center gap-3">
+                    <input
+                      className="w-full accent-orange-500"
+                      max={1.6}
+                      min={0.5}
+                      onChange={(event) =>
+                        setConfiguration({ ...configuration, artworkScale: Number(event.target.value) })
+                      }
+                      step={0.05}
+                      type="range"
+                      value={configuration.artworkScale}
+                    />
+                    <span className="w-12 text-right text-xs text-slate-400">
+                      {Math.round(configuration.artworkScale * 100)}%
+                    </span>
+                  </div>
+                </FormField>
+                <FormField label={copy.form.artworkOffsetX}>
+                  <div className="flex items-center gap-3">
+                    <input
+                      className="w-full accent-orange-500"
+                      max={20}
+                      min={-20}
+                      onChange={(event) =>
+                        setConfiguration({ ...configuration, artworkOffsetX: Number(event.target.value) })
+                      }
+                      step={1}
+                      type="range"
+                      value={configuration.artworkOffsetX}
+                    />
+                    <span className="w-12 text-right text-xs text-slate-400">
+                      {configuration.artworkOffsetX}%
+                    </span>
+                  </div>
+                </FormField>
+                <FormField label={copy.form.artworkOffsetY}>
+                  <div className="flex items-center gap-3">
+                    <input
+                      className="w-full accent-orange-500"
+                      max={20}
+                      min={-20}
+                      onChange={(event) =>
+                        setConfiguration({ ...configuration, artworkOffsetY: Number(event.target.value) })
+                      }
+                      step={1}
+                      type="range"
+                      value={configuration.artworkOffsetY}
+                    />
+                    <span className="w-12 text-right text-xs text-slate-400">
+                      {configuration.artworkOffsetY}%
+                    </span>
+                  </div>
+                </FormField>
+                <FormField label={copy.form.artworkRotation}>
+                  <div className="flex items-center gap-3">
+                    <input
+                      className="w-full accent-orange-500"
+                      max={30}
+                      min={-30}
+                      onChange={(event) =>
+                        setConfiguration({ ...configuration, artworkRotation: Number(event.target.value) })
+                      }
+                      step={1}
+                      type="range"
+                      value={configuration.artworkRotation}
+                    />
+                    <span className="w-12 text-right text-xs text-slate-400">
+                      {configuration.artworkRotation}deg
+                    </span>
+                  </div>
+                </FormField>
                 <FormField label={copy.form.deliveryDate}>
                   <input
                     className={inputClassName}
@@ -641,6 +826,22 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
                   type="button"
                 >
                   {copy.artwork.useProductImage}
+                </button>
+                <button
+                  className="rounded-lg border border-slate-700 px-3 py-2 text-sm hover:bg-slate-800"
+                  onClick={() =>
+                    setConfiguration({
+                      ...configuration,
+                      artworkOffsetX: DEFAULT_ARTWORK_OFFSET,
+                      artworkOffsetY: DEFAULT_ARTWORK_OFFSET,
+                      artworkPosition: "center",
+                      artworkRotation: DEFAULT_ARTWORK_ROTATION,
+                      artworkScale: DEFAULT_ARTWORK_SCALE
+                    })
+                  }
+                  type="button"
+                >
+                  {copy.actions.resetView}
                 </button>
               </div>
             </section>
@@ -716,7 +917,12 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
             <section className={`${panelClass} p-5`}>
               <CupPreview
                 artworkDataUrl={artworkPreviewUrl}
+                artworkOffsetX={configuration.artworkOffsetX}
+                artworkOffsetY={configuration.artworkOffsetY}
                 artworkPosition={configuration.artworkPosition}
+                artworkRotation={configuration.artworkRotation}
+                artworkScale={configuration.artworkScale}
+                brokenImageLabel={copy.preview.brokenProductImage}
                 cupImageUrl={cupImageUrl}
                 label={copy.preview.label}
                 printArea={configuration.printArea}

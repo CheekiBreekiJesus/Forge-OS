@@ -9,6 +9,10 @@ export type CustomizerConfiguration = {
   printColorCount: number;
   printArea: string;
   artworkPosition: string;
+  artworkScale: number;
+  artworkOffsetX: number;
+  artworkOffsetY: number;
+  artworkRotation: number;
   desiredDeliveryDate: string | null;
 };
 

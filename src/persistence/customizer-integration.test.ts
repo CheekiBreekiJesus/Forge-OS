@@ -32,7 +32,11 @@ describe("customizer integration persistence", () => {
 
     const simulation = await repos.customizerSimulations.create(DEFAULT_TENANT_ID, {
       configuration: {
+        artworkOffsetX: 0,
+        artworkOffsetY: 0,
         artworkPosition: "center",
+        artworkRotation: 0,
+        artworkScale: 1,
         cupSize: cup.capacity,
         cupType: cup.category,
         desiredDeliveryDate: null,
@@ -52,6 +56,7 @@ describe("customizer integration persistence", () => {
         unitPrice: 0.45,
         vat: 115
       },
+      mockupAssetId: "asset_mockup_test",
       productId: cup.id,
       productName: cup.name,
       quantity: 1000,
@@ -67,6 +72,7 @@ describe("customizer integration persistence", () => {
     );
 
     expect(quote.simulationId).toBe(simulation.id);
+    expect(quote.mockupAssetId).toBe("asset_mockup_test");
     expect(quote.isEstimate).toBe(true);
     expect(converted.status).toBe("converted");
     expect(converted.quoteId).toBe(quote.id);
@@ -80,7 +86,11 @@ describe("customizer integration persistence", () => {
     const cup = products[0];
     const created = await simulations.create(DEFAULT_TENANT_ID, {
       configuration: {
+        artworkOffsetX: 0,
+        artworkOffsetY: 0,
         artworkPosition: "center",
+        artworkRotation: 0,
+        artworkScale: 1,
         cupSize: "330 ml",
         cupType: "personalized-cups",
         desiredDeliveryDate: null,

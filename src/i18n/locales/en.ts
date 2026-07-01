@@ -1325,6 +1325,10 @@ export const dictionary: Dictionary = {
       printColors: "Print colours",
       printArea: "Print area",
       artworkPosition: "Artwork position",
+      artworkScale: "Artwork scale",
+      artworkOffsetX: "Horizontal offset",
+      artworkOffsetY: "Vertical offset",
+      artworkRotation: "Artwork rotation",
       deliveryDate: "Desired delivery date",
       notes: "Notes",
       selectCustomer: "Select customer (optional)",
@@ -1343,7 +1347,10 @@ export const dictionary: Dictionary = {
       noLogo: "Upload a company logo in Settings first.",
       noProductImage: "This product has no image URL."
     },
-    preview: { label: "Cup preview" },
+    preview: {
+      label: "Cup preview",
+      brokenProductImage: "Product image unavailable; using fallback preview."
+    },
     pricing: {
       estimateBadge: "Estimate",
       unitPrice: "Unit price",
@@ -1362,6 +1369,7 @@ export const dictionary: Dictionary = {
       convertToQuote: "Create quotation from simulation",
       converted: "Quotation created.",
       newSimulation: "New simulation",
+      resetView: "Reset view",
       openCustomizer: "Open Cup Customizer",
       openInCustomizer: "Open in customizer",
       customize: "Customize",

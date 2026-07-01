@@ -937,6 +937,10 @@ export type Dictionary = {
       printColors: string;
       printArea: string;
       artworkPosition: string;
+      artworkScale: string;
+      artworkOffsetX: string;
+      artworkOffsetY: string;
+      artworkRotation: string;
       deliveryDate: string;
       notes: string;
       selectCustomer: string;
@@ -957,6 +961,7 @@ export type Dictionary = {
     };
     preview: {
       label: string;
+      brokenProductImage: string;
     };
     pricing: {
       estimateBadge: string;
@@ -976,6 +981,7 @@ export type Dictionary = {
       convertToQuote: string;
       converted: string;
       newSimulation: string;
+      resetView: string;
       openCustomizer: string;
       openInCustomizer: string;
       customize: string;
