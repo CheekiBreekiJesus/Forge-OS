@@ -1,12 +1,8 @@
+@import "../theme/tokens.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-:root {
-  color-scheme: dark;
-  background: #06111f;
-  color: #edf4ff;
-}
 
 * {
   box-sizing: border-box;
@@ -16,10 +12,16 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(37, 99, 235, 0.16), transparent 34rem),
-    linear-gradient(180deg, #071422 0%, #050b14 100%);
-  color: #edf4ff;
+    radial-gradient(circle at top left, color-mix(in srgb, var(--forge-accent-blue) 16%, transparent), transparent 34rem),
+    linear-gradient(
+      180deg,
+      var(--forge-page-bg-gradient-start) 0%,
+      var(--forge-page-bg-gradient-end) 100%
+    );
+  color: var(--forge-text-primary);
   font-family:
+    Inter,
+    Segoe UI,
     Arial,
     Helvetica,
     sans-serif;
@@ -31,10 +33,31 @@ a {
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--forge-accent-orange);
+  outline-offset: 2px;
 }
 
 .campaign-progress-fill {
   width: var(--progress-width, 0%);
+}
+
+.forge-scroll-sidebar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--forge-border) transparent;
+}
+
+.forge-scroll-sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.forge-scroll-sidebar::-webkit-scrollbar-thumb {
+  background: var(--forge-border);
+  border-radius: 999px;
 }
