@@ -10,23 +10,46 @@ export const dictionary: Dictionary = {
   },
   navigation: {
     dashboard: "Painel",
+    crm: "CRM",
     customers: "Clientes",
     products: "Produtos",
-    orders: "Encomendas",
+    orders: "Orçamentos",
+    salesOrders: "Encomendas",
     production: "Produção",
     inventory: "Inventário",
     machines: "Máquinas",
     maintenance: "Manutenção",
+    molds: "Moldes",
+    quality: "Qualidade",
+    purchasing: "Compras",
+    suppliers: "Fornecedores",
+    sales: "Vendas",
+    billing: "Faturação",
+    reports: "Relatórios",
     marketing: "Marketing",
     leadops: "Contactos Comerciais",
-    settings: "Definições"
+    settings: "Configurações"
   },
   dashboard: {
     searchPlaceholder: "Pesquisar...",
     searchShortcut: "Ctrl + K",
     dateRange: "Demo",
+    dateRangeThisWeek: "Esta semana",
     customize: "Personalizar",
+    demoLabel: "Dados de pré-visualização",
+    theme: {
+      switchToLight: "Mudar para tema claro",
+      switchToDark: "Mudar para tema escuro"
+    },
+    sidebar: {
+      newBadge: "Novo",
+      newTitle: "Novo no ForgeOS",
+      newAction: "Ver novidades",
+      planTitle: "Empresa de referência",
+      planSubtitle: "Plano profissional"
+    },
     greeting: "Bom dia, operador.",
+    userName: "Operador",
     userRole: "Diretor Geral",
     eyebrow: "Sistema operativo industrial",
     title: "Aqui está o resumo da sua operação.",
@@ -330,6 +353,7 @@ export const dictionary: Dictionary = {
       system: "Sistema",
       database: "Base de dados",
       backup: "Backup",
+      backupDemo: "Há 2 horas",
       environment: "Ambiente",
       support: "Suporte"
     }
@@ -875,6 +899,13 @@ export const dictionary: Dictionary = {
       medium: "Média",
       low: "Baixa"
     },
+    industries: {
+      Hospitality: "Hotelaria",
+      Events: "Eventos",
+      "Food & Beverage": "Restauração e bebidas",
+      Packaging: "Embalagem",
+      "Sports venues": "Recintos desportivos"
+    },
     campaignStatuses: {
       active: "Ativa",
       paused: "Em pausa",
@@ -1010,11 +1041,66 @@ export const dictionary: Dictionary = {
       blocked: "Bloqueado"
     }
   },
+  dashboardCustomize: {
+    title: "Personalizar painel",
+    description: "Escolha painéis visíveis, densidade e intervalo de datas predefinido. As preferências ficam guardadas localmente.",
+    panelsTitle: "Painéis",
+    densityTitle: "Densidade",
+    densityComfortable: "Confortável",
+    densityCompact: "Compacta",
+    dateRangeTitle: "Intervalo predefinido",
+    dateToday: "Hoje",
+    dateWeek: "Esta semana",
+    dateMonth: "Este mês",
+    restore: "Restaurar predefinições",
+    save: "Guardar layout",
+    close: "Fechar",
+    panelLabels: {
+      oee: "Produção OEE",
+      inventory: "Resumo de inventário",
+      alerts: "Alertas e atividades",
+      productionOrders: "Encomendas de produção",
+      revenue: "Receita",
+      copilot: "Copiloto IA",
+      marketing: "Resumo de marketing",
+      onboarding: "Checklist de onboarding"
+    }
+  },
   dashboardModule: {
     subtitle: "Métricas em tempo real da base de dados local ForgeOS",
     recentActivity: "Atividade recente",
-    noActivity: "Ainda sem atividade. Execute o fluxo demo para criar registos.",
+    noActivity: "Ainda sem atividade. Execute o fluxo demo ou importe leads para criar registos.",
+    noInventory: "Ainda sem inventário. Itens de pré-visualização são mostrados até existir stock.",
     leadopsHint: "Contactos comerciais e campanhas de email",
+    openOutreach: "Abrir Contactos Comerciais",
+    revenueTitle: "Receita",
+    revenueEstimated: "Estimada a partir de orçamentos locais quando existirem; caso contrário tendência demo.",
+    copilotDisclaimer: "O copiloto fornece apenas respostas determinísticas de pré-visualização. Ainda não executa ações operacionais.",
+    copilotSend: "Enviar",
+    copilotPrompts: {
+      molds: "Quais moldes precisam de manutenção no próximo mês?",
+      delayedOrders: "Quais encomendas estão em atraso?",
+      lowStock: "Que produtos estão abaixo do stock mínimo?",
+      quotations: "Quais orçamentos aguardam resposta?",
+      campaigns: "Que campanhas de marketing precisam de aprovação?"
+    },
+    kpi: {
+      oee: "Produção OEE",
+      revenue: "Receita (semana)",
+      openQuotations: "Orçamentos abertos",
+      delayedOrders: "Encomendas em atraso",
+      maintenanceAlerts: "Alertas de manutenção"
+    },
+    marketing: {
+      title: "Marketing e Outreach",
+      leadsReady: "Leads prontos",
+      drafts: "Rascunhos por rever",
+      approved: "Emails aprovados",
+      opened: "Abertos externamente",
+      suppressed: "Leads suprimidos",
+      openOutreach: "Abrir Contactos Comerciais",
+      openMarketing: "Abrir Marketing"
+    },
     metrics: {
       leads: "Total de leads",
       qualified: "Leads qualificados",

@@ -16,18 +16,8 @@ export type Dictionary = {
     openMenu: string;
     closeMenu: string;
   };
-  navigation: {
-    dashboard: string;
-    customers: string;
-    products: string;
-    orders: string;
-    production: string;
-    inventory: string;
-    machines: string;
-    maintenance: string;
-    marketing: string;
+  navigation: Record<import("@/modules/config").ModuleKey, string> & {
     leadops: string;
-    settings: string;
   };
   dashboard: {
     searchPlaceholder: string;
@@ -142,9 +132,43 @@ export type Dictionary = {
       system: string;
       database: string;
       backup: string;
+      backupDemo: string;
       environment: string;
       support: string;
     };
+    demoLabel: string;
+    dateRangeThisWeek: string;
+    userName: string;
+    theme: {
+      switchToLight: string;
+      switchToDark: string;
+    };
+    sidebar: {
+      newBadge: string;
+      newTitle: string;
+      newAction: string;
+      planTitle: string;
+      planSubtitle: string;
+    };
+  };
+  dashboardCustomize: {
+    title: string;
+    description: string;
+    panelsTitle: string;
+    densityTitle: string;
+    densityComfortable: string;
+    densityCompact: string;
+    dateRangeTitle: string;
+    dateToday: string;
+    dateWeek: string;
+    dateMonth: string;
+    restore: string;
+    save: string;
+    close: string;
+    panelLabels: Record<
+      import("@/features/dashboard/preferences").DashboardPanelKey,
+      string
+    >;
   };
   modulePage: {
     backToDashboard: string;
@@ -161,25 +185,27 @@ export type Dictionary = {
       status: string;
       owner: string;
     };
-    modules: Record<
-      Exclude<ModuleKey, "dashboard">,
-      {
-        eyebrow: string;
-        title: string;
-        description: string;
-        stats: Array<{
-          label: string;
-          value: string;
-          detail: string;
-        }>;
-        roadmap: string[];
-        tableRows: Array<{
-          area: string;
-          priority: string;
-          status: string;
-          owner: string;
-        }>;
-      }
+    modules: Partial<
+      Record<
+        Exclude<ModuleKey, "dashboard">,
+        {
+          eyebrow: string;
+          title: string;
+          description: string;
+          stats: Array<{
+            label: string;
+            value: string;
+            detail: string;
+          }>;
+          roadmap: string[];
+          tableRows: Array<{
+            area: string;
+            priority: string;
+            status: string;
+            owner: string;
+          }>;
+        }
+      >
     >;
   };
   productCatalog: {
@@ -520,6 +546,10 @@ export type Dictionary = {
       string
     >;
     qualities: Record<"high" | "medium" | "low", string>;
+    industries: Record<
+      "Hospitality" | "Events" | "Food & Beverage" | "Packaging" | "Sports venues",
+      string
+    >;
     campaignStatuses: Record<"active" | "paused" | "completed", string>;
     activities: Record<
       | "lead-imported"
@@ -647,7 +677,37 @@ export type Dictionary = {
     subtitle: string;
     recentActivity: string;
     noActivity: string;
+    noInventory: string;
     leadopsHint: string;
+    openOutreach: string;
+    revenueTitle: string;
+    revenueEstimated: string;
+    copilotDisclaimer: string;
+    copilotSend: string;
+    copilotPrompts: {
+      molds: string;
+      delayedOrders: string;
+      lowStock: string;
+      quotations: string;
+      campaigns: string;
+    };
+    kpi: {
+      oee: string;
+      revenue: string;
+      openQuotations: string;
+      delayedOrders: string;
+      maintenanceAlerts: string;
+    };
+    marketing: {
+      title: string;
+      leadsReady: string;
+      drafts: string;
+      approved: string;
+      opened: string;
+      suppressed: string;
+      openOutreach: string;
+      openMarketing: string;
+    };
     metrics: {
       leads: string;
       qualified: string;

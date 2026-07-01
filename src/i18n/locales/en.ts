@@ -10,13 +10,22 @@ export const dictionary: Dictionary = {
   },
   navigation: {
     dashboard: "Dashboard",
+    crm: "CRM",
     customers: "Customers",
     products: "Products",
-    orders: "Orders",
+    orders: "Quotations",
+    salesOrders: "Orders",
     production: "Production",
     inventory: "Inventory",
     machines: "Machines",
     maintenance: "Maintenance",
+    molds: "Molds",
+    quality: "Quality",
+    purchasing: "Purchasing",
+    suppliers: "Suppliers",
+    sales: "Sales",
+    billing: "Billing",
+    reports: "Reports",
     marketing: "Marketing",
     leadops: "Outreach",
     settings: "Settings"
@@ -25,8 +34,22 @@ export const dictionary: Dictionary = {
     searchPlaceholder: "Search...",
     searchShortcut: "Ctrl + K",
     dateRange: "Demo",
+    dateRangeThisWeek: "This week",
     customize: "Customize",
+    demoLabel: "Preview data",
+    theme: {
+      switchToLight: "Switch to light theme",
+      switchToDark: "Switch to dark theme"
+    },
+    sidebar: {
+      newBadge: "New",
+      newTitle: "New in ForgeOS",
+      newAction: "See what's new",
+      planTitle: "Reference tenant",
+      planSubtitle: "Professional plan"
+    },
     greeting: "Good morning, operator.",
+    userName: "Operator",
     userRole: "General Director",
     eyebrow: "Industrial operating system",
     title: "Here is the summary of your operation.",
@@ -330,6 +353,7 @@ export const dictionary: Dictionary = {
       system: "System",
       database: "Database",
       backup: "Backup",
+      backupDemo: "2 hours ago",
       environment: "Environment",
       support: "Support"
     }
@@ -875,6 +899,13 @@ export const dictionary: Dictionary = {
       medium: "Medium",
       low: "Low"
     },
+    industries: {
+      Hospitality: "Hospitality",
+      Events: "Events",
+      "Food & Beverage": "Food & Beverage",
+      Packaging: "Packaging",
+      "Sports venues": "Sports venues"
+    },
     campaignStatuses: {
       active: "Active",
       paused: "Paused",
@@ -1010,11 +1041,66 @@ export const dictionary: Dictionary = {
       blocked: "Blocked"
     }
   },
+  dashboardCustomize: {
+    title: "Customize dashboard",
+    description: "Choose visible panels, density, and default date range. Preferences are stored locally.",
+    panelsTitle: "Panels",
+    densityTitle: "Density",
+    densityComfortable: "Comfortable",
+    densityCompact: "Compact",
+    dateRangeTitle: "Default date range",
+    dateToday: "Today",
+    dateWeek: "This week",
+    dateMonth: "This month",
+    restore: "Restore defaults",
+    save: "Save layout",
+    close: "Close",
+    panelLabels: {
+      oee: "Production OEE",
+      inventory: "Inventory summary",
+      alerts: "Alerts and activity",
+      productionOrders: "Production orders",
+      revenue: "Revenue",
+      copilot: "AI Copilot",
+      marketing: "Marketing summary",
+      onboarding: "Onboarding checklist"
+    }
+  },
   dashboardModule: {
     subtitle: "Live metrics from your local ForgeOS database",
     recentActivity: "Recent activity",
-    noActivity: "No activity yet. Run the demo workflow to create records.",
+    noActivity: "No activity yet. Run the demo workflow or import leads to create records.",
+    noInventory: "No inventory records yet. Preview items are shown until stock is added.",
     leadopsHint: "Commercial outreach and email campaigns",
+    openOutreach: "Open Outreach",
+    revenueTitle: "Revenue",
+    revenueEstimated: "Estimated from local quotations when available; otherwise preview trend.",
+    copilotDisclaimer: "Copilot provides deterministic preview answers only. It cannot execute shop-floor actions yet.",
+    copilotSend: "Send",
+    copilotPrompts: {
+      molds: "Which molds need maintenance next month?",
+      delayedOrders: "Which orders are delayed?",
+      lowStock: "What products are below minimum stock?",
+      quotations: "Which quotations are awaiting a response?",
+      campaigns: "Which marketing campaigns need approval?"
+    },
+    kpi: {
+      oee: "Production OEE",
+      revenue: "Weekly revenue",
+      openQuotations: "Open quotations",
+      delayedOrders: "Delayed orders",
+      maintenanceAlerts: "Maintenance alerts"
+    },
+    marketing: {
+      title: "Marketing & Outreach",
+      leadsReady: "Leads ready",
+      drafts: "Drafts awaiting review",
+      approved: "Approved emails",
+      opened: "Opened externally",
+      suppressed: "Suppressed leads",
+      openOutreach: "Open Outreach",
+      openMarketing: "Open Marketing"
+    },
     metrics: {
       leads: "Total leads",
       qualified: "Qualified leads",
