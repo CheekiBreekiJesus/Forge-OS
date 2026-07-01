@@ -28,7 +28,7 @@ export function AppFrame({
   const isLeadOpsActive = activeRoute.startsWith("leadops");
 
   return (
-    <main className="min-h-screen bg-[var(--forge-page-bg)] text-[var(--forge-text-primary)]">
+    <main className="min-h-screen min-w-0 overflow-x-clip bg-[var(--forge-page-bg)] text-[var(--forge-text-primary)]">
       <div className="flex min-h-screen">
         <aside className="hidden w-64 shrink-0 border-r border-[var(--forge-border)] bg-[var(--forge-sidebar-bg)] lg:flex lg:flex-col">
           <Link
@@ -91,7 +91,7 @@ export function AppFrame({
           </div>
         </aside>
 
-        <section className="min-w-0 flex-1">
+        <section className="min-w-0 flex-1 overflow-x-clip">
           <header className="sticky top-0 z-10 border-b border-[var(--forge-border)] bg-[var(--forge-topbar-bg)] backdrop-blur">
             <div className="flex h-16 items-center gap-3 px-4 sm:gap-4 sm:px-6">
               <MobileNavDrawer
@@ -122,7 +122,7 @@ export function AppFrame({
 
 function StatusFooter({ dictionary, locale }: { dictionary: Dictionary; locale: Locale }) {
   return (
-    <footer className="mx-4 mb-6 grid gap-3 border-t border-[var(--forge-border)] pt-5 text-sm text-[var(--forge-text-muted)] sm:mx-6 md:grid-cols-[1.2fr_repeat(4,minmax(0,1fr))_auto]">
+    <footer className="mx-4 mb-6 grid max-w-full gap-3 overflow-x-auto border-t border-[var(--forge-border)] pt-5 text-sm text-[var(--forge-text-muted)] sm:mx-6 md:grid-cols-[1.2fr_repeat(4,minmax(0,1fr))_auto]">
       <div>
         <div className="font-semibold text-[var(--forge-text-primary)]">
           {dictionary.dashboard.footer.version}

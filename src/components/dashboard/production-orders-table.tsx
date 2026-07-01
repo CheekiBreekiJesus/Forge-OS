@@ -37,7 +37,7 @@ export function ProductionOrdersTable({
       badge={isDemo ? demoLabel : undefined}
       title={title}
     >
-      <div className="mt-4 overflow-x-auto">
+      <div className="mt-4 max-w-full overflow-x-auto">
         <table className="w-full min-w-[34rem] text-left text-sm">
           <thead className="text-xs text-[var(--forge-text-muted)]">
             <tr>

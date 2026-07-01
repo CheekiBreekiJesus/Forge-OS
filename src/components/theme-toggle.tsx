@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useTheme } from "@/theme/theme-provider";
 
 type ThemeToggleProps = {
@@ -9,7 +10,14 @@ type ThemeToggleProps = {
 
 export function ThemeToggle({ labelLight, labelDark }: ThemeToggleProps) {
   const { resolvedTheme, toggleTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- defer icon render until after hydration
+    setMounted(true);
+  }, []);
+
+  const isDark = mounted ? resolvedTheme === "dark" : true;
   const label = isDark ? labelLight : labelDark;
 
   return (
@@ -21,7 +29,9 @@ export function ThemeToggle({ labelLight, labelDark }: ThemeToggleProps) {
       title={label}
       type="button"
     >
-      {isDark ? (
+      {!mounted ? (
+        <span aria-hidden="true" className="size-4 rounded-full border border-current opacity-40" />
+      ) : isDark ? (
         <svg aria-hidden="true" className="size-4" fill="none" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.75" />
           <path

@@ -46,7 +46,7 @@ export function InventorySummary({
                 <div className="font-semibold text-[var(--forge-text-primary)]">{item.name}</div>
                 <div className="text-xs text-[var(--forge-text-muted)]">{item.category}</div>
               </div>
-              <div className="min-w-36 text-right">
+              <div className="min-w-0 text-right sm:min-w-36">
                 <div className="text-sm font-semibold text-[var(--forge-text-primary)]">
                   {item.quantityLabel}
                 </div>

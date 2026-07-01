@@ -51,7 +51,7 @@ export function AppFrameClient({
   const roleCopy = dictionary.crudModule.rolePreview;
 
   return (
-    <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+    <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-clip sm:gap-3">
       <button
         className="hidden min-w-0 flex-1 items-center rounded-lg border border-[var(--forge-border)] bg-[var(--forge-input-bg)] px-3 py-2 text-sm text-[var(--forge-text-muted)] hover:border-[var(--forge-accent-orange)] sm:flex"
         onClick={openPalette}

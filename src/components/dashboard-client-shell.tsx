@@ -190,7 +190,7 @@ export function DashboardClientShell({ dictionary, locale }: DashboardClientShel
         </div>
       ) : (
         <>
-          <section className={`grid ${densityGap} xl:grid-cols-5`}>
+          <section className={`grid min-w-0 ${densityGap} xl:grid-cols-5`}>
             {kpis.map((kpi) => (
               <DashboardKpiCard
                 demoLabel={dictionary.dashboard.demoLabel}
@@ -232,7 +232,7 @@ export function DashboardClientShell({ dictionary, locale }: DashboardClientShel
             </div>
           ) : null}
 
-          <section className={`mt-4 grid ${densityGap} xl:grid-cols-3`}>
+          <section className={`mt-4 grid min-w-0 ${densityGap} xl:grid-cols-3`}>
             {isPanelVisible(preferences, "oee") ? (
               <OeeSummary
                 availabilityLabel={dictionary.dashboard.production.availability}
@@ -268,7 +268,7 @@ export function DashboardClientShell({ dictionary, locale }: DashboardClientShel
             ) : null}
           </section>
 
-          <section className={`mt-4 grid ${densityGap} xl:grid-cols-3`}>
+          <section className={`mt-4 grid min-w-0 ${densityGap} xl:grid-cols-3`}>
             {isPanelVisible(preferences, "productionOrders") ? (
               <ProductionOrdersTable
                 demoLabel={dictionary.dashboard.demoLabel}
@@ -302,7 +302,7 @@ export function DashboardClientShell({ dictionary, locale }: DashboardClientShel
             ) : null}
           </section>
 
-          <section className={`${panelClass} mt-4 p-5`}>
+          <section className={`${panelClass} mt-4 min-w-0 p-5`}>
             <h2 className="text-lg font-bold">{copy.recentActivity}</h2>
             <div className="mt-4 space-y-3">
               {activities.length === 0 ? (

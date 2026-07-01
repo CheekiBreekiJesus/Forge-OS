@@ -30,11 +30,19 @@ function applyResolvedTheme(theme: ResolvedTheme) {
   document.documentElement.dataset.theme = theme;
 }
 
+function readInitialResolvedTheme(): ResolvedTheme {
+  if (typeof document !== "undefined") {
+    const fromDocument = document.documentElement.dataset.theme;
+    if (fromDocument === "light" || fromDocument === "dark") {
+      return fromDocument;
+    }
+  }
+  return resolveThemePreference(readStoredThemePreference());
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [preference, setPreferenceState] = useState<ThemePreference>(() => readStoredThemePreference());
-  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() =>
-    resolveThemePreference(readStoredThemePreference())
-  );
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => readInitialResolvedTheme());
 
   const setPreference = useCallback((next: ThemePreference) => {
     writeStoredThemePreference(next);
