@@ -182,7 +182,20 @@ export function createCampaignRecipientRepository(db: ForgeOSDatabase): Campaign
                 generationMethod: previous.generationMethod,
                 templateVersion: previous.templateVersion,
                 userEdited: previous.userEdited,
-                draftUpdatedAt: previous.draftUpdatedAt
+                draftUpdatedAt: previous.draftUpdatedAt,
+                approvedAt: previous.approvedAt,
+                approvedBy: previous.approvedBy,
+                approvalContentHash: previous.approvalContentHash,
+                approvalInvalidatedAt: previous.approvalInvalidatedAt,
+                approvalInvalidationReason: previous.approvalInvalidationReason,
+                openedExternallyAt: previous.openedExternallyAt,
+                externalClient: previous.externalClient,
+                sentAt: previous.sentAt,
+                sentBy: previous.sentBy,
+                recipientDeliveryMode: previous.recipientDeliveryMode,
+                operatorNote: previous.operatorNote,
+                simulatedAt: previous.simulatedAt,
+                sendIdempotencyKey: previous.sendIdempotencyKey
               }
             : {}),
           id: previous?.id ?? createRecordId("cmr"),

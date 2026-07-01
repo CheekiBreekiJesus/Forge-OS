@@ -1,8 +1,20 @@
 import type { LeadOpsFilters } from "@/features/leadops/types";
 
-export type CampaignStatus = "draft" | "active" | "paused" | "completed";
+export type CampaignStatus =
+  | "draft"
+  | "ready_for_review"
+  | "approved"
+  | "in_progress"
+  | "completed"
+  | "paused"
+  | "cancelled"
+  | "active";
 
 export type CampaignDeliveryMode = "simulation" | "provider_handoff";
+
+export type CampaignRecipientDeliveryMode = "manual_external" | "simulation";
+
+export type CampaignExternalClient = "gmail" | "outlook" | "default";
 
 export type SegmentDefinitionMode = "filters" | "selected_contacts" | "selected_organizations";
 
@@ -15,7 +27,16 @@ export type SegmentDefinition = {
   selectedContactIds?: string[];
 };
 
-export type CampaignDraftStatus = "PENDING" | "DRAFTED" | "NEEDS_REVIEW";
+export type CampaignDraftStatus =
+  | "PENDING"
+  | "DRAFTED"
+  | "NEEDS_REVIEW"
+  | "APPROVED"
+  | "EXCLUDED"
+  | "OPENED_EXTERNALLY"
+  | "SENT_MANUALLY"
+  | "SKIPPED"
+  | "SUPPRESSED";
 
 export type CampaignDraftGenerationMethod =
   | "deterministic_template"
@@ -92,6 +113,19 @@ export type CampaignRecipient = {
   templateVersion: number | null;
   userEdited: boolean;
   draftUpdatedAt: string | null;
+  approvedAt: string | null;
+  approvedBy: string | null;
+  approvalContentHash: string | null;
+  approvalInvalidatedAt: string | null;
+  approvalInvalidationReason: string | null;
+  openedExternallyAt: string | null;
+  externalClient: CampaignExternalClient | null;
+  sentAt: string | null;
+  sentBy: string | null;
+  recipientDeliveryMode: CampaignRecipientDeliveryMode | null;
+  operatorNote: string;
+  simulatedAt: string | null;
+  sendIdempotencyKey: string | null;
   createdAt: string;
 };
 
@@ -119,6 +153,20 @@ export type UpdateCampaignRecipientDraftInput = {
   userEdited?: boolean;
   generatedAt?: string | null;
   draftUpdatedAt?: string | null;
+  approvedAt?: string | null;
+  approvedBy?: string | null;
+  approvalContentHash?: string | null;
+  approvalInvalidatedAt?: string | null;
+  approvalInvalidationReason?: string | null;
+  openedExternallyAt?: string | null;
+  externalClient?: CampaignExternalClient | null;
+  sentAt?: string | null;
+  sentBy?: string | null;
+  recipientDeliveryMode?: CampaignRecipientDeliveryMode | null;
+  operatorNote?: string;
+  simulatedAt?: string | null;
+  sendIdempotencyKey?: string | null;
+  status?: CampaignRecipientStatus;
 };
 
 export type RecipientRefreshDiff = {
@@ -126,4 +174,17 @@ export type RecipientRefreshDiff = {
   removed: number;
   newlySuppressed: number;
   newlyInvalid: number;
+};
+
+export type CampaignProgressCounts = {
+  total: number;
+  drafted: number;
+  needsReview: number;
+  approved: number;
+  openedExternally: number;
+  manuallySent: number;
+  excluded: number;
+  suppressed: number;
+  skipped: number;
+  pending: number;
 };

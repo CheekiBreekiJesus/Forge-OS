@@ -10,7 +10,15 @@ export type LeadOpsStatus =
 
 export type LeadOpsQuality = "high" | "medium" | "low";
 
-export type LeadOpsCampaignStatus = "draft" | "active" | "paused" | "completed";
+export type LeadOpsCampaignStatus =
+  | "draft"
+  | "ready_for_review"
+  | "approved"
+  | "in_progress"
+  | "completed"
+  | "paused"
+  | "cancelled"
+  | "active";
 
 export type LeadOpsConsentStatus = "unknown" | "subscribed" | "unsubscribed";
 

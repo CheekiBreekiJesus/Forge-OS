@@ -16,6 +16,10 @@ import {
 } from "@/features/leadops/segmentation";
 import type { LocalRepositoryBundle } from "@/persistence/interfaces";
 import { PersistenceError } from "@/persistence/interfaces";
+import {
+  deriveCampaignStatus,
+  invalidateCampaignApprovals
+} from "@/application/campaign-approval-service";
 
 export type CreateCampaignFromSegmentInput = {
   name: string;
@@ -167,11 +171,15 @@ export async function refreshCampaignRecipients(
     }))
   );
 
+  await invalidateCampaignApprovals(repos, tenantId, campaignId, "campaign_recipients_refreshed");
+  const recipientsAfter = await repos.campaignRecipients.listForCampaign(tenantId, campaignId);
+
   const sendableCount = preview.counts.sendableRecipients;
   const updated = await repos.campaigns.update(tenantId, campaignId, {
     recipientSnapshotCreatedAt: new Date().toISOString(),
     recipientSnapshotCount: sendableCount,
-    totalCount: sendableCount
+    totalCount: sendableCount,
+    status: deriveCampaignStatus(campaign, recipientsAfter)
   });
 
   await repos.activities.append(tenantId, {

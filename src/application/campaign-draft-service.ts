@@ -4,7 +4,9 @@ import type {
   CampaignRecipient,
   OutreachCampaign
 } from "@/domain/campaign-types";
-import type { CompanyProfileSnapshot, SenderIdentitySnapshot } from "@/domain/profile-types";
+import { loadSenderContext, type SenderContext } from "@/application/campaign-sender-context";
+
+export { loadSenderContext, type SenderContext };
 import { plainTextToHtml, sanitizeEmailHtml } from "@/features/email-composition/sanitize";
 import { buildDefaultCampaignTemplate } from "@/features/leadops/default-templates";
 import {
@@ -14,13 +16,11 @@ import {
 } from "@/features/leadops/template-rendering";
 import type { LocalRepositoryBundle } from "@/persistence/interfaces";
 import { PersistenceError } from "@/persistence/interfaces";
-
-export type SenderContext = {
-  company: CompanyProfileSnapshot;
-  sender: SenderIdentitySnapshot;
-  missingFields: string[];
-  ready: boolean;
-};
+import {
+  deriveCampaignStatus,
+  invalidateCampaignApprovals,
+  invalidateRecipientApproval
+} from "@/application/campaign-approval-service";
 
 export type CampaignDraftPreview = {
   counts: {
@@ -43,59 +43,6 @@ export type GenerateDraftsResult = {
 
 function nowIso(): string {
   return new Date().toISOString();
-}
-
-export async function loadSenderContext(
-  repos: LocalRepositoryBundle,
-  tenantId: string,
-  campaign: OutreachCampaign
-): Promise<SenderContext> {
-  const companyRow = await repos.companyProfiles.getForTenant(tenantId);
-  if (!companyRow) {
-    throw new PersistenceError("not_found", "Company profile not found.");
-  }
-
-  const senderRow = campaign.senderProfileId
-    ? await repos.senderIdentities.getById(tenantId, campaign.senderProfileId)
-    : await repos.senderIdentities.getDefault(tenantId);
-
-  if (!senderRow) {
-    return {
-      company: companyRow,
-      sender: {
-        active: true,
-        companyProfileId: companyRow.id,
-        defaultLanguage: companyRow.defaultLanguage,
-        displayName: "",
-        fromEmail: "",
-        id: "",
-        isDefault: true,
-        jobTitle: "",
-        phone: "",
-        replyToEmail: "",
-        signatureHtml: "",
-        signatureText: "",
-        tenantId,
-        userProfileId: ""
-      },
-      missingFields: ["senderIdentity"],
-      ready: false
-    };
-  }
-
-  const missingFields: string[] = [];
-  if (!senderRow.displayName.trim()) missingFields.push("senderName");
-  if (!senderRow.fromEmail.trim()) missingFields.push("senderEmail");
-  if (!(companyRow.tradingName || companyRow.legalName).trim()) {
-    missingFields.push("companySenderName");
-  }
-
-  return {
-    company: companyRow,
-    sender: senderRow,
-    missingFields,
-    ready: missingFields.length === 0
-  };
 }
 
 export async function ensureCampaignTemplate(
@@ -140,6 +87,12 @@ export async function saveCampaignTemplate(
     language: input.language ?? campaign.language,
     templateVersion: campaign.templateVersion + 1,
     templateUpdatedAt: nowIso()
+  });
+
+  await invalidateCampaignApprovals(repos, tenantId, campaignId, "campaign_template_updated");
+  const recipients = await repos.campaignRecipients.listForCampaign(tenantId, campaignId);
+  await repos.campaigns.update(tenantId, campaignId, {
+    status: deriveCampaignStatus(updated, recipients)
   });
 
   await repos.activities.append(tenantId, {
@@ -291,6 +244,10 @@ export async function regenerateRecipientDraft(
   const rendered = renderRecipientDraft(campaign, recipient, senderContext);
   const timestamp = nowIso();
 
+  if (recipient.draftStatus === "APPROVED" || recipient.draftStatus === "OPENED_EXTERNALLY") {
+    await invalidateRecipientApproval(repos, tenantId, recipientId, "draft_regenerated");
+  }
+
   return repos.campaignRecipients.updateDraft(tenantId, recipientId, {
     personalizedSubject: rendered.subject,
     personalizedPlainText: rendered.plainText,
@@ -313,6 +270,10 @@ export async function updateRecipientDraftContent(
   const subject = input.personalizedSubject.trim();
   const plainText = input.personalizedPlainText.replace(/\r\n/g, "\n").trim();
   const hasUnresolved = findManualUnresolved(subject, plainText);
+  const existing = await repos.campaignRecipients.getById(tenantId, recipientId);
+  if (existing && (existing.draftStatus === "APPROVED" || existing.draftStatus === "OPENED_EXTERNALLY")) {
+    await invalidateRecipientApproval(repos, tenantId, recipientId, "manual_draft_edit");
+  }
 
   return repos.campaignRecipients.updateDraft(tenantId, recipientId, {
     personalizedSubject: subject,

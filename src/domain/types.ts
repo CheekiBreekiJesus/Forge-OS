@@ -312,7 +312,14 @@ export type ActivityAction =
   | "campaign_segment_snapshotted"
   | "campaign_recipients_refreshed"
   | "campaign_template_updated"
-  | "campaign_drafts_generated";
+  | "campaign_drafts_generated"
+  | "campaign_draft_approved"
+  | "campaign_draft_approval_invalidated"
+  | "campaign_draft_opened_external"
+  | "campaign_draft_sent_manual"
+  | "campaign_draft_sent_simulated"
+  | "campaign_draft_duplicate_blocked"
+  | "campaign_draft_cooldown_override";
 
 export type ActivityEntityType =
   | "lead"

@@ -12,6 +12,19 @@ export function createEmptyRecipientDraftFields(): Pick<
   | "userEdited"
   | "draftUpdatedAt"
   | "snapshotWebsite"
+  | "approvedAt"
+  | "approvedBy"
+  | "approvalContentHash"
+  | "approvalInvalidatedAt"
+  | "approvalInvalidationReason"
+  | "openedExternallyAt"
+  | "externalClient"
+  | "sentAt"
+  | "sentBy"
+  | "recipientDeliveryMode"
+  | "operatorNote"
+  | "simulatedAt"
+  | "sendIdempotencyKey"
 > {
   return {
     personalizedSubject: "",
@@ -23,6 +36,52 @@ export function createEmptyRecipientDraftFields(): Pick<
     templateVersion: null,
     userEdited: false,
     draftUpdatedAt: null,
-    snapshotWebsite: ""
+    snapshotWebsite: "",
+    approvedAt: null,
+    approvedBy: null,
+    approvalContentHash: null,
+    approvalInvalidatedAt: null,
+    approvalInvalidationReason: null,
+    openedExternallyAt: null,
+    externalClient: null,
+    sentAt: null,
+    sentBy: null,
+    recipientDeliveryMode: null,
+    operatorNote: "",
+    simulatedAt: null,
+    sendIdempotencyKey: null
+  };
+}
+
+export function createEmptyApprovalFields(): Pick<
+  CampaignRecipient,
+  | "approvedAt"
+  | "approvedBy"
+  | "approvalContentHash"
+  | "approvalInvalidatedAt"
+  | "approvalInvalidationReason"
+  | "openedExternallyAt"
+  | "externalClient"
+  | "sentAt"
+  | "sentBy"
+  | "recipientDeliveryMode"
+  | "operatorNote"
+  | "simulatedAt"
+  | "sendIdempotencyKey"
+> {
+  return {
+    approvedAt: null,
+    approvedBy: null,
+    approvalContentHash: null,
+    approvalInvalidatedAt: null,
+    approvalInvalidationReason: null,
+    openedExternallyAt: null,
+    externalClient: null,
+    sentAt: null,
+    sentBy: null,
+    recipientDeliveryMode: null,
+    operatorNote: "",
+    simulatedAt: null,
+    sendIdempotencyKey: null
   };
 }

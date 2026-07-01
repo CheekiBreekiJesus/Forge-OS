@@ -324,7 +324,7 @@ export class ForgeOSDatabase extends Dexie {
         await tx.table("meta").put({ key: "schemaVersion", value: "6" });
       });
 
-    this.version(SCHEMA_VERSION)
+    this.version(7)
       .stores({
         meta: "key",
         leads:
@@ -377,6 +377,61 @@ export class ForgeOSDatabase extends Dexie {
           if (row.templateVersion === undefined) row.templateVersion = null;
           if (row.userEdited === undefined) row.userEdited = false;
           if (row.draftUpdatedAt === undefined) row.draftUpdatedAt = null;
+        });
+        await tx.table("meta").put({ key: "schemaVersion", value: "7" });
+      });
+
+    this.version(SCHEMA_VERSION)
+      .stores({
+        meta: "key",
+        leads:
+          "id, tenantId, email, crmStatus, outreachStatus, active, normalizedCompanyName, websiteDomain, sourceImportId, [tenantId+email], [tenantId+normalizedCompanyName]",
+        customers: "id, tenantId, leadId, active, [tenantId+leadId]",
+        customerContacts: "id, tenantId, customerId, active, [tenantId+customerId]",
+        opportunities: "id, tenantId, leadId, customerId, [tenantId+leadId]",
+        quotes:
+          "id, tenantId, quoteNumber, leadId, customerId, status, active, simulationId, [tenantId+leadId]",
+        productionOrders:
+          "id, tenantId, orderNumber, quoteId, status, machineId, active, [tenantId+quoteId]",
+        outreachMessages: "id, tenantId, leadId, [tenantId+leadId]",
+        campaigns: "id, tenantId, status, createdAt, [tenantId+status]",
+        campaignRecipients:
+          "id, tenantId, campaignId, leadId, status, draftStatus, [tenantId+campaignId], [tenantId+leadId], [tenantId+draftStatus]",
+        activities: "id, tenantId, occurredAt, action, [tenantId+occurredAt]",
+        companyProfiles: "id, tenantId, [tenantId+id]",
+        userProfiles: "id, tenantId, email, active, [tenantId+email]",
+        senderIdentities:
+          "id, tenantId, userProfileId, companyProfileId, isDefault, active, [tenantId+isDefault]",
+        localAssets: "id, tenantId, assetType, [tenantId+assetType]",
+        products: "id, tenantId, sku, category, active, [tenantId+sku]",
+        machines: "id, tenantId, code, status, active, [tenantId+code]",
+        inventoryItems: "id, tenantId, sku, active, [tenantId+sku]",
+        stockMovements: "id, tenantId, inventoryItemId, [tenantId+inventoryItemId]",
+        customizerSimulations:
+          "id, tenantId, customerId, leadId, productId, quoteId, status, active, [tenantId+status]",
+        importBatches: "id, tenantId, fileFingerprint, status, createdAt, [tenantId+fileFingerprint]",
+        importRows: "id, tenantId, importBatchId, rowIndex, status, [tenantId+importBatchId]",
+        leadContacts:
+          "id, tenantId, leadId, normalizedEmail, active, isPrimary, [tenantId+leadId], [tenantId+normalizedEmail]"
+      })
+      .upgrade(async (tx) => {
+        await tx.table("campaigns").toCollection().modify((row: Record<string, unknown>) => {
+          if (row.status === "active") row.status = "in_progress";
+        });
+        await tx.table("campaignRecipients").toCollection().modify((row: Record<string, unknown>) => {
+          if (row.approvedAt === undefined) row.approvedAt = null;
+          if (row.approvedBy === undefined) row.approvedBy = null;
+          if (row.approvalContentHash === undefined) row.approvalContentHash = null;
+          if (row.approvalInvalidatedAt === undefined) row.approvalInvalidatedAt = null;
+          if (row.approvalInvalidationReason === undefined) row.approvalInvalidationReason = null;
+          if (row.openedExternallyAt === undefined) row.openedExternallyAt = null;
+          if (row.externalClient === undefined) row.externalClient = null;
+          if (row.sentAt === undefined) row.sentAt = null;
+          if (row.sentBy === undefined) row.sentBy = null;
+          if (row.recipientDeliveryMode === undefined) row.recipientDeliveryMode = null;
+          if (row.operatorNote === undefined) row.operatorNote = "";
+          if (row.simulatedAt === undefined) row.simulatedAt = null;
+          if (row.sendIdempotencyKey === undefined) row.sendIdempotencyKey = null;
         });
         await tx.table("meta").put({ key: "schemaVersion", value: String(SCHEMA_VERSION) });
       });
