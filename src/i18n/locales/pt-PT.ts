@@ -859,7 +859,95 @@ export const dictionary: Dictionary = {
       quality: "Qualidade",
       sourceDatabase: "Base de origem",
       language: "Idioma",
+      region: "Região",
+      country: "País",
       all: "Todos"
+    },
+    management: {
+      importHistory: "Histórico de importações",
+      noImportHistory: "Ainda não existem importações registadas.",
+      createCampaignFromFilters: "Criar campanha a partir dos filtros",
+      createCampaignFromSelection: "Criar campanha a partir da seleção",
+      viewCampaigns: "Ver campanhas",
+      clearSelection: "Limpar seleção",
+      category: "Categoria",
+      region: "Região",
+      sourceImport: "Importação de origem",
+      emailValidity: "Validade do email",
+      emailValidityValues: {
+        valid: "Válido",
+        missing: "Em falta",
+        invalid: "Inválido"
+      },
+      suppressionStatus: "Supressão",
+      suppressionValues: {
+        none: "Nenhuma",
+        unsubscribed: "Cancelou subscrição",
+        bounced: "Rejeitado"
+      },
+      lastContacted: "Último contacto",
+      campaignCount: "Campanhas",
+      neverContacted: "Nunca contactado",
+      neverContactedOnly: "Apenas nunca contactados",
+      pageLabel: "Página {page} de {pages}",
+      previousPage: "Anterior",
+      nextPage: "Seguinte"
+    },
+    segmentation: {
+      createTitle: "Criar segmento de campanha",
+      createDescription: "Revise contactos correspondentes, destinatários enviáveis e exclusões antes de congelar o snapshot.",
+      matchingOrganizations: "Organizações correspondentes",
+      matchingContacts: "Contactos correspondentes",
+      sendableRecipients: "Destinatários enviáveis",
+      exclusionsTitle: "Exclusões",
+      exclusions: {
+        missingEmail: "Email em falta",
+        invalidEmail: "Email inválido",
+        suppressed: "Suprimidos",
+        duplicate: "Contactos duplicados",
+        inactive: "Inativos"
+      },
+      campaignName: "Nome da campanha",
+      campaignDescription: "Descrição (opcional)",
+      reviewDefinition: "Rever definição do segmento",
+      nameRequired: "O nome da campanha é obrigatório.",
+      createFailed: "Não foi possível criar a campanha.",
+      creating: "A criar…",
+      confirmCreate: "Criar campanha"
+    },
+    campaigns: {
+      eyebrow: "Gestão de campanhas",
+      listTitle: "Campanhas de outreach",
+      listDescription: "Campanhas em rascunho e operacionais com snapshots de destinatários congelados.",
+      backToList: "Voltar à lista de campanhas",
+      name: "Nome",
+      status: "Estado",
+      createdAt: "Criada",
+      recipientCount: "Destinatários",
+      sendableCount: "Enviáveis",
+      language: "Idioma",
+      deliveryMode: "Modo de entrega",
+      deliveryModes: {
+        simulation: "Simulação",
+        provider_handoff: "Entrega via fornecedor"
+      },
+      metadataTitle: "Metadados da campanha",
+      noDescription: "Sem descrição.",
+      snapshotCreated: "Snapshot criado",
+      exclusionsTitle: "Exclusões do snapshot",
+      excludedCount: "{count} destinatários excluídos no snapshot",
+      segmentDefinitionTitle: "Definição do segmento",
+      snapshotTitle: "Snapshot de destinatários",
+      refreshRecipients: "Atualizar destinatários",
+      confirmRefresh: "Confirmar atualização",
+      refreshSummary: "Adicionados {added}, removidos {removed}, novos suprimidos {suppressed}, novos inválidos {invalid}.",
+      inclusionReason: "Motivo de inclusão",
+      recipientStatus: "Estado",
+      includedCount: "{count} destinatários incluídos",
+      nextStepTemplate: "Modelo de email (Passo 3)",
+      nextStepTemplateHint: "A seleção e pré-visualização de modelos será implementada no próximo passo de outreach.",
+      nextStepDrafts: "Rascunhos de mensagens (Passo 3)",
+      nextStepDraftsHint: "A geração e aprovação de rascunhos será implementada no próximo passo de outreach."
     },
     table: {
       company: "Empresa",
@@ -943,6 +1031,7 @@ export const dictionary: Dictionary = {
       "Sports venues": "Recintos desportivos"
     },
     campaignStatuses: {
+      draft: "Rascunho",
       active: "Ativa",
       paused: "Em pausa",
       completed: "Concluída"

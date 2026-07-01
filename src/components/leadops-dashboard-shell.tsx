@@ -3,6 +3,7 @@
 import React, { FormEvent, useCallback, useMemo, useState } from "react";
 import { convertDemoLead } from "@/application/demo-workflow-service";
 import { LeadOpsImportWizard } from "@/components/leadops-import-wizard";
+import { LeadOpsLeadManagementPanel } from "@/components/leadops-lead-management-panel";
 import { AppFrame, panelClass } from "@/components/app-frame";
 import {
   ArchiveConfirmationDialog,
@@ -16,22 +17,8 @@ import {
 import { toLeadOpsLead } from "@/domain/mappers";
 import { isValidEmail } from "@/features/crud/validation";
 import { isArchivedRecord, useHashAction } from "@/features/crud/ui-utils";
-import { clearLeadOpsFilters, hasActiveFilters } from "@/features/leadops/filters";
 import { calculateLeadOpsKpis, getCampaignProgress } from "@/features/leadops/kpis";
 import { getLocalizedLeadDetailHref } from "@/features/leadops/lookup";
-import { getFilterOptions } from "@/features/leadops/seed";
-import {
-  areAllVisibleSelected,
-  isLeadSelected,
-  toggleLeadSelection,
-  toggleSelectAllVisible
-} from "@/features/leadops/selection";
-import {
-  EMPTY_LEADOPS_FILTERS,
-  type LeadOpsFilters,
-  type LeadOpsLead
-} from "@/features/leadops/types";
-import { buildLeadListViewModel } from "@/features/leadops/view-models";
 import { useActivities, useTenantLeads } from "@/persistence/hooks";
 import { usePersistence, usePersistenceLoading } from "@/persistence/provider";
 import type { Locale } from "@/i18n/config";
@@ -91,11 +78,6 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
     });
   }, [state]);
 
-  const filterOptions = useMemo(() => getFilterOptions(tenantLeads), [tenantLeads]);
-
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filters, setFilters] = useState<LeadOpsFilters>({ ...EMPTY_LEADOPS_FILTERS });
-  const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
   const [leadDrawerOpen, setLeadDrawerOpen] = useState(false);
   const [leadForm, setLeadForm] = useState({ companyName: "", contactName: "", email: "" });
   const [leadFormError, setLeadFormError] = useState<string | null>(null);
@@ -114,16 +96,6 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
     () => calculateLeadOpsKpis(tenantLeads, campaigns),
     [campaigns, tenantLeads]
   );
-  const listView = useMemo(
-    () => buildLeadListViewModel(tenantLeads, searchQuery, filters),
-    [filters, searchQuery, tenantLeads]
-  );
-  const visibleLeadIds = listView.visibleLeads.map((lead) => lead.id);
-  const allVisibleSelected = areAllVisibleSelected(selectedLeadIds, visibleLeadIds);
-
-  function updateFilter<Key extends keyof LeadOpsFilters>(key: Key, value: LeadOpsFilters[Key]) {
-    setFilters((current) => ({ ...current, [key]: value }));
-  }
 
   async function handleCreateLead(event: FormEvent) {
     event.preventDefault();
@@ -213,9 +185,8 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
     );
   }
 
-  function handleClearFilters() {
-    setFilters(clearLeadOpsFilters());
-    setSearchQuery("");
+  function isArchived(lead: import("@/domain/types").Lead | undefined): boolean {
+    return isArchivedRecord(lead ?? { active: true });
   }
 
   async function handleImportComplete() {
@@ -270,7 +241,12 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
 
       <section className="mb-4 grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
         <article className={`${panelClass} p-5`}>
-          <PanelHeading title={copy.sections.campaigns} />
+          <div className="flex items-center justify-between gap-3">
+            <PanelHeading title={copy.sections.campaigns} />
+            <a className="text-sm text-orange-300 hover:underline" href={`/${locale}/leadops/campaigns`}>
+              {copy.management.viewCampaigns}
+            </a>
+          </div>
           <div className="mt-4 space-y-4">
             {campaigns.map((campaign) => {
               const progress = getCampaignProgress(campaign);
@@ -322,174 +298,27 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
 
       <LeadOpsImportWizard copy={copy} onImportComplete={handleImportComplete} />
 
-      <section className={`${panelClass} p-5`}>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <PanelHeading title={copy.sections.leads} />
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="flex items-center gap-2 text-sm text-slate-300">
-              <input
-                checked={showArchived}
-                onChange={(e) => setShowArchived(e.target.checked)}
-                type="checkbox"
-              />
-              {shared.showArchived}
-            </label>
-            <PrimaryActionButton onClick={openCreateLead}>{copy.actions.createLead}</PrimaryActionButton>
-          </div>
-        </div>
-
-        <div className="mt-4 grid gap-3 lg:grid-cols-[1.4fr_repeat(5,minmax(0,1fr))]">
+      <div className="mb-3 flex flex-wrap items-center justify-end gap-2">
+        <label className="flex items-center gap-2 text-sm text-slate-300">
           <input
-            className="rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none ring-orange-400 focus:ring-1 lg:col-span-2"
-            onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder={copy.searchPlaceholder}
-            type="search"
-            value={searchQuery}
+            checked={showArchived}
+            onChange={(e) => setShowArchived(e.target.checked)}
+            type="checkbox"
           />
-          <FilterSelect
-            allLabel={copy.filters.all}
-            label={copy.filters.industry}
-            onChange={(value) => updateFilter("industry", value)}
-            options={filterOptions.industries}
-            value={filters.industry}
-          />
-          <FilterSelect
-            allLabel={copy.filters.all}
-            label={copy.filters.status}
-            onChange={(value) => updateFilter("status", value)}
-            options={filterOptions.statuses.map((s) => ({
-              value: s,
-              label: copy.statuses[s as keyof typeof copy.statuses] ?? s
-            }))}
-            value={filters.status}
-          />
-          <FilterSelect
-            allLabel={copy.filters.all}
-            label={copy.filters.quality}
-            onChange={(value) => updateFilter("quality", value)}
-            options={filterOptions.qualities.map((q) => ({
-              value: q,
-              label: copy.qualities[q as keyof typeof copy.qualities] ?? q
-            }))}
-            value={filters.quality}
-          />
-          <FilterSelect
-            allLabel={copy.filters.all}
-            label={copy.filters.sourceDatabase}
-            onChange={(value) => updateFilter("sourceDatabase", value)}
-            options={filterOptions.sourceDatabases}
-            value={filters.sourceDatabase}
-          />
-          <FilterSelect
-            allLabel={copy.filters.all}
-            label={copy.filters.language}
-            onChange={(value) => updateFilter("language", value)}
-            options={filterOptions.languages}
-            value={filters.language}
-          />
-        </div>
+          {shared.showArchived}
+        </label>
+        <PrimaryActionButton onClick={openCreateLead}>{copy.actions.createLead}</PrimaryActionButton>
+      </div>
 
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-sm text-slate-400">
-            {copy.resultCount.replace("{count}", String(listView.resultCount))}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {hasActiveFilters(filters) || searchQuery ? (
-              <button
-                className="rounded-lg border border-slate-700 px-3 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800"
-                onClick={handleClearFilters}
-                type="button"
-              >
-                {copy.clearFilters}
-              </button>
-            ) : null}
-            <button
-              className="rounded-lg border border-slate-700 px-3 py-2 text-sm font-semibold text-slate-500"
-              disabled
-              title={copy.addToCampaignDisabled}
-              type="button"
-            >
-              {copy.addToCampaign}
-            </button>
-          </div>
-        </div>
-
-        {listView.state === "empty" ? (
-          <EmptyState description={copy.emptyDescription} title={copy.emptyTitle} />
-        ) : null}
-
-        {listView.state === "no-results" ? (
-          <EmptyState description={copy.noResultsDescription} title={copy.noResultsTitle} />
-        ) : null}
-
-        {listView.state === "results" ? (
-          <>
-            <div className="mt-4 flex items-center gap-3 border-b border-slate-800 pb-3">
-              <label className="flex items-center gap-2 text-sm text-slate-300">
-                <input
-                  checked={allVisibleSelected}
-                  onChange={() =>
-                    setSelectedLeadIds(toggleSelectAllVisible(selectedLeadIds, visibleLeadIds))
-                  }
-                  type="checkbox"
-                />
-                {copy.selectAllVisible}
-              </label>
-              {selectedLeadIds.length > 0 ? (
-                <span className="text-xs text-slate-500">
-                {copy.table.selectedCount.replace("{count}", String(selectedLeadIds.length))}
-              </span>
-              ) : null}
-            </div>
-
-            <div className="mt-4 hidden overflow-x-auto lg:block">
-              <table className="min-w-full text-left text-sm">
-                <thead className="text-slate-400">
-                  <tr>
-                    <th className="px-3 py-2" />
-                    <th className="px-3 py-2">{copy.table.company}</th>
-                    <th className="px-3 py-2">{copy.table.contact}</th>
-                    <th className="px-3 py-2">{copy.table.email}</th>
-                    <th className="px-3 py-2">{copy.table.location}</th>
-                    <th className="px-3 py-2">{copy.table.status}</th>
-                    <th className="px-3 py-2">{copy.table.quality}</th>
-                    <th className="px-3 py-2" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {listView.visibleLeads.map((lead) => (
-                    <LeadTableRow
-                      actions={leadRowActions(lead.id, isArchivedRecord(domainLeads.find((l) => l.id === lead.id) ?? { active: true }))}
-                      copy={copy}
-                      key={lead.id}
-                      lead={lead}
-                      onToggle={() =>
-                        setSelectedLeadIds(toggleLeadSelection(selectedLeadIds, lead.id))
-                      }
-                      selected={isLeadSelected(selectedLeadIds, lead.id)}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="mt-4 space-y-3 lg:hidden">
-              {listView.visibleLeads.map((lead) => (
-                <LeadMobileCard
-                  actions={leadRowActions(lead.id, isArchivedRecord(domainLeads.find((l) => l.id === lead.id) ?? { active: true }))}
-                  copy={copy}
-                  key={lead.id}
-                  lead={lead}
-                  onToggle={() =>
-                    setSelectedLeadIds(toggleLeadSelection(selectedLeadIds, lead.id))
-                  }
-                  selected={isLeadSelected(selectedLeadIds, lead.id)}
-                />
-              ))}
-            </div>
-          </>
-        ) : null}
-      </section>
+      <LeadOpsLeadManagementPanel
+        copy={copy}
+        isArchived={isArchived}
+        leads={domainLeads}
+        locale={locale}
+        onReload={reloadLeads}
+        rowActions={leadRowActions}
+        shared={shared}
+      />
 
       <EntityFormDrawer
         cancelLabel={shared.form.cancel}
@@ -545,122 +374,6 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
 
 function PanelHeading({ title }: { title: string }) {
   return <h2 className="text-lg font-bold text-slate-100">{title}</h2>;
-}
-
-type FilterOption = string | { value: string; label: string };
-
-function FilterSelect({
-  allLabel,
-  label,
-  options,
-  value,
-  onChange
-}: {
-  allLabel: string;
-  label: string;
-  options: FilterOption[];
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="block text-sm">
-      <span className="mb-1 block text-xs text-slate-500">{label}</span>
-      <select
-        className="w-full rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-100"
-        onChange={(event) => onChange(event.target.value)}
-        value={value}
-      >
-        <option value="">{allLabel}</option>
-        {options.map((option) => {
-          const val = typeof option === "string" ? option : option.value;
-          const displayLabel = typeof option === "string" ? option : option.label;
-          return (
-            <option key={val} value={val}>
-              {displayLabel}
-            </option>
-          );
-        })}
-      </select>
-    </label>
-  );
-}
-
-function EmptyState({ title, description }: { title: string; description: string }) {
-  return (
-    <div className="mt-6 rounded-lg border border-dashed border-slate-700 bg-slate-950/30 p-8 text-center">
-      <h3 className="text-lg font-semibold text-slate-100">{title}</h3>
-      <p className="mt-2 text-sm text-slate-400">{description}</p>
-    </div>
-  );
-}
-
-function LeadTableRow({
-  lead,
-  copy,
-  selected,
-  onToggle,
-  actions
-}: {
-  lead: LeadOpsLead;
-  copy: Dictionary["leadops"];
-  selected: boolean;
-  onToggle: () => void;
-  actions: React.ReactNode;
-}) {
-  return (
-    <tr className="border-t border-slate-800 text-slate-200">
-      <td className="px-3 py-3">
-        <input checked={selected} onChange={onToggle} type="checkbox" />
-      </td>
-      <td className="px-3 py-3 font-medium">{lead.companyName}</td>
-      <td className="px-3 py-3">{lead.contactName}</td>
-      <td className="px-3 py-3">{lead.email}</td>
-      <td className="px-3 py-3">{lead.location}</td>
-      <td className="px-3 py-3">{copy.statuses[lead.status]}</td>
-      <td className="px-3 py-3">{copy.qualities[lead.quality]}</td>
-      <td className="px-3 py-3">{actions}</td>
-    </tr>
-  );
-}
-
-function LeadMobileCard({
-  lead,
-  copy,
-  selected,
-  onToggle,
-  actions
-}: {
-  lead: LeadOpsLead;
-  copy: Dictionary["leadops"];
-  selected: boolean;
-  onToggle: () => void;
-  actions: React.ReactNode;
-}) {
-  return (
-    <article className="rounded-lg border border-slate-800 bg-slate-950/40 p-4">
-      <div className="flex items-start justify-between gap-3">
-        <label className="flex items-center gap-2">
-          <input checked={selected} onChange={onToggle} type="checkbox" />
-          <span className="font-semibold">{lead.companyName}</span>
-        </label>
-        {actions}
-      </div>
-      <div className="mt-3 grid gap-1 text-sm text-slate-400">
-        <div>
-          {copy.table.contact}: {lead.contactName}
-        </div>
-        <div>
-          {copy.table.email}: {lead.email}
-        </div>
-        <div>
-          {copy.table.location}: {lead.location}
-        </div>
-        <div>
-          {copy.table.status}: {copy.statuses[lead.status]}
-        </div>
-      </div>
-    </article>
-  );
 }
 
 function mapActivityAction(action: ActivityAction): LeadOpsActivityKind {

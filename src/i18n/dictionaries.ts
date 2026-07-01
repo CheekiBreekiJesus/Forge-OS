@@ -514,7 +514,81 @@ export type Dictionary = {
       quality: string;
       sourceDatabase: string;
       language: string;
+      region: string;
+      country: string;
       all: string;
+    };
+    management: {
+      importHistory: string;
+      noImportHistory: string;
+      createCampaignFromFilters: string;
+      createCampaignFromSelection: string;
+      viewCampaigns: string;
+      clearSelection: string;
+      category: string;
+      region: string;
+      sourceImport: string;
+      emailValidity: string;
+      emailValidityValues: Record<"valid" | "missing" | "invalid", string>;
+      suppressionStatus: string;
+      suppressionValues: Record<"none" | "unsubscribed" | "bounced", string>;
+      lastContacted: string;
+      campaignCount: string;
+      neverContacted: string;
+      neverContactedOnly: string;
+      pageLabel: string;
+      previousPage: string;
+      nextPage: string;
+    };
+    segmentation: {
+      createTitle: string;
+      createDescription: string;
+      matchingOrganizations: string;
+      matchingContacts: string;
+      sendableRecipients: string;
+      exclusionsTitle: string;
+      exclusions: Record<
+        "missingEmail" | "invalidEmail" | "suppressed" | "duplicate" | "inactive",
+        string
+      >;
+      campaignName: string;
+      campaignDescription: string;
+      reviewDefinition: string;
+      nameRequired: string;
+      createFailed: string;
+      creating: string;
+      confirmCreate: string;
+    };
+    campaigns: {
+      eyebrow: string;
+      listTitle: string;
+      listDescription: string;
+      backToList: string;
+      name: string;
+      status: string;
+      createdAt: string;
+      recipientCount: string;
+      sendableCount: string;
+      language: string;
+      deliveryMode: string;
+      deliveryModes: Record<"simulation" | "provider_handoff", string>;
+      metadataTitle: string;
+      noDescription: string;
+      snapshotCreated: string;
+      exclusionsTitle: string;
+      excludedCount: string;
+      segmentDefinitionTitle: string;
+      snapshotTitle: string;
+      refreshRecipients: string;
+      confirmRefresh: string;
+      refreshSummary: string;
+      inclusionReason: string;
+      recipientStatus: string;
+      includedCount: string;
+      nextStepTemplate: string;
+      nextStepTemplateHint: string;
+      nextStepDrafts: string;
+      nextStepDraftsHint: string;
     };
     table: {
       company: string;
@@ -586,7 +660,7 @@ export type Dictionary = {
       "Hospitality" | "Events" | "Food & Beverage" | "Packaging" | "Sports venues",
       string
     >;
-    campaignStatuses: Record<"active" | "paused" | "completed", string>;
+    campaignStatuses: Record<"draft" | "active" | "paused" | "completed", string>;
     activities: Record<
       | "lead-imported"
       | "campaign-started"

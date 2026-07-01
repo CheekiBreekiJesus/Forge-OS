@@ -859,7 +859,95 @@ export const dictionary: Dictionary = {
       quality: "Quality",
       sourceDatabase: "Source database",
       language: "Language",
+      region: "Region",
+      country: "Country",
       all: "All"
+    },
+    management: {
+      importHistory: "Import history",
+      noImportHistory: "No imports recorded yet.",
+      createCampaignFromFilters: "Create campaign from filters",
+      createCampaignFromSelection: "Create campaign from selection",
+      viewCampaigns: "View campaigns",
+      clearSelection: "Clear selection",
+      category: "Category",
+      region: "Region",
+      sourceImport: "Source import",
+      emailValidity: "Email validity",
+      emailValidityValues: {
+        valid: "Valid",
+        missing: "Missing",
+        invalid: "Invalid"
+      },
+      suppressionStatus: "Suppression",
+      suppressionValues: {
+        none: "None",
+        unsubscribed: "Unsubscribed",
+        bounced: "Bounced"
+      },
+      lastContacted: "Last contacted",
+      campaignCount: "Campaigns",
+      neverContacted: "Never contacted",
+      neverContactedOnly: "Never contacted only",
+      pageLabel: "Page {page} of {pages}",
+      previousPage: "Previous",
+      nextPage: "Next"
+    },
+    segmentation: {
+      createTitle: "Create campaign segment",
+      createDescription: "Review matching contacts, sendable recipients, and exclusions before freezing the snapshot.",
+      matchingOrganizations: "Matching organizations",
+      matchingContacts: "Matching contacts",
+      sendableRecipients: "Sendable recipients",
+      exclusionsTitle: "Exclusions",
+      exclusions: {
+        missingEmail: "Missing email",
+        invalidEmail: "Invalid email",
+        suppressed: "Suppressed",
+        duplicate: "Duplicate contacts",
+        inactive: "Inactive"
+      },
+      campaignName: "Campaign name",
+      campaignDescription: "Description (optional)",
+      reviewDefinition: "Review segment definition",
+      nameRequired: "Campaign name is required.",
+      createFailed: "Could not create campaign.",
+      creating: "Creating…",
+      confirmCreate: "Create campaign"
+    },
+    campaigns: {
+      eyebrow: "Campaign management",
+      listTitle: "Outreach campaigns",
+      listDescription: "Draft and operational campaigns with frozen recipient snapshots.",
+      backToList: "Back to campaign list",
+      name: "Name",
+      status: "Status",
+      createdAt: "Created",
+      recipientCount: "Recipients",
+      sendableCount: "Sendable",
+      language: "Language",
+      deliveryMode: "Delivery mode",
+      deliveryModes: {
+        simulation: "Simulation",
+        provider_handoff: "Provider handoff"
+      },
+      metadataTitle: "Campaign metadata",
+      noDescription: "No description provided.",
+      snapshotCreated: "Snapshot created",
+      exclusionsTitle: "Snapshot exclusions",
+      excludedCount: "{count} excluded recipients in snapshot",
+      segmentDefinitionTitle: "Segment definition",
+      snapshotTitle: "Recipient snapshot",
+      refreshRecipients: "Refresh recipients",
+      confirmRefresh: "Confirm refresh",
+      refreshSummary: "Added {added}, removed {removed}, newly suppressed {suppressed}, newly invalid {invalid}.",
+      inclusionReason: "Inclusion reason",
+      recipientStatus: "Status",
+      includedCount: "{count} included recipients",
+      nextStepTemplate: "Email template (Step 3)",
+      nextStepTemplateHint: "Template selection and preview will be implemented in the next outreach step.",
+      nextStepDrafts: "Message drafts (Step 3)",
+      nextStepDraftsHint: "Draft generation and approval will be implemented in the next outreach step."
     },
     table: {
       company: "Company",
@@ -943,6 +1031,7 @@ export const dictionary: Dictionary = {
       "Sports venues": "Sports venues"
     },
     campaignStatuses: {
+      draft: "Draft",
       active: "Active",
       paused: "Paused",
       completed: "Completed"
