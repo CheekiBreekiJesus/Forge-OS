@@ -82,7 +82,7 @@ export function DemoWorkflowShell({ dictionary, locale }: DemoWorkflowShellProps
   const copy = dictionary.demoWorkflow;
   const persistenceLoading = usePersistenceLoading();
   const persistenceError = usePersistenceError();
-  const { state, resetDemoData, reseedDemoData, notifyDataChanged } = usePersistence();
+  const { state, resetDemoData, notifyDataChanged } = usePersistence();
 
   const router = useRouter();
   const cupProducts = demoProducts.filter((p) => p.category === "personalized-cups");
@@ -324,7 +324,6 @@ export function DemoWorkflowShell({ dictionary, locale }: DemoWorkflowShellProps
               className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white"
               onClick={() => {
                 void resetDemoData().then(() => {
-                  void reseedDemoData();
                   setCtx({
                     leadId: null,
                     customerId: null,

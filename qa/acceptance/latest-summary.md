@@ -61,7 +61,7 @@ Each test calls `resetAcceptanceState`: clear IndexedDB + session/local storage,
 
 | ID | Severity | Description |
 | --- | --- | --- |
-| FORGE-ACC-001 | **High** | “Repor dados demo” clears all local data via `repos.reset()` — operational leads/quotations are not isolated (test documents known gap) |
+| FORGE-ACC-001 | **Resolved in current working tree** | “Repor dados demo” now uses scoped demo reset and preserves operational leads plus outreach drafts; acceptance coverage was updated from known-gap documentation to preservation assertion. |
 | FORGE-ACC-002 | **Medium** | `DatabaseClosedError` console noise during backup clear/restore (tests pass; no user-facing failure) |
 | FORGE-ACC-003 | **Low** | Some acceptance flows use focused smoke assertions rather than exhaustive CRUD (archive/restore, full inventory movements) — expand in follow-up |
 
@@ -77,7 +77,7 @@ View report: `npm run test:acceptance:report`
 
 ## Production-readiness conclusion
 
-The local IndexedDB MVP passes the automated acceptance suite with deterministic AI and simulated delivery. **Suitable for a controlled pilot** with these constraints: no real auth, no Supabase sync, demo reset does not isolate operational data, and live Abacus/email/Smartlead require separate manual verification before production outreach.
+The local IndexedDB MVP passes the automated acceptance suite with deterministic AI and simulated delivery. **Suitable for a controlled pilot** with these constraints: no real auth, no Supabase sync, and live Abacus/email/Smartlead require separate manual verification before production outreach. Demo reset is expected to preserve operational data.
 
 ## Commands
 

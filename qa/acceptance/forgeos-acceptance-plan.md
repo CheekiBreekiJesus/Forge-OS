@@ -62,8 +62,8 @@ Automate the local MVP acceptance workflow with Playwright under isolated Indexe
 
 ## Known limitations
 
-- **Demo reset isolation:** `Repor dados demo` currently calls `repos.reset()` + full reseed, removing all operational records—not selective demo reset. Acceptance documents this as unresolved **High** until product implements scoped reset.
-- **Clear All Local Data:** No dedicated Settings button; full clear occurs via backup import (`repos.reset()` before restore) or demo reset.
+- **Demo reset isolation:** `Repor dados demo` uses scoped demo reset and must preserve imported/manual leads, drafts, settings, quotes, production orders, and uploaded assets.
+- **Clear All Local Data:** No dedicated Settings button; full clear occurs via backup import (`repos.reset()` before restore). Keep this destructive path separate from demo reset.
 - **Clipboard assertions:** Best-effort in Chromium; some copy actions verify button visibility only.
 - **Live Abacus:** Separate command; never part of CI or `npm run validate`.
 - **Cup customizer artwork upload:** Depends on file input in customizer shell; covered where UI exposes controls.

@@ -13,7 +13,6 @@ import { DEFAULT_TENANT_ID } from "@/domain/constants";
 import {
   destroyRepositories,
   initializeRepositories,
-  resetAndReseedRepositories,
   type LocalRepositoryBundle
 } from "@/persistence/registry";
 
@@ -76,14 +75,15 @@ export function PersistenceProvider({
 
   const resetDemoData = useCallback(async () => {
     if (state.status !== "ready") return;
-    await state.repos.reset();
+    await state.repos.resetDemoData(tenantId);
     setVersion((v) => v + 1);
-  }, [state]);
+  }, [state, tenantId]);
 
   const reseedDemoData = useCallback(async () => {
-    await resetAndReseedRepositories(tenantId);
+    if (state.status !== "ready") return;
+    await state.repos.resetDemoData(tenantId);
     setVersion((v) => v + 1);
-  }, [tenantId]);
+  }, [state, tenantId]);
 
   const value = useMemo(
     () => ({

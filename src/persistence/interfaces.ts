@@ -306,6 +306,7 @@ export interface LocalRepositoryBundle {
   products: ProductRepository;
   customizerSimulations: CustomizerSimulationRepository;
   reset(): Promise<void>;
+  resetDemoData(tenantId: string): Promise<void>;
   seed(tenantId: string): Promise<void>;
   importBackupData?(backup: import("@/features/backup/service").ForgeOSBackup): Promise<void>;
 }

@@ -68,7 +68,7 @@ test.describe("Backup, reset and localization", () => {
     });
   });
 
-  test("documents demo reset clears operational leads (known gap)", async ({ page }) => {
+  test("demo reset preserves operational leads", async ({ page }) => {
     const email = `operational.${Date.now()}@example.invalid`;
     await gotoAndWait(page, "/pt-PT/leadops#create-lead");
     await waitForCreateDrawer(page, /criar lead/i);
@@ -84,7 +84,9 @@ test.describe("Backup, reset and localization", () => {
     await page.getByRole("button", { name: /repor dados demo/i }).click();
     await page.getByRole("button", { name: /repor dados demo/i }).last().click();
     await gotoAndWait(page, "/pt-PT/leadops");
-    await expect(page.getByRole("cell", { name: "Operational Lead Co" })).not.toBeVisible();
+    await expect(page.getByRole("cell", { name: "Operational Lead Co" })).toBeVisible({
+      timeout: 15000
+    });
   });
 
   test("shared records persist across locale switch", async ({ page }) => {

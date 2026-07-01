@@ -1006,12 +1006,28 @@ export async function seedDatabase(
     const leadCount = await db.leads.where("tenantId").equals(tenantId).count();
     const profileCount = await db.companyProfiles.where("tenantId").equals(tenantId).count();
     if (leadCount > 0 && profileCount > 0) {
-      const productRows = await db.products.where("tenantId").equals(tenantId).toArray();
-      const machineCount = await db.machines.where("tenantId").equals(tenantId).count();
-      if (machineCount === 0 && productRows.length > 0) {
-        await seedOperationsDefaults(db, tenantId, productRows);
+      const expectedSeedLeadIds = leadOpsLeads
+        .filter((lead) => lead.tenantId === tenantId)
+        .map((lead) => lead.id);
+      const expectedCampaignIds = leadOpsCampaigns
+        .filter((campaign) => campaign.tenantId === tenantId)
+        .map((campaign) => campaign.id);
+      const [seedLeads, seedCampaigns] = await Promise.all([
+        db.leads.bulkGet(expectedSeedLeadIds),
+        db.campaigns.bulkGet(expectedCampaignIds)
+      ]);
+      const hasAllSeedLeads = seedLeads.every((lead) => lead?.tenantId === tenantId);
+      const hasAllSeedCampaigns = seedCampaigns.every(
+        (campaign) => campaign?.tenantId === tenantId
+      );
+      if (hasAllSeedLeads && hasAllSeedCampaigns) {
+        const productRows = await db.products.where("tenantId").equals(tenantId).toArray();
+        const machineCount = await db.machines.where("tenantId").equals(tenantId).count();
+        if (machineCount === 0 && productRows.length > 0) {
+          await seedOperationsDefaults(db, tenantId, productRows);
+        }
+        return false;
       }
-      return false;
     }
   }
 
@@ -1079,10 +1095,17 @@ export async function seedDatabase(
       await db.customerContacts.where("tenantId").equals(tenantId).delete();
     }
 
-    const existingLeads = await db.leads.where("tenantId").equals(tenantId).count();
-    if (existingLeads === 0) {
-      await db.campaigns.bulkPut(campaigns);
-      await db.leads.bulkPut(leads);
+    await db.campaigns.bulkPut(campaigns);
+
+    const existingSeedLeads = await db.leads.bulkGet(leads.map((lead) => lead.id));
+    const existingSeedLeadIds = new Set(
+      existingSeedLeads
+        .filter((lead): lead is Lead => Boolean(lead && lead.tenantId === tenantId))
+        .map((lead) => lead.id)
+    );
+    const missingSeedLeads = leads.filter((lead) => !existingSeedLeadIds.has(lead.id));
+    if (missingSeedLeads.length > 0) {
+      await db.leads.bulkPut(missingSeedLeads);
     }
 
     await meta.set(META_SEED_KEY, String(SEED_VERSION));
@@ -1103,6 +1126,93 @@ export async function seedDatabase(
   }
 
   return true;
+}
+
+export async function resetDemoRecords(db: ForgeOSDatabase, tenantId: string): Promise<void> {
+  const seedLeadIds = leadOpsLeads
+    .filter((lead) => lead.tenantId === tenantId)
+    .map((lead) => lead.id);
+  const seedCampaignIds = leadOpsCampaigns
+    .filter((campaign) => campaign.tenantId === tenantId)
+    .map((campaign) => campaign.id);
+
+  await db.transaction(
+    "rw",
+    [
+      db.leads,
+      db.customers,
+      db.opportunities,
+      db.quotes,
+      db.productionOrders,
+      db.outreachMessages,
+      db.campaigns,
+      db.activities,
+      db.customizerSimulations
+    ],
+    async () => {
+      const seedCustomers = await db.customers
+        .where("tenantId")
+        .equals(tenantId)
+        .filter((customer) => Boolean(customer.leadId && seedLeadIds.includes(customer.leadId)))
+        .toArray();
+      const seedCustomerIds = seedCustomers.map((customer) => customer.id);
+
+      const seedQuotes = await db.quotes
+        .where("tenantId")
+        .equals(tenantId)
+        .filter(
+          (quote) =>
+            Boolean(quote.leadId && seedLeadIds.includes(quote.leadId)) ||
+            Boolean(quote.customerId && seedCustomerIds.includes(quote.customerId))
+        )
+        .toArray();
+      const seedQuoteIds = seedQuotes.map((quote) => quote.id);
+
+      const seedProductionOrders = await db.productionOrders
+        .where("tenantId")
+        .equals(tenantId)
+        .filter((order) => seedQuoteIds.includes(order.quoteId))
+        .toArray();
+      const seedProductionOrderIds = seedProductionOrders.map((order) => order.id);
+
+      await Promise.all([
+        db.outreachMessages.bulkDelete(seedLeadIds),
+        db.leads.bulkDelete(seedLeadIds),
+        db.campaigns.bulkDelete(seedCampaignIds),
+        db.customers.bulkDelete(seedCustomerIds),
+        db.opportunities
+          .where("tenantId")
+          .equals(tenantId)
+          .filter((opportunity) => seedLeadIds.includes(opportunity.leadId))
+          .delete(),
+        db.quotes.bulkDelete(seedQuoteIds),
+        db.productionOrders.bulkDelete(seedProductionOrderIds),
+        db.customizerSimulations
+          .where("tenantId")
+          .equals(tenantId)
+          .filter(
+            (simulation) =>
+              Boolean(simulation.leadId && seedLeadIds.includes(simulation.leadId)) ||
+              Boolean(simulation.quoteId && seedQuoteIds.includes(simulation.quoteId))
+          )
+          .delete(),
+        db.activities
+          .where("tenantId")
+          .equals(tenantId)
+          .filter(
+            (activity) =>
+              seedLeadIds.includes(activity.entityId) ||
+              seedCampaignIds.includes(activity.entityId) ||
+              seedCustomerIds.includes(activity.entityId) ||
+              seedQuoteIds.includes(activity.entityId) ||
+              seedProductionOrderIds.includes(activity.entityId)
+          )
+          .delete()
+      ]);
+    }
+  );
+
+  await seedDatabase(db, tenantId, false);
 }
 
 export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
@@ -1259,6 +1369,9 @@ export function createLocalRepositoryBundle(db: ForgeOSDatabase) {
     customizerSimulations,
     async reset() {
       await resetDatabase(db);
+    },
+    async resetDemoData(tenantId: string) {
+      await resetDemoRecords(db, tenantId);
     },
     async seed(tenantId: string) {
       await seedDatabase(db, tenantId, true);

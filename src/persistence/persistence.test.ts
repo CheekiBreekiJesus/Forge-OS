@@ -171,6 +171,50 @@ describe("local persistence", () => {
     expect(count).toBe(0);
   });
 
+  it("resets demo records without deleting operational leads or drafts", async () => {
+    const repos = getTestRepos();
+    const db = getDatabase(TEST_DB);
+    const operationalLead = await repos.leads.create(DEFAULT_TENANT_ID, {
+      companyName: "Imported Pilot Co",
+      contactName: "Pilot User",
+      email: `pilot.${Date.now()}@example.invalid`,
+      source: "csv-import",
+      sourceDatabase: "Pilot import"
+    });
+    await repos.outreachMessages.saveDraft(DEFAULT_TENANT_ID, operationalLead.id, {
+      campaignId: "campaign_001",
+      id: operationalLead.id,
+      leadId: operationalLead.id,
+      message: {
+        approved: true,
+        body: "Pilot draft body",
+        edited: false,
+        generationMethod: "deterministic-template",
+        subject: "Pilot draft"
+      },
+      metricsUpdated: false,
+      providerState: "approved",
+      queuedAt: null,
+      sentAt: null,
+      tenantId: DEFAULT_TENANT_ID,
+      updatedAt: new Date().toISOString()
+    });
+
+    await db.leads.delete("leadops_001");
+    await repos.resetDemoData(DEFAULT_TENANT_ID);
+
+    const preservedLead = await repos.leads.getById(DEFAULT_TENANT_ID, operationalLead.id);
+    const preservedDraft = await repos.outreachMessages.getForLead(
+      DEFAULT_TENANT_ID,
+      operationalLead.id
+    );
+    const restoredSeedLead = await repos.leads.getById(DEFAULT_TENANT_ID, "leadops_001");
+
+    expect(preservedLead?.companyName).toBe("Imported Pilot Co");
+    expect(preservedDraft?.message?.subject).toBe("Pilot draft");
+    expect(restoredSeedLead?.companyName).toBeTruthy();
+  });
+
   it("persists outreach workflow draft", async () => {
     const repos = getTestRepos();
     const lead = await repos.leads.create(DEFAULT_TENANT_ID, {

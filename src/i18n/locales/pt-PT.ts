@@ -625,7 +625,8 @@ export const dictionary: Dictionary = {
       reserveInventory: "Reservar inventário"
     },
     resetData: "Repor dados demo",
-    resetConfirm: "Isto limpa todos os dados locais do ForgeOS e restaura os registos iniciais. Continuar?",
+    resetConfirm:
+      "Isto repoe os registos demo iniciais e mantem leads importados, registos manuais, definicoes, rascunhos, orcamentos, ordens de producao e assets carregados. Continuar?",
     cancel: "Cancelar",
     actionRunning: "A executar…",
     resultSuccess: "Ação concluída",
