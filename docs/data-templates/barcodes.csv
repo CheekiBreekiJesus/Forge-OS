@@ -1,0 +1,2 @@
+value,symbology,ownershipType,itemReference,productVariantReference,packagingReference,supplierReference,customerReference,primary,status
+0000000000001,code128,internal,SYN-ITEM-001,SYN-VAR-001,SYN-PKG-001,,,true,active

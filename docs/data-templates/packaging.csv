@@ -1,0 +1,2 @@
+packagingReference,itemReference,productVariantReference,name,unitsPerInnerPack,innerPacksPerBox,boxesPerPallet,labelRequired
+SYN-PKG-001,SYN-ITEM-001,SYN-VAR-001,Synthetic packaging,100,10,24,true

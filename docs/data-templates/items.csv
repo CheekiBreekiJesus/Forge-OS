@@ -1,0 +1,2 @@
+internalReference,itemType,name,description,baseUnitOfMeasure,lotTrackingPolicy,expiryTrackingPolicy,minimumStock,preferredStock,defaultLocation,defaultStockCondition
+SYN-ITEM-001,finished_good,Synthetic item name,Synthetic description,unit,required,optional,0,0,WH-A/A-R1-S1,available

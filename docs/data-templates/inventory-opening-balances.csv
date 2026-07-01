@@ -1,0 +1,2 @@
+itemReference,productVariantReference,warehouseCode,locationCode,lotNumber,condition,quantity,unit,costBasis
+SYN-ITEM-001,SYN-VAR-001,WH-A,A-R1-S1,SYN-LOT-001,available,1000,unit,0
