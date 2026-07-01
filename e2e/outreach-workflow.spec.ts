@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { assertGenerateUsesDeterministicProvider } from "./helpers/paid-call-guard";
 
 const DB_NAME = "forgeos:jhgomes:development";
 
@@ -17,14 +18,9 @@ async function resetLocalDatabase(page: import("@playwright/test").Page) {
 }
 
 async function submitGenerateForm(page: import("@playwright/test").Page) {
-  const responsePromise = page.waitForResponse(
-    (request) =>
-      request.url().includes("/api/leadops/generate") && request.request().method() === "POST"
-  );
-
-  await page.getByRole("button", { name: "Gerar email PT-PT" }).click();
-
-  return responsePromise;
+  return assertGenerateUsesDeterministicProvider(page, async () => {
+    await page.getByRole("button", { name: "Gerar email PT-PT" }).click();
+  });
 }
 
 test.describe("Outreach workflow", () => {
@@ -38,8 +34,7 @@ test.describe("Outreach workflow", () => {
       timeout: 30000
     });
 
-    const response = await submitGenerateForm(page);
-    expect(response.ok()).toBeTruthy();
+    await submitGenerateForm(page);
 
     const subject = page.getByRole("textbox", { name: "Assunto" });
     await expect(subject).not.toHaveValue("", { timeout: 15000 });

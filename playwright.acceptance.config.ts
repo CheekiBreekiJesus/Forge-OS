@@ -37,6 +37,7 @@ export default defineConfig({
       FORGEOS_E2E: "true",
       FORGEOS_LOCAL_DB_NAME: acceptanceDbName,
       NEXT_PUBLIC_FORGEOS_LOCAL_DB_NAME: acceptanceDbName,
+      ABACUS_API_KEY: "",
       AI_DEFAULT_PROVIDER: "deterministic",
       AI_FALLBACK_PROVIDER: "deterministic",
       AI_OUTREACH_PROVIDER: "deterministic",

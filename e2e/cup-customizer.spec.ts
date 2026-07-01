@@ -33,7 +33,11 @@ test.describe("Cup Customizer workflows", () => {
     await page.goto("/pt-PT/quotations/customizer");
     await waitForPersistence(page);
     await expect(page.getByRole("heading", { name: "Personalizador de Copos" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Orçamentos" })).toBeVisible();
+    await expect(
+      page.getByRole("navigation", { name: "Navegação de orçamentos" }).getByRole("link", {
+        name: "Orçamentos"
+      })
+    ).toBeVisible();
     await expect(
       page.getByRole("navigation", { name: "Navegação de orçamentos" }).getByRole("link", {
         name: "Personalizador de Copos"

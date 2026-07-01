@@ -1,5 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const e2eDbName =
+  process.env.FORGEOS_LOCAL_DB_NAME ??
+  process.env.NEXT_PUBLIC_FORGEOS_LOCAL_DB_NAME ??
+  "forgeos:e2e:default";
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,
@@ -9,7 +14,7 @@ export default defineConfig({
   reporter: "list",
   timeout: 60000,
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: "http://localhost:3002",
     trace: "on-first-retry"
   },
   projects: [
@@ -19,14 +24,20 @@ export default defineConfig({
     }
   ],
   webServer: {
-    command: "npm run dev -- --port 3000",
+    command: "npm run dev -- --port 3002",
     env: {
       ...process.env,
+      ABACUS_API_KEY: "",
+      AI_DEFAULT_PROVIDER: "deterministic",
+      AI_FALLBACK_PROVIDER: "deterministic",
       AI_OUTREACH_PROVIDER: "deterministic",
+      FORGEOS_E2E: "true",
+      FORGEOS_LOCAL_DB_NAME: e2eDbName,
+      NEXT_PUBLIC_FORGEOS_LOCAL_DB_NAME: e2eDbName,
       OUTREACH_DELIVERY_PROVIDER: "simulation"
     },
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 180000,
-    url: "http://localhost:3000/pt-PT/leadops"
+    url: "http://localhost:3002/pt-PT/leadops"
   }
 });
