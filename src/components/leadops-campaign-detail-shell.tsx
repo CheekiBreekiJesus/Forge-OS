@@ -5,6 +5,7 @@ import {
   refreshCampaignRecipients
 } from "@/application/campaign-segmentation-service";
 import { AppFrame, panelClass } from "@/components/app-frame";
+import { CampaignTemplateDraftsPanel } from "@/components/campaign-template-drafts-panel";
 import type { CampaignRecipient, OutreachCampaign } from "@/domain/campaign-types";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
@@ -203,15 +204,20 @@ export function LeadOpsCampaignDetailShell({
           </p>
         </section>
 
-        <section className={`${panelClass} border-dashed p-5 xl:col-span-2`}>
-          <h2 className="text-lg font-bold text-slate-400">{copy.campaigns.nextStepTemplate}</h2>
-          <p className="mt-2 text-sm text-slate-500">{copy.campaigns.nextStepTemplateHint}</p>
-        </section>
-
-        <section className={`${panelClass} border-dashed p-5 xl:col-span-2`}>
-          <h2 className="text-lg font-bold text-slate-400">{copy.campaigns.nextStepDrafts}</h2>
-          <p className="mt-2 text-sm text-slate-500">{copy.campaigns.nextStepDraftsHint}</p>
-        </section>
+        {state.status === "ready" ? (
+          <CampaignTemplateDraftsPanel
+            campaign={campaign}
+            campaignId={campaignId}
+            dictionary={dictionary}
+            locale={locale}
+            onCampaignUpdated={setCampaign}
+            onNotify={notifyDataChanged}
+            onRecipientsUpdated={setRecipients}
+            recipients={recipients}
+            repos={state.repos}
+            tenantId={tenantId}
+          />
+        ) : null}
       </div>
     </AppFrame>
   );

@@ -26,6 +26,7 @@ export type LeadManagementRow = {
   email: string;
   category: string;
   region: string;
+  website: string;
   country: string;
   language: string;
   quality: string;
@@ -85,6 +86,7 @@ export function buildLeadManagementRows(context: LeadManagementContext): LeadMan
       email,
       category: lead.industry,
       region: lead.location,
+      website: lead.website ?? "",
       country: lead.country,
       language: lead.language,
       quality: lead.quality,

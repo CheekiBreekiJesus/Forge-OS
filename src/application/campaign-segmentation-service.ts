@@ -117,6 +117,7 @@ async function snapshotCampaignRecipients(
     snapshotContactName: candidate.row.contactName,
     snapshotCategory: candidate.row.category,
     snapshotRegion: candidate.row.region,
+    snapshotWebsite: candidate.row.website,
     inclusionReason: candidate.row.sendability.sendable
       ? "sendable"
       : candidate.row.exclusionBucket,
@@ -158,6 +159,7 @@ export async function refreshCampaignRecipients(
       snapshotContactName: candidate.row.contactName,
       snapshotCategory: candidate.row.category,
       snapshotRegion: candidate.row.region,
+      snapshotWebsite: candidate.row.website,
       inclusionReason: candidate.row.sendability.sendable
         ? "sendable"
         : candidate.row.exclusionBucket,
