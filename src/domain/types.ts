@@ -310,7 +310,9 @@ export type ActivityAction =
   | "customizer_simulation_converted"
   | "campaign_created"
   | "campaign_segment_snapshotted"
-  | "campaign_recipients_refreshed";
+  | "campaign_recipients_refreshed"
+  | "campaign_template_updated"
+  | "campaign_drafts_generated";
 
 export type ActivityEntityType =
   | "lead"

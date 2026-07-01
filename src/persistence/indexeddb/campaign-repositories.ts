@@ -4,8 +4,11 @@ import type {
   CreateCampaignRecipientInput,
   CreateOutreachCampaignInput,
   OutreachCampaign,
-  RecipientRefreshDiff
+  RecipientRefreshDiff,
+  UpdateCampaignRecipientDraftInput
 } from "@/domain/campaign-types";
+import { buildDefaultCampaignTemplate } from "@/features/leadops/default-templates";
+import { createEmptyRecipientDraftFields } from "@/features/leadops/recipient-draft-defaults";
 import type { ForgeOSDatabase } from "@/persistence/db";
 import { PersistenceError } from "@/persistence/interfaces";
 
@@ -16,6 +19,12 @@ function nowIso(): string {
 export interface CampaignRecipientRepository {
   listForCampaign(tenantId: string, campaignId: string): Promise<CampaignRecipient[]>;
   listForTenant(tenantId: string): Promise<CampaignRecipient[]>;
+  getById(tenantId: string, recipientId: string): Promise<CampaignRecipient | null>;
+  updateDraft(
+    tenantId: string,
+    recipientId: string,
+    patch: UpdateCampaignRecipientDraftInput
+  ): Promise<CampaignRecipient>;
   replaceForCampaign(
     tenantId: string,
     campaignId: string,
@@ -30,6 +39,10 @@ export interface OutreachCampaignRepository {
   update(tenantId: string, campaignId: string, patch: Partial<OutreachCampaign>): Promise<OutreachCampaign>;
 }
 
+function defaultTemplateForLanguage(language: string) {
+  return buildDefaultCampaignTemplate(language);
+}
+
 export function createOutreachCampaignRepository(db: ForgeOSDatabase): OutreachCampaignRepository {
   return {
     async list(tenantId) {
@@ -42,16 +55,23 @@ export function createOutreachCampaignRepository(db: ForgeOSDatabase): OutreachC
     },
     async create(tenantId, input) {
       const timestamp = nowIso();
+      const language = input.language ?? "pt-PT";
+      const templateDefaults = defaultTemplateForLanguage(language);
       const campaign: OutreachCampaign = {
         id: createRecordId("cmp"),
         tenantId,
         name: input.name.trim(),
         description: input.description?.trim() ?? "",
-        language: input.language ?? "pt-PT",
+        language,
         status: "draft",
         segmentDefinition: input.segmentDefinition,
         recipientSnapshotCreatedAt: null,
         recipientSnapshotCount: 0,
+        subjectTemplate: templateDefaults.subjectTemplate,
+        plainTextTemplate: templateDefaults.plainTextTemplate,
+        htmlTemplate: templateDefaults.htmlTemplate,
+        templateVersion: templateDefaults.templateVersion,
+        templateUpdatedAt: timestamp,
         fromName: input.fromName?.trim() ?? "",
         senderProfileId: input.senderProfileId ?? null,
         replyTo: input.replyTo?.trim() ?? "",
@@ -92,6 +112,24 @@ export function createCampaignRecipientRepository(db: ForgeOSDatabase): Campaign
     async listForTenant(tenantId) {
       return db.campaignRecipients.where("tenantId").equals(tenantId).toArray();
     },
+    async getById(tenantId, recipientId) {
+      const row = await db.campaignRecipients.get(recipientId);
+      if (!row || row.tenantId !== tenantId) return null;
+      return row;
+    },
+    async updateDraft(tenantId, recipientId, patch) {
+      const existing = await this.getById(tenantId, recipientId);
+      if (!existing) throw new PersistenceError("not_found", "Recipient not found.");
+      const updated: CampaignRecipient = {
+        ...existing,
+        ...patch,
+        id: existing.id,
+        tenantId: existing.tenantId,
+        campaignId: existing.campaignId
+      };
+      await db.campaignRecipients.put(updated);
+      return updated;
+    },
     async replaceForCampaign(tenantId, campaignId, recipients) {
       const existing = await this.listForCampaign(tenantId, campaignId);
       const existingByLead = new Map(existing.map((row) => [row.leadId, row]));
@@ -127,13 +165,32 @@ export function createCampaignRecipientRepository(db: ForgeOSDatabase): Campaign
         .equals([tenantId, campaignId])
         .delete();
 
-      const stored: CampaignRecipient[] = recipients.map((input) => ({
-        ...input,
-        id: createRecordId("cmr"),
-        tenantId,
-        campaignId,
-        createdAt: timestamp
-      }));
+      const stored: CampaignRecipient[] = recipients.map((input) => {
+        const previous = existingByLead.get(input.leadId);
+        const draftDefaults = createEmptyRecipientDraftFields();
+        return {
+          ...draftDefaults,
+          ...input,
+          snapshotWebsite: input.snapshotWebsite ?? draftDefaults.snapshotWebsite,
+          ...(previous
+            ? {
+                personalizedSubject: previous.personalizedSubject,
+                personalizedPlainText: previous.personalizedPlainText,
+                personalizedHtml: previous.personalizedHtml,
+                draftStatus: previous.draftStatus,
+                generatedAt: previous.generatedAt,
+                generationMethod: previous.generationMethod,
+                templateVersion: previous.templateVersion,
+                userEdited: previous.userEdited,
+                draftUpdatedAt: previous.draftUpdatedAt
+              }
+            : {}),
+          id: previous?.id ?? createRecordId("cmr"),
+          tenantId,
+          campaignId,
+          createdAt: previous?.createdAt ?? timestamp
+        };
+      });
       if (stored.length > 0) await db.campaignRecipients.bulkPut(stored);
 
       return {
@@ -155,6 +212,7 @@ export function campaignFromSeed(
   },
   timestamp: string
 ): OutreachCampaign {
+  const templateDefaults = defaultTemplateForLanguage("pt-PT");
   return {
     id: seed.id,
     tenantId: seed.tenantId,
@@ -165,6 +223,11 @@ export function campaignFromSeed(
     segmentDefinition: null,
     recipientSnapshotCreatedAt: null,
     recipientSnapshotCount: seed.totalCount,
+    subjectTemplate: templateDefaults.subjectTemplate,
+    plainTextTemplate: templateDefaults.plainTextTemplate,
+    htmlTemplate: templateDefaults.htmlTemplate,
+    templateVersion: templateDefaults.templateVersion,
+    templateUpdatedAt: timestamp,
     fromName: "JH Gomes",
     senderProfileId: null,
     replyTo: "",

@@ -15,6 +15,13 @@ export type SegmentDefinition = {
   selectedContactIds?: string[];
 };
 
+export type CampaignDraftStatus = "PENDING" | "DRAFTED" | "NEEDS_REVIEW";
+
+export type CampaignDraftGenerationMethod =
+  | "deterministic_template"
+  | "ai_assisted"
+  | "manual";
+
 export type OutreachCampaign = {
   id: string;
   tenantId: string;
@@ -25,6 +32,11 @@ export type OutreachCampaign = {
   segmentDefinition: SegmentDefinition | null;
   recipientSnapshotCreatedAt: string | null;
   recipientSnapshotCount: number;
+  subjectTemplate: string;
+  plainTextTemplate: string;
+  htmlTemplate: string;
+  templateVersion: number;
+  templateUpdatedAt: string | null;
   fromName: string;
   senderProfileId: string | null;
   replyTo: string;
@@ -48,6 +60,13 @@ export type CreateOutreachCampaignInput = {
   createdBy?: string;
 };
 
+export type UpdateCampaignTemplateInput = {
+  subjectTemplate: string;
+  plainTextTemplate: string;
+  htmlTemplate?: string;
+  language?: string;
+};
+
 export type CampaignRecipientStatus = "included" | "excluded";
 
 export type CampaignRecipient = {
@@ -61,15 +80,46 @@ export type CampaignRecipient = {
   snapshotContactName: string;
   snapshotCategory: string;
   snapshotRegion: string;
+  snapshotWebsite: string;
   inclusionReason: string;
   status: CampaignRecipientStatus;
+  personalizedSubject: string;
+  personalizedPlainText: string;
+  personalizedHtml: string;
+  draftStatus: CampaignDraftStatus;
+  generatedAt: string | null;
+  generationMethod: CampaignDraftGenerationMethod | null;
+  templateVersion: number | null;
+  userEdited: boolean;
+  draftUpdatedAt: string | null;
   createdAt: string;
 };
 
-export type CreateCampaignRecipientInput = Omit<
-  CampaignRecipient,
-  "id" | "tenantId" | "createdAt"
->;
+export type CreateCampaignRecipientInput = {
+  campaignId: string;
+  leadId: string;
+  contactId: string | null;
+  snapshotEmail: string;
+  snapshotCompanyName: string;
+  snapshotContactName: string;
+  snapshotCategory: string;
+  snapshotRegion: string;
+  snapshotWebsite?: string;
+  inclusionReason: string;
+  status: CampaignRecipientStatus;
+};
+
+export type UpdateCampaignRecipientDraftInput = {
+  personalizedSubject?: string;
+  personalizedPlainText?: string;
+  personalizedHtml?: string;
+  draftStatus?: CampaignDraftStatus;
+  generationMethod?: CampaignDraftGenerationMethod;
+  templateVersion?: number | null;
+  userEdited?: boolean;
+  generatedAt?: string | null;
+  draftUpdatedAt?: string | null;
+};
 
 export type RecipientRefreshDiff = {
   added: number;
