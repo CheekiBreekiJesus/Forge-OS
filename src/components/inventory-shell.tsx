@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useMemo, useState } from "react";
+import Link from "next/link";
 import { AppFrame } from "@/components/app-frame";
 import {
   ArchiveConfirmationDialog,
@@ -25,6 +26,7 @@ import { usePersistence, usePersistenceLoading } from "@/persistence/provider";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { getLocalizedModuleHref } from "@/modules/config";
+import { getInventoryProductCopy } from "@/features/inventory-product/copy";
 
 type InventoryShellProps = {
   dictionary: Dictionary;
@@ -53,6 +55,7 @@ const emptyForm: InventoryForm = {
 
 export function InventoryShell({ dictionary, locale }: InventoryShellProps) {
   const copy = dictionary.inventoryModule;
+  const workspaceCopy = getInventoryProductCopy(locale);
   const shared = dictionary.crudModule;
   const loading = usePersistenceLoading();
   const { state, tenantId, notifyDataChanged } = usePersistence();
@@ -184,6 +187,20 @@ export function InventoryShell({ dictionary, locale }: InventoryShellProps) {
         showArchived={showArchived}
         showArchivedLabel={shared.showArchived}
       />
+
+      <div className="mb-5 flex gap-2 overflow-x-auto pb-1">
+        {(["stock", "receipts", "transfers", "barcodes", "labels", "imports"] as const).map(
+          (section) => (
+            <Link
+              className="shrink-0 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-2 text-sm font-semibold text-[var(--forge-text-secondary)] hover:bg-[var(--forge-hover-bg)]"
+              href={`/${locale}/inventory/${section}`}
+              key={section}
+            >
+              {workspaceCopy.tabs[section]}
+            </Link>
+          )
+        )}
+      </div>
 
       {loading || dataLoading ? (
         <LoadingState message={copy.loading} />

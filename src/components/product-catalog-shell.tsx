@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useMemo, useState } from "react";
+import Link from "next/link";
 import { AppFrame } from "@/components/app-frame";
 import {
   ArchiveConfirmationDialog,
@@ -23,6 +24,7 @@ import { useProducts } from "@/persistence/hooks";
 import { usePersistence, usePersistenceLoading } from "@/persistence/provider";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
+import { getInventoryProductCopy } from "@/features/inventory-product/copy";
 
 type ProductCatalogShellProps = {
   dictionary: Dictionary;
@@ -86,6 +88,7 @@ function defaultProductInput(form: ProductForm): Omit<Product, "id" | "tenantId"
 
 export function ProductCatalogShell({ dictionary, locale }: ProductCatalogShellProps) {
   const copy = dictionary.productCatalog;
+  const workspaceCopy = getInventoryProductCopy(locale);
   const shared = dictionary.crudModule;
   const loading = usePersistenceLoading();
   const { state, tenantId, notifyDataChanged } = usePersistence();
@@ -205,6 +208,20 @@ export function ProductCatalogShell({ dictionary, locale }: ProductCatalogShellP
         showArchived={showArchived}
         showArchivedLabel={shared.showArchived}
       />
+
+      <div className="mb-5 flex gap-2 overflow-x-auto pb-1">
+        {(["products", "items", "variants", "packaging", "barcodes", "labels", "imports"] as const).map(
+          (section) => (
+            <Link
+              className="shrink-0 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-2 text-sm font-semibold text-[var(--forge-text-secondary)] hover:bg-[var(--forge-hover-bg)]"
+              href={`/${locale}/products/${section}`}
+              key={section}
+            >
+              {workspaceCopy.tabs[section]}
+            </Link>
+          )
+        )}
+      </div>
 
       {loading || dataLoading ? (
         <LoadingState message={copy.loading} />
