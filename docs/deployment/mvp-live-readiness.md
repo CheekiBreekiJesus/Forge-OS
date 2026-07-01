@@ -12,6 +12,17 @@ ForgeOS is **not production-ready**. This document describes gaps between the cu
 - JSON backup/restore for local profile and product data
 - Simulation email delivery only
 - Reset/reseed for local development
+- **Dark/light theme system with persistent user preference**
+- **Industrial navigation map with preview shells for unreleased modules**
+- **Operational dashboard** with local KPIs, OEE/inventory/alerts panels, marketing summary, and deterministic AI copilot preview
+
+## 1b. Dashboard visual refresh (2026-07-01)
+
+- Theme tokens: `src/theme/tokens.css`
+- Live dashboard: `DashboardClientShell` with repository-backed metrics where available
+- Preview modules: CRM, sales orders, molds, quality, purchasing, suppliers, sales, billing, reports
+- Outreach remains primary marketing workflow under `/leadops`
+- Marketing Studio routes not rebuilt; `/marketing` stays preview-only
 
 ## 2. Required Supabase work
 
