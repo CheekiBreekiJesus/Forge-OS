@@ -43,11 +43,11 @@ test.describe("Leads, import and outreach", () => {
   test("imports mixed CSV with classifications", async ({ page }) => {
     await gotoAndWait(page, "/pt-PT/leadops");
     const csvPath = path.join(__dirname, "../fixtures/leads-mixed.csv");
-    await page.getByText("Escolher CSV").locator("..").locator('input[type="file"]').setInputFiles(csvPath);
-    await expect(page.getByText("Válidos", { exact: true })).toBeVisible();
-    await expect(page.getByText("Emails duplicados", { exact: true })).toBeVisible();
-    await expect(page.getByText("Inválidos", { exact: true })).toBeVisible();
-    await page.getByRole("button", { name: /confirmar importação/i }).click();
+    await page.getByTestId("lead-import-file-input").setInputFiles(csvPath);
+    await expect(page.getByTestId("import-metric-valid")).toBeVisible();
+    await expect(page.getByTestId("import-metric-duplicates")).toBeVisible();
+    await expect(page.getByTestId("import-metric-invalid")).toBeVisible();
+    await page.getByTestId("lead-import-confirm").click();
     await expect(page.getByText(/Importados \d+ leads/i)).toBeVisible({ timeout: 15000 });
     await expect(page.getByRole("cell", { name: "Acceptance Mixed Valid" })).toBeVisible();
   });
