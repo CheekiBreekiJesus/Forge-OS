@@ -11,6 +11,10 @@ import {
   type CampaignDraftPreview
 } from "@/application/campaign-draft-service";
 import { panelClass } from "@/components/app-frame";
+import {
+  CampaignBulkApprovalBar,
+  CampaignRecipientReviewPanel
+} from "@/components/campaign-recipient-review-panel";
 import type { CampaignDraftStatus, CampaignRecipient, OutreachCampaign } from "@/domain/campaign-types";
 import {
   TEMPLATE_VARIABLE_LABELS,
@@ -34,7 +38,7 @@ type CampaignTemplateDraftsPanelProps = {
   onNotify: () => void;
 };
 
-type DraftFilter = "all" | CampaignDraftStatus | "edited" | "unresolved";
+type DraftFilter = "all" | CampaignDraftStatus | "edited" | "unresolved" | "unsafe";
 
 export function CampaignTemplateDraftsPanel({
   campaign,
@@ -105,6 +109,9 @@ export function CampaignTemplateDraftsPanel({
       if (draftFilter === "all") return true;
       if (draftFilter === "edited") return row.userEdited;
       if (draftFilter === "unresolved") return row.draftStatus === "NEEDS_REVIEW";
+      if (draftFilter === "unsafe") {
+        return row.draftStatus === "NEEDS_REVIEW" || row.draftStatus === "PENDING";
+      }
       return row.draftStatus === draftFilter;
     });
   }, [draftFilter, included]);
@@ -325,10 +332,22 @@ export function CampaignTemplateDraftsPanel({
               <option value="PENDING">{draftCopy.pending}</option>
               <option value="DRAFTED">{draftCopy.drafted}</option>
               <option value="NEEDS_REVIEW">{draftCopy.needsReview}</option>
+              <option value="APPROVED">{draftCopy.statuses.APPROVED}</option>
+              <option value="OPENED_EXTERNALLY">{draftCopy.statuses.OPENED_EXTERNALLY}</option>
+              <option value="SENT_MANUALLY">{draftCopy.statuses.SENT_MANUALLY}</option>
               <option value="edited">{draftCopy.edited}</option>
               <option value="unresolved">{draftCopy.unresolved}</option>
+              <option value="unsafe">{dictionary.leadops.campaigns.review.unsafeReasons}</option>
             </select>
           </label>
+          <CampaignBulkApprovalBar
+            campaignId={campaignId}
+            dictionary={dictionary}
+            onNotify={onNotify}
+            onRecipientsUpdated={reloadRecipients}
+            repos={repos}
+            tenantId={tenantId}
+          />
           {preview ? (
             <p className="text-xs text-slate-500">
               {draftCopy.countSummary
@@ -362,7 +381,8 @@ export function CampaignTemplateDraftsPanel({
                   <td className="px-3 py-2">{recipient.snapshotContactName || "—"}</td>
                   <td className="px-3 py-2">
                     <span data-testid={`campaign-draft-status-${recipient.id}`}>
-                      {draftCopy.statuses[recipient.draftStatus]}
+                      {draftCopy.statuses[recipient.draftStatus as keyof typeof draftCopy.statuses] ??
+                        recipient.draftStatus}
                     </span>
                     {recipient.userEdited ? (
                       <span className="ml-2 text-xs text-amber-300">{draftCopy.editedBadge}</span>
@@ -447,6 +467,21 @@ export function CampaignTemplateDraftsPanel({
             )}
           </div>
         </section>
+      ) : null}
+
+      {selectedRecipient ? (
+        <CampaignRecipientReviewPanel
+          campaign={campaign}
+          campaignId={campaignId}
+          dictionary={dictionary}
+          locale={locale}
+          onCampaignUpdated={onCampaignUpdated}
+          onNotify={onNotify}
+          onRecipientsUpdated={reloadRecipients}
+          recipient={selectedRecipient}
+          repos={repos}
+          tenantId={tenantId}
+        />
       ) : null}
 
       {feedback ? (

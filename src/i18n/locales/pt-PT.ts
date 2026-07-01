@@ -983,7 +983,13 @@ export const dictionary: Dictionary = {
         statuses: {
           PENDING: "Pendente",
           DRAFTED: "Rascunhado",
-          NEEDS_REVIEW: "Precisa de revisão"
+          NEEDS_REVIEW: "Precisa de revisão",
+          APPROVED: "Aprovado",
+          EXCLUDED: "Excluído",
+          OPENED_EXTERNALLY: "Aberto externamente",
+          SENT_MANUALLY: "Enviado manualmente",
+          SKIPPED: "Ignorado",
+          SUPPRESSED: "Suprimido"
         },
         editedBadge: "Editado",
         editorTitle: "Editar rascunho",
@@ -994,6 +1000,58 @@ export const dictionary: Dictionary = {
         regenerateOne: "Regenerar a partir do modelo",
         confirmRegenerate: "Substituir edições manuais",
         regenerated: "Rascunho regenerado a partir do modelo."
+      },
+      review: {
+        title: "Rever e enviar",
+        description: "Aprove rascunhos seguros, abra Gmail ou Outlook e confirme o envio manual após entrega fora do ForgeOS.",
+        approveOne: "Aprovar rascunho",
+        bulkApproveSafe: "Aprovar todos os rascunhos seguros",
+        bulkSummary: "Aprovados {approved} rascunhos; ignorados {skipped} destinatários inseguros.",
+        unsafeReasons: "Não pode aprovar",
+        blockReasons: {
+          missing_email: "email em falta",
+          invalid_email: "email inválido",
+          suppressed: "contacto suprimido",
+          no_draft: "sem rascunho gerado",
+          needs_review: "precisa de revisão",
+          missing_subject: "assunto em falta",
+          missing_body: "corpo em falta",
+          unresolved_variables: "variáveis por resolver",
+          sender_incomplete: "identidade de remetente incompleta",
+          missing_opt_out: "instrução de cancelamento em falta",
+          campaign_locked: "campanha não editável",
+          already_sent: "já enviado",
+          not_approved: "não aprovado",
+          approval_stale: "aprovação desatualizada"
+        },
+        approved: "Rascunho aprovado.",
+        openedExternal: "Compose externo aberto. A mensagem ainda não foi marcada como enviada.",
+        openedExternalStatus: "Aberto externamente — não enviado",
+        sentManualStatus: "Enviado manualmente",
+        markSentExternally: "Marcar como enviado externamente",
+        confirmSent: "Confirmar envio manual",
+        confirmSentBody:
+          "O ForgeOS não pode verificar independentemente a entrega. Confirme que enviou esta mensagem externamente.",
+        operatorNote: "Nota do operador (opcional)",
+        markedSent: "Marcado como enviado externamente.",
+        simulateSend: "Simular envio",
+        simulated: "Envio simulado registado (sem entrega externa).",
+        invalidated: "Aprovação invalidada: {reason}",
+        duplicateBlocked: "Envio duplicado bloqueado para este destinatário da campanha.",
+        cooldownWarning: "Este contacto foi contactado recentemente. A anulação requer confirmação e motivo.",
+        cooldownOverride: "Anular cooldown de contacto recente"
+      },
+      progress: {
+        title: "Progresso da campanha",
+        total: "Incluídos",
+        drafted: "Rascunhados",
+        needsReview: "Precisam de revisão",
+        approved: "Aprovados",
+        openedExternally: "Abertos externamente",
+        manuallySent: "Enviados manualmente",
+        excluded: "Excluídos",
+        suppressed: "Suprimidos",
+        skipped: "Ignorados"
       }
     },
     table: {
@@ -1079,9 +1137,13 @@ export const dictionary: Dictionary = {
     },
     campaignStatuses: {
       draft: "Rascunho",
-      active: "Ativa",
+      ready_for_review: "Pronta para revisão",
+      approved: "Aprovada",
+      in_progress: "Em progresso",
+      completed: "Concluída",
       paused: "Em pausa",
-      completed: "Concluída"
+      cancelled: "Cancelada",
+      active: "Ativa"
     },
     activities: {
       "lead-imported": "Lead importado",

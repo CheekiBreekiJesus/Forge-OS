@@ -621,7 +621,18 @@ export type Dictionary = {
         countSummary: string;
         statusColumn: string;
         subjectColumn: string;
-        statuses: Record<"PENDING" | "DRAFTED" | "NEEDS_REVIEW", string>;
+        statuses: Record<
+          | "PENDING"
+          | "DRAFTED"
+          | "NEEDS_REVIEW"
+          | "APPROVED"
+          | "EXCLUDED"
+          | "OPENED_EXTERNALLY"
+          | "SENT_MANUALLY"
+          | "SKIPPED"
+          | "SUPPRESSED",
+          string
+        >;
         editedBadge: string;
         editorTitle: string;
         unresolvedWarning: string;
@@ -631,6 +642,58 @@ export type Dictionary = {
         regenerateOne: string;
         confirmRegenerate: string;
         regenerated: string;
+      };
+      review: {
+        title: string;
+        description: string;
+        approveOne: string;
+        bulkApproveSafe: string;
+        bulkSummary: string;
+        unsafeReasons: string;
+        blockReasons: Record<
+          | "missing_email"
+          | "invalid_email"
+          | "suppressed"
+          | "no_draft"
+          | "needs_review"
+          | "missing_subject"
+          | "missing_body"
+          | "unresolved_variables"
+          | "sender_incomplete"
+          | "missing_opt_out"
+          | "campaign_locked"
+          | "already_sent"
+          | "not_approved"
+          | "approval_stale",
+          string
+        >;
+        approved: string;
+        openedExternal: string;
+        openedExternalStatus: string;
+        sentManualStatus: string;
+        markSentExternally: string;
+        confirmSent: string;
+        confirmSentBody: string;
+        operatorNote: string;
+        markedSent: string;
+        simulateSend: string;
+        simulated: string;
+        invalidated: string;
+        duplicateBlocked: string;
+        cooldownWarning: string;
+        cooldownOverride: string;
+      };
+      progress: {
+        title: string;
+        total: string;
+        drafted: string;
+        needsReview: string;
+        approved: string;
+        openedExternally: string;
+        manuallySent: string;
+        excluded: string;
+        suppressed: string;
+        skipped: string;
       };
     };
     table: {
@@ -703,7 +766,17 @@ export type Dictionary = {
       "Hospitality" | "Events" | "Food & Beverage" | "Packaging" | "Sports venues",
       string
     >;
-    campaignStatuses: Record<"draft" | "active" | "paused" | "completed", string>;
+    campaignStatuses: Record<
+      | "draft"
+      | "ready_for_review"
+      | "approved"
+      | "in_progress"
+      | "completed"
+      | "paused"
+      | "cancelled"
+      | "active",
+      string
+    >;
     activities: Record<
       | "lead-imported"
       | "campaign-started"

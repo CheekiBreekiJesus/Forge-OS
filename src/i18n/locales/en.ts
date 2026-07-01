@@ -983,7 +983,13 @@ export const dictionary: Dictionary = {
         statuses: {
           PENDING: "Pending",
           DRAFTED: "Drafted",
-          NEEDS_REVIEW: "Needs review"
+          NEEDS_REVIEW: "Needs review",
+          APPROVED: "Approved",
+          EXCLUDED: "Excluded",
+          OPENED_EXTERNALLY: "Opened externally",
+          SENT_MANUALLY: "Sent manually",
+          SKIPPED: "Skipped",
+          SUPPRESSED: "Suppressed"
         },
         editedBadge: "Edited",
         editorTitle: "Edit draft",
@@ -994,6 +1000,58 @@ export const dictionary: Dictionary = {
         regenerateOne: "Regenerate from template",
         confirmRegenerate: "Overwrite manual edits",
         regenerated: "Draft regenerated from template."
+      },
+      review: {
+        title: "Review and send",
+        description: "Approve safe drafts, open Gmail or Outlook, then confirm manual send after delivery outside ForgeOS.",
+        approveOne: "Approve draft",
+        bulkApproveSafe: "Approve all safe drafts",
+        bulkSummary: "Approved {approved} drafts; skipped {skipped} unsafe recipients.",
+        unsafeReasons: "Cannot approve",
+        blockReasons: {
+          missing_email: "missing email",
+          invalid_email: "invalid email",
+          suppressed: "suppressed contact",
+          no_draft: "no draft generated",
+          needs_review: "needs review",
+          missing_subject: "missing subject",
+          missing_body: "missing body",
+          unresolved_variables: "unresolved variables",
+          sender_incomplete: "sender identity incomplete",
+          missing_opt_out: "missing opt-out instruction",
+          campaign_locked: "campaign not editable",
+          already_sent: "already sent",
+          not_approved: "not approved",
+          approval_stale: "approval stale"
+        },
+        approved: "Draft approved.",
+        openedExternal: "External compose opened. Message is not marked as sent yet.",
+        openedExternalStatus: "Opened externally — not sent",
+        sentManualStatus: "Sent manually",
+        markSentExternally: "Mark as sent externally",
+        confirmSent: "Confirm manual send",
+        confirmSentBody:
+          "ForgeOS cannot independently verify delivery. Confirm that you sent this message externally.",
+        operatorNote: "Operator note (optional)",
+        markedSent: "Marked as sent externally.",
+        simulateSend: "Simulate send",
+        simulated: "Simulated send recorded (no external delivery).",
+        invalidated: "Approval invalidated: {reason}",
+        duplicateBlocked: "Duplicate send blocked for this campaign recipient.",
+        cooldownWarning: "This contact was contacted recently. Override requires confirmation and reason.",
+        cooldownOverride: "Override recent-contact cooldown"
+      },
+      progress: {
+        title: "Campaign progress",
+        total: "Included",
+        drafted: "Drafted",
+        needsReview: "Needs review",
+        approved: "Approved",
+        openedExternally: "Opened externally",
+        manuallySent: "Sent manually",
+        excluded: "Excluded",
+        suppressed: "Suppressed",
+        skipped: "Skipped"
       }
     },
     table: {
@@ -1079,9 +1137,13 @@ export const dictionary: Dictionary = {
     },
     campaignStatuses: {
       draft: "Draft",
-      active: "Active",
+      ready_for_review: "Ready for review",
+      approved: "Approved",
+      in_progress: "In progress",
+      completed: "Completed",
       paused: "Paused",
-      completed: "Completed"
+      cancelled: "Cancelled",
+      active: "Active"
     },
     activities: {
       "lead-imported": "Lead imported",

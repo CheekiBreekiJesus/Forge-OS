@@ -6,6 +6,7 @@ import {
 } from "@/application/campaign-segmentation-service";
 import { AppFrame, panelClass } from "@/components/app-frame";
 import { CampaignTemplateDraftsPanel } from "@/components/campaign-template-drafts-panel";
+import { computeCampaignProgress } from "@/application/campaign-approval-service";
 import type { CampaignRecipient, OutreachCampaign } from "@/domain/campaign-types";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
@@ -55,6 +56,8 @@ export function LeadOpsCampaignDetailShell({
 
   const included = useMemo(() => recipients.filter((row) => row.status === "included"), [recipients]);
   const excluded = useMemo(() => recipients.filter((row) => row.status === "excluded"), [recipients]);
+  const progress = useMemo(() => computeCampaignProgress(recipients), [recipients]);
+  const progressCopy = copy.campaigns.progress;
 
   async function handleRefresh() {
     if (state.status !== "ready" || !campaign || campaign.status !== "draft") return;
@@ -204,6 +207,21 @@ export function LeadOpsCampaignDetailShell({
           </p>
         </section>
 
+        <section className={`${panelClass} p-5 xl:col-span-2`} data-testid="campaign-progress-panel">
+          <h2 className="text-lg font-bold">{progressCopy.title}</h2>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <ProgressItem label={progressCopy.total} value={progress.total} />
+            <ProgressItem label={progressCopy.drafted} value={progress.drafted} />
+            <ProgressItem label={progressCopy.needsReview} value={progress.needsReview} />
+            <ProgressItem label={progressCopy.approved} value={progress.approved} />
+            <ProgressItem label={progressCopy.openedExternally} value={progress.openedExternally} />
+            <ProgressItem label={progressCopy.manuallySent} value={progress.manuallySent} />
+            <ProgressItem label={progressCopy.excluded} value={progress.excluded} />
+            <ProgressItem label={progressCopy.suppressed} value={progress.suppressed} />
+            <ProgressItem label={progressCopy.skipped} value={progress.skipped} />
+          </div>
+        </section>
+
         {state.status === "ready" ? (
           <CampaignTemplateDraftsPanel
             campaign={campaign}
@@ -220,6 +238,15 @@ export function LeadOpsCampaignDetailShell({
         ) : null}
       </div>
     </AppFrame>
+  );
+}
+
+function ProgressItem({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg border border-slate-800 bg-slate-950 p-3">
+      <p className="text-xs text-slate-500">{label}</p>
+      <p className="mt-1 text-lg font-semibold">{value}</p>
+    </div>
   );
 }
 
