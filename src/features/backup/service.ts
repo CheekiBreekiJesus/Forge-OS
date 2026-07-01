@@ -15,10 +15,11 @@ import type {
   ProductionOrder,
   Quote
 } from "@/domain/types";
+import type { CampaignRecipient } from "@/domain/campaign-types";
 import type { ImportBatch, ImportRow, LeadContact } from "@/domain/import-types";
 import type { LocalRepositoryBundle } from "@/persistence/interfaces";
 
-export const BACKUP_VERSION = 3 as const;
+export const BACKUP_VERSION = 4 as const;
 
 export type ForgeOSBackup = {
   version: typeof BACKUP_VERSION;
@@ -40,6 +41,7 @@ export type ForgeOSBackup = {
     importBatches: ImportBatch[];
     importRows: ImportRow[];
     leadContacts: LeadContact[];
+    campaignRecipients: CampaignRecipient[];
   };
   localAssets?: Array<Omit<LocalAsset, "blob"> & { blobBase64: string }>;
 };
@@ -65,6 +67,7 @@ export async function exportBackup(
     importBatches,
     importRows,
     leadContacts,
+    campaignRecipients,
     assets
   ] = await Promise.all([
     repos.leads.list(tenantId),
@@ -88,6 +91,7 @@ export async function exportBackup(
       return rows.flat();
     }),
     repos.leadContacts.list(tenantId),
+    repos.campaignRecipients.listForTenant(tenantId),
     includeAssets ? repos.localAssets.list(tenantId) : Promise.resolve([])
   ]);
 
@@ -108,7 +112,8 @@ export async function exportBackup(
       userProfiles,
       importBatches,
       importRows,
-      leadContacts
+      leadContacts,
+      campaignRecipients
     },
     tenantId,
     version: BACKUP_VERSION

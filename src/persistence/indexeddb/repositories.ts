@@ -48,6 +48,11 @@ import {
 import { createProductRepository, demoProductToCreateInput } from "./product-repositories";
 import { createCustomizerSimulationRepository } from "./customizer-repositories";
 import {
+  campaignFromSeed,
+  createCampaignRecipientRepository,
+  createOutreachCampaignRepository
+} from "./campaign-repositories";
+import {
   createImportBatchRepository,
   createImportRowRepository,
   createLeadContactRepository
@@ -906,16 +911,7 @@ export function createOutreachMessageRepository(db: ForgeOSDatabase): OutreachMe
 }
 
 export function createCampaignRepository(db: ForgeOSDatabase): CampaignRepository {
-  return {
-    async list(tenantId) {
-      return db.campaigns.where("tenantId").equals(tenantId).toArray();
-    },
-    async getById(tenantId, campaignId) {
-      const row = await db.campaigns.get(campaignId);
-      if (!row || row.tenantId !== tenantId) return null;
-      return row;
-    }
-  };
+  return createOutreachCampaignRepository(db);
 }
 
 export function createActivityRepository(db: ForgeOSDatabase): ActivityRepository {
@@ -1054,14 +1050,7 @@ export async function seedDatabase(
 
   const campaigns: Campaign[] = leadOpsCampaigns
     .filter((c) => c.tenantId === tenantId)
-    .map((c) => ({
-      id: c.id,
-      tenantId: c.tenantId,
-      name: c.name,
-      status: c.status,
-      sentCount: c.sentCount,
-      totalCount: c.totalCount
-    }));
+    .map((c) => campaignFromSeed(c, timestamp));
 
   const leads: Lead[] = leadOpsLeads
     .filter((l) => l.tenantId === tenantId)
@@ -1159,12 +1148,14 @@ export async function resetDemoRecords(db: ForgeOSDatabase, tenantId: string): P
     "rw",
     [
       db.leads,
+      db.leadContacts,
       db.customers,
       db.opportunities,
       db.quotes,
       db.productionOrders,
       db.outreachMessages,
       db.campaigns,
+      db.campaignRecipients,
       db.activities,
       db.customizerSimulations
     ],
@@ -1197,7 +1188,13 @@ export async function resetDemoRecords(db: ForgeOSDatabase, tenantId: string): P
       await Promise.all([
         db.outreachMessages.bulkDelete(seedLeadIds),
         db.leads.bulkDelete(seedLeadIds),
+        db.leadContacts.where("tenantId").equals(tenantId).filter((contact) => seedLeadIds.includes(contact.leadId)).delete(),
         db.campaigns.bulkDelete(seedCampaignIds),
+        db.campaignRecipients
+          .where("tenantId")
+          .equals(tenantId)
+          .filter((recipient) => seedCampaignIds.includes(recipient.campaignId))
+          .delete(),
         db.customers.bulkDelete(seedCustomerIds),
         db.opportunities
           .where("tenantId")
@@ -1259,7 +1256,8 @@ export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
       db.customizerSimulations,
       db.importBatches,
       db.importRows,
-      db.leadContacts
+      db.leadContacts,
+      db.campaignRecipients
     ],
     async () => {
       await db.meta.clear();
@@ -1284,6 +1282,7 @@ export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
       await db.importBatches.clear();
       await db.importRows.clear();
       await db.leadContacts.clear();
+      await db.campaignRecipients.clear();
     }
   );
 }
@@ -1313,7 +1312,8 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
       db.customizerSimulations,
       db.importBatches,
       db.importRows,
-      db.leadContacts
+      db.leadContacts,
+      db.campaignRecipients
     ],
     async () => {
       await db.leads.bulkPut(tables.leads);
@@ -1331,6 +1331,7 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
       await db.importBatches.bulkPut(tables.importBatches ?? []);
       await db.importRows.bulkPut(tables.importRows ?? []);
       await db.leadContacts.bulkPut(tables.leadContacts ?? []);
+      await db.campaignRecipients.bulkPut(tables.campaignRecipients ?? []);
       if (localAssets) {
         for (const asset of localAssets) {
           const binary = atob(asset.blobBase64);
@@ -1381,6 +1382,7 @@ export function createLocalRepositoryBundle(db: ForgeOSDatabase) {
   const importBatches = createImportBatchRepository(db);
   const importRows = createImportRowRepository(db);
   const leadContacts = createLeadContactRepository(db);
+  const campaignRecipients = createCampaignRecipientRepository(db);
 
   return {
     meta,
@@ -1394,6 +1396,7 @@ export function createLocalRepositoryBundle(db: ForgeOSDatabase) {
     inventory,
     outreachMessages,
     campaigns,
+    campaignRecipients,
     activities,
     companyProfiles,
     userProfiles,

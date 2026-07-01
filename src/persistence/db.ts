@@ -23,6 +23,7 @@ import type {
   UserProfile
 } from "@/domain/profile-types";
 import type { CustomizerSimulation } from "@/domain/customizer-types";
+import type { CampaignRecipient, OutreachCampaign } from "@/domain/campaign-types";
 import type { ImportBatch, ImportRow, LeadContact } from "@/domain/import-types";
 import type { Product } from "@/domain/product-types";
 import { DEFAULT_ARCHIVABLE } from "@/persistence/archive-utils";
@@ -45,7 +46,8 @@ export class ForgeOSDatabase extends Dexie {
   quotes!: Table<Quote, string>;
   productionOrders!: Table<ProductionOrder, string>;
   outreachMessages!: Table<OutreachMessage, string>;
-  campaigns!: Table<Campaign, string>;
+  campaigns!: Table<OutreachCampaign, string>;
+  campaignRecipients!: Table<CampaignRecipient, string>;
   activities!: Table<ActivityEvent, string>;
   companyProfiles!: Table<CompanyProfile, string>;
   userProfiles!: Table<UserProfile, string>;
@@ -213,7 +215,7 @@ export class ForgeOSDatabase extends Dexie {
         await tx.table("meta").put({ key: "schemaVersion", value: "4" });
       });
 
-    this.version(SCHEMA_VERSION)
+    this.version(5)
       .stores({
         meta: "key",
         leads:
@@ -260,11 +262,64 @@ export class ForgeOSDatabase extends Dexie {
             row.normalizedPhone = String(row.phone ?? "").replace(/[^\d+]/g, "");
           }
           if (row.websiteDomain === undefined) {
-            const website = String(row.website ?? "");
-            row.websiteDomain = website ? null : null;
+            row.websiteDomain = null;
           }
           if (row.country === undefined) row.country = "Portugal";
           if (row.sourceImportId === undefined) row.sourceImportId = null;
+        });
+        await tx.table("meta").put({ key: "schemaVersion", value: "5" });
+      });
+
+    this.version(SCHEMA_VERSION)
+      .stores({
+        meta: "key",
+        leads:
+          "id, tenantId, email, crmStatus, outreachStatus, active, normalizedCompanyName, websiteDomain, sourceImportId, [tenantId+email], [tenantId+normalizedCompanyName]",
+        customers: "id, tenantId, leadId, active, [tenantId+leadId]",
+        customerContacts: "id, tenantId, customerId, active, [tenantId+customerId]",
+        opportunities: "id, tenantId, leadId, customerId, [tenantId+leadId]",
+        quotes:
+          "id, tenantId, quoteNumber, leadId, customerId, status, active, simulationId, [tenantId+leadId]",
+        productionOrders:
+          "id, tenantId, orderNumber, quoteId, status, machineId, active, [tenantId+quoteId]",
+        outreachMessages: "id, tenantId, leadId, [tenantId+leadId]",
+        campaigns: "id, tenantId, status, createdAt, [tenantId+status]",
+        campaignRecipients:
+          "id, tenantId, campaignId, leadId, status, [tenantId+campaignId], [tenantId+leadId]",
+        activities: "id, tenantId, occurredAt, action, [tenantId+occurredAt]",
+        companyProfiles: "id, tenantId, [tenantId+id]",
+        userProfiles: "id, tenantId, email, active, [tenantId+email]",
+        senderIdentities:
+          "id, tenantId, userProfileId, companyProfileId, isDefault, active, [tenantId+isDefault]",
+        localAssets: "id, tenantId, assetType, [tenantId+assetType]",
+        products: "id, tenantId, sku, category, active, [tenantId+sku]",
+        machines: "id, tenantId, code, status, active, [tenantId+code]",
+        inventoryItems: "id, tenantId, sku, active, [tenantId+sku]",
+        stockMovements: "id, tenantId, inventoryItemId, [tenantId+inventoryItemId]",
+        customizerSimulations:
+          "id, tenantId, customerId, leadId, productId, quoteId, status, active, [tenantId+status]",
+        importBatches: "id, tenantId, fileFingerprint, status, createdAt, [tenantId+fileFingerprint]",
+        importRows: "id, tenantId, importBatchId, rowIndex, status, [tenantId+importBatchId]",
+        leadContacts:
+          "id, tenantId, leadId, normalizedEmail, active, isPrimary, [tenantId+leadId], [tenantId+normalizedEmail]"
+      })
+      .upgrade(async (tx) => {
+        const timestamp = new Date().toISOString();
+        await tx.table("campaigns").toCollection().modify((row: Record<string, unknown>) => {
+          if (row.description === undefined) row.description = "";
+          if (row.language === undefined) row.language = "pt-PT";
+          if (row.segmentDefinition === undefined) row.segmentDefinition = null;
+          if (row.recipientSnapshotCreatedAt === undefined) row.recipientSnapshotCreatedAt = null;
+          if (row.recipientSnapshotCount === undefined) {
+            row.recipientSnapshotCount = Number(row.totalCount ?? 0);
+          }
+          if (row.fromName === undefined) row.fromName = "";
+          if (row.senderProfileId === undefined) row.senderProfileId = null;
+          if (row.replyTo === undefined) row.replyTo = "";
+          if (row.deliveryMode === undefined) row.deliveryMode = "simulation";
+          if (row.createdBy === undefined) row.createdBy = "seed";
+          if (row.createdAt === undefined) row.createdAt = timestamp;
+          if (row.updatedAt === undefined) row.updatedAt = timestamp;
         });
         await tx.table("meta").put({ key: "schemaVersion", value: String(SCHEMA_VERSION) });
       });

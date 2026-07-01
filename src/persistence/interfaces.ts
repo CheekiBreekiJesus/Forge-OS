@@ -47,6 +47,11 @@ import type {
   UpdateQuoteInput
 } from "@/domain/types";
 import type { ArchiveInput, ListOptions } from "@/persistence/archive-utils";
+import type { OutreachCampaign } from "@/domain/campaign-types";
+import type {
+  CampaignRecipientRepository,
+  OutreachCampaignRepository
+} from "@/persistence/indexeddb/campaign-repositories";
 import type {
   ImportBatchRepository,
   ImportRowRepository,
@@ -260,10 +265,7 @@ export interface ProductRepository {
   listEmailPromotable(tenantId: string): Promise<Product[]>;
 }
 
-export interface CampaignRepository {
-  list(tenantId: string): Promise<Campaign[]>;
-  getById(tenantId: string, campaignId: string): Promise<Campaign | null>;
-}
+export type CampaignRepository = OutreachCampaignRepository;
 
 export interface ActivityRepository {
   list(tenantId: string): Promise<ActivityEvent[]>;
@@ -302,6 +304,7 @@ export interface LocalRepositoryBundle {
   inventory: InventoryRepository;
   outreachMessages: OutreachMessageRepository;
   campaigns: CampaignRepository;
+  campaignRecipients: CampaignRecipientRepository;
   activities: ActivityRepository;
   meta: MetaRepository;
   companyProfiles: CompanyProfileRepository;

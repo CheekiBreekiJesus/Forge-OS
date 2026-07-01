@@ -150,16 +150,22 @@ export type Opportunity = {
   updatedAt: string;
 };
 
-export type CampaignStatus = "active" | "paused" | "completed";
+export type CampaignStatus = "draft" | "active" | "paused" | "completed";
 
-export type Campaign = {
-  id: string;
-  tenantId: string;
-  name: string;
-  status: CampaignStatus;
-  sentCount: number;
-  totalCount: number;
-};
+export type {
+  CampaignDeliveryMode,
+  CampaignRecipient,
+  CampaignRecipientStatus,
+  CreateCampaignRecipientInput,
+  CreateOutreachCampaignInput,
+  OutreachCampaign,
+  RecipientRefreshDiff,
+  SegmentDefinition,
+  SegmentDefinitionMode
+} from "@/domain/campaign-types";
+
+/** @deprecated Use OutreachCampaign from campaign-types for new code. */
+export type Campaign = import("@/domain/campaign-types").OutreachCampaign;
 
 export type OutreachMessage = {
   id: string;
@@ -301,7 +307,10 @@ export type ActivityAction =
   | "stock_adjusted"
   | "production_status_changed"
   | "customizer_simulation_created"
-  | "customizer_simulation_converted";
+  | "customizer_simulation_converted"
+  | "campaign_created"
+  | "campaign_segment_snapshotted"
+  | "campaign_recipients_refreshed";
 
 export type ActivityEntityType =
   | "lead"

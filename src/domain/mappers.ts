@@ -32,9 +32,14 @@ export function toLeadOpsCampaign(campaign: Campaign): LeadOpsCampaign {
     id: campaign.id,
     tenantId: campaign.tenantId,
     name: campaign.name,
+    description: campaign.description,
+    language: campaign.language,
     status: campaign.status,
     sentCount: campaign.sentCount,
-    totalCount: campaign.totalCount
+    totalCount: campaign.totalCount,
+    recipientSnapshotCount: campaign.recipientSnapshotCount,
+    deliveryMode: campaign.deliveryMode,
+    createdAt: campaign.createdAt
   };
 }
 
