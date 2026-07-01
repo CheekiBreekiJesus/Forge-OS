@@ -1,11 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { getLocalizedModuleHref, moduleKeys, type ModuleKey } from "@/modules/config";
+import {
+  getLocalizedModuleHref,
+  navIcons,
+  primaryNavKeys,
+  type ModuleKey
+} from "@/modules/config";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { canAccessLeadOps, canViewModule } from "@/features/crud/role-preview";
 import { usePreviewRole } from "@/components/app-frame-client";
+import { navLinkActiveClass, navLinkClass } from "@/theme/ui-classes";
 
 type AppFrameNavProps = {
   activeModule: ModuleKey;
@@ -27,39 +33,37 @@ export function AppFrameNav({
   className = ""
 }: AppFrameNavProps) {
   const previewRole = usePreviewRole();
-  const visibleModules = moduleKeys.filter((key) => canViewModule(previewRole, key));
+  const visibleModules = primaryNavKeys.filter((key) => canViewModule(previewRole, key));
 
   return (
-    <nav className={`space-y-1 ${className}`}>
-      {visibleModules.map((key, mapIndex) => (
+    <nav aria-label={dictionary.app.name} className={`space-y-1 ${className}`}>
+      {visibleModules.map((key) => {
+        const isActive = key === activeModule && !isLeadOpsActive;
+
+        return (
           <Link
-            className={
-              key === activeModule && !isLeadOpsActive
-                ? "flex items-center gap-3 rounded-lg border-l-2 border-orange-400 bg-orange-500/10 px-3 py-3 text-sm font-semibold text-orange-300"
-                : "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
-            }
+            aria-current={isActive ? "page" : undefined}
+            className={isActive ? navLinkActiveClass : navLinkClass}
             href={getLocalizedModuleHref(locale, key)}
             key={key}
             onClick={onNavigate}
           >
-            <span className="grid size-6 place-items-center rounded-md border border-slate-700 text-xs">
-              {mapIndex + 1}
+            <span className="grid size-6 place-items-center rounded-md border border-[var(--forge-border)] text-xs">
+              {navIcons[key]}
             </span>
             {dictionary.navigation[key]}
           </Link>
-      ))}
+        );
+      })}
       {canAccessLeadOps(previewRole) ? (
         <Link
-          className={
-            isLeadOpsActive
-              ? "flex items-center gap-3 rounded-lg border-l-2 border-orange-400 bg-orange-500/10 px-3 py-3 text-sm font-semibold text-orange-300"
-              : "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
-          }
+          aria-current={isLeadOpsActive ? "page" : undefined}
+          className={isLeadOpsActive ? navLinkActiveClass : navLinkClass}
           href={leadOpsHref}
           onClick={onNavigate}
         >
-          <span className="grid size-6 place-items-center rounded-md border border-slate-700 text-xs">
-            L
+          <span className="grid size-6 place-items-center rounded-md border border-[var(--forge-border)] text-xs">
+            ✉
           </span>
           {dictionary.navigation.leadops}
         </Link>

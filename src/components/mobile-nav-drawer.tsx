@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ModuleKey } from "@/modules/config";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
@@ -23,17 +23,40 @@ export function MobileNavDrawer({
   locale
 }: MobileNavDrawerProps) {
   const [open, setOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   function close() {
     setOpen(false);
+    menuButtonRef.current?.focus();
   }
+
+  useEffect(() => {
+    if (!open) return;
+
+    closeButtonRef.current?.focus();
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+        menuButtonRef.current?.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [open]);
 
   return (
     <>
       <button
+        aria-controls="forgeos-mobile-nav"
+        aria-expanded={open}
+        aria-haspopup="dialog"
         aria-label={dictionary.app.openMenu}
-        className="grid size-10 place-items-center rounded-lg border border-slate-700 text-slate-200 lg:hidden"
+        className="grid size-10 shrink-0 place-items-center rounded-lg border border-slate-700 text-slate-200 lg:hidden"
         onClick={() => setOpen(true)}
+        ref={menuButtonRef}
         type="button"
       >
         <svg aria-hidden fill="none" height="16" viewBox="0 0 16 16" width="16">
@@ -52,12 +75,15 @@ export function MobileNavDrawer({
       ) : null}
 
       <div
+        aria-hidden={!open}
+        aria-label={dictionary.app.openMenu}
+        aria-modal={open ? true : undefined}
         className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-slate-800 bg-[#07101d] transition-transform duration-200 lg:hidden ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
-        role="dialog"
-        aria-modal="true"
-        aria-label={dictionary.app.openMenu}
+        id="forgeos-mobile-nav"
+        inert={!open}
+        role={open ? "dialog" : undefined}
       >
         <div className="flex h-16 items-center gap-3 border-b border-slate-800 px-5">
           <Link
@@ -72,6 +98,7 @@ export function MobileNavDrawer({
             aria-label={dictionary.app.closeMenu}
             className="grid size-8 place-items-center rounded-lg text-slate-400 hover:text-white"
             onClick={close}
+            ref={closeButtonRef}
             type="button"
           >
             <svg aria-hidden fill="none" height="14" viewBox="0 0 14 14" width="14">
