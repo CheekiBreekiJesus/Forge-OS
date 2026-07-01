@@ -33,6 +33,11 @@ export interface LeadContactRepository {
   list(tenantId: string): Promise<LeadContact[]>;
   getByNormalizedEmail(tenantId: string, normalizedEmail: string): Promise<LeadContact | null>;
   create(tenantId: string, input: CreateLeadContactInput): Promise<LeadContact>;
+  update(
+    tenantId: string,
+    contactId: string,
+    patch: Partial<Pick<LeadContact, "email" | "normalizedEmail" | "name" | "phone">>
+  ): Promise<LeadContact>;
 }
 
 export function createImportBatchRepository(db: ForgeOSDatabase): ImportBatchRepository {
@@ -147,6 +152,19 @@ export function createLeadContactRepository(db: ForgeOSDatabase): LeadContactRep
       };
       await db.leadContacts.put(contact);
       return contact;
+    },
+    async update(tenantId, contactId, patch) {
+      const existing = await db.leadContacts.get(contactId);
+      if (!existing || existing.tenantId !== tenantId) {
+        throw new PersistenceError("not_found", "Lead contact not found.");
+      }
+      const updated: LeadContact = {
+        ...existing,
+        ...patch,
+        updatedAt: nowIso()
+      };
+      await db.leadContacts.put(updated);
+      return updated;
     }
   };
 }

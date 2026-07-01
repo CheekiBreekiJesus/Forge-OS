@@ -15,6 +15,7 @@ export type SendabilityInput = {
   lead: Lead;
   contact?: LeadContact | null;
   duplicateEmails?: Set<string>;
+  suppressedEmails?: Set<string>;
 };
 
 export type SendabilityResult = {
@@ -42,6 +43,10 @@ export function evaluateSendability(input: SendabilityInput): SendabilityResult 
   }
 
   if (lead.consentStatus === "unsubscribed" || lead.outreachStatus === "bounced") {
+    reasons.push("suppressed");
+  }
+
+  if (email && input.suppressedEmails?.has(email)) {
     reasons.push("suppressed");
   }
 

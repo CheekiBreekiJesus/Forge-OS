@@ -144,6 +144,9 @@ export type CreateCampaignRecipientInput = {
 };
 
 export type UpdateCampaignRecipientDraftInput = {
+  snapshotEmail?: string;
+  snapshotCompanyName?: string;
+  snapshotContactName?: string;
   personalizedSubject?: string;
   personalizedPlainText?: string;
   personalizedHtml?: string;

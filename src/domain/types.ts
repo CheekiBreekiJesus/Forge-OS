@@ -319,7 +319,13 @@ export type ActivityAction =
   | "campaign_draft_sent_manual"
   | "campaign_draft_sent_simulated"
   | "campaign_draft_duplicate_blocked"
-  | "campaign_draft_cooldown_override";
+  | "campaign_draft_cooldown_override"
+  | "suppression_created"
+  | "suppression_removed"
+  | "lead_record_corrected"
+  | "lead_record_anonymized"
+  | "lead_record_deleted"
+  | "backup_restored";
 
 export type ActivityEntityType =
   | "lead"

@@ -1,4 +1,5 @@
 import { loadSenderContext, type SenderContext } from "@/application/campaign-sender-context";
+import { buildActiveSuppressedEmailSet } from "@/application/suppression-service";
 import type {
   CampaignDraftStatus,
   CampaignExternalClient,
@@ -9,7 +10,7 @@ import type {
 } from "@/domain/campaign-types";
 import type { Lead } from "@/domain/types";
 import { buildCampaignDraftComposition } from "@/features/leadops/campaign-draft-composition";
-import { isValidEmailSyntax } from "@/features/leadops/import-normalization";
+import { isValidEmailSyntax, normalizeEmail } from "@/features/leadops/import-normalization";
 import { evaluateSendability } from "@/features/leadops/sendability";
 import type { LocalRepositoryBundle } from "@/persistence/interfaces";
 import { PersistenceError } from "@/persistence/interfaces";
@@ -148,6 +149,7 @@ export async function evaluateRecipientApproval(
 
   if (recipient.draftStatus === "PENDING") reasons.push("no_draft");
   if (recipient.draftStatus === "NEEDS_REVIEW") reasons.push("needs_review");
+  if (recipient.draftStatus === "SUPPRESSED") reasons.push("suppressed");
   if (
     unresolvedPattern(recipient.personalizedSubject) ||
     unresolvedPattern(recipient.personalizedPlainText)
@@ -158,8 +160,13 @@ export async function evaluateRecipientApproval(
   if (!sender.ready) reasons.push("sender_incomplete");
   if (!hasOptOutInstruction(recipient.personalizedPlainText)) reasons.push("missing_opt_out");
 
+  const suppressedEmails = await buildActiveSuppressedEmailSet(repos, tenantId);
+  if (email && suppressedEmails.has(normalizeEmail(email))) {
+    reasons.push("suppressed");
+  }
+
   if (leadRow) {
-    const sendability = evaluateSendability({ tenantId, lead: leadRow });
+    const sendability = evaluateSendability({ tenantId, lead: leadRow, suppressedEmails });
     if (sendability.reasons.includes("suppressed")) reasons.push("suppressed");
   }
 

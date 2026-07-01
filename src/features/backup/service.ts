@@ -16,10 +16,17 @@ import type {
   Quote
 } from "@/domain/types";
 import type { CampaignRecipient } from "@/domain/campaign-types";
+import type { EmailSuppression } from "@/domain/suppression-types";
 import type { ImportBatch, ImportRow, LeadContact } from "@/domain/import-types";
 import type { LocalRepositoryBundle } from "@/persistence/interfaces";
+import {
+  normalizeBackupTables,
+  validateBackupRestoreIntegrity,
+  type BackupRestoreReport
+} from "@/features/backup/restore-validation";
 
-export const BACKUP_VERSION = 4 as const;
+export const BACKUP_VERSION = 5 as const;
+export const SUPPORTED_BACKUP_VERSIONS = [4, 5] as const;
 
 export type ForgeOSBackup = {
   version: typeof BACKUP_VERSION;
@@ -42,6 +49,7 @@ export type ForgeOSBackup = {
     importRows: ImportRow[];
     leadContacts: LeadContact[];
     campaignRecipients: CampaignRecipient[];
+    emailSuppressions: EmailSuppression[];
   };
   localAssets?: Array<Omit<LocalAsset, "blob"> & { blobBase64: string }>;
 };
@@ -68,6 +76,7 @@ export async function exportBackup(
     importRows,
     leadContacts,
     campaignRecipients,
+    emailSuppressions,
     assets
   ] = await Promise.all([
     repos.leads.list(tenantId),
@@ -92,6 +101,7 @@ export async function exportBackup(
     }),
     repos.leadContacts.list(tenantId),
     repos.campaignRecipients.listForTenant(tenantId),
+    repos.emailSuppressions.list(tenantId),
     includeAssets ? repos.localAssets.list(tenantId) : Promise.resolve([])
   ]);
 
@@ -113,7 +123,8 @@ export async function exportBackup(
       importBatches,
       importRows,
       leadContacts,
-      campaignRecipients
+      campaignRecipients,
+      emailSuppressions
     },
     tenantId,
     version: BACKUP_VERSION
@@ -141,7 +152,7 @@ export async function exportBackup(
 export function validateBackup(data: unknown): data is ForgeOSBackup {
   if (!data || typeof data !== "object") return false;
   const record = data as Record<string, unknown>;
-  if (record.version !== BACKUP_VERSION) return false;
+  if (!SUPPORTED_BACKUP_VERSIONS.includes(record.version as 4 | 5)) return false;
   if (typeof record.tenantId !== "string") return false;
   if (!record.tables || typeof record.tables !== "object") return false;
   const tables = record.tables as Record<string, unknown>;
@@ -159,12 +170,32 @@ export function validateBackup(data: unknown): data is ForgeOSBackup {
 export async function importBackup(
   repos: LocalRepositoryBundle,
   backup: ForgeOSBackup
-): Promise<void> {
+): Promise<BackupRestoreReport> {
   if (!validateBackup(backup)) {
     throw new Error("Invalid backup format.");
   }
+  const normalized = normalizeBackupTables({
+    ...backup,
+    version: BACKUP_VERSION,
+    tables: {
+      ...backup.tables,
+      emailSuppressions: backup.tables.emailSuppressions ?? []
+    }
+  });
+  const report = validateBackupRestoreIntegrity(normalized);
   await repos.reset();
   if (repos.importBackupData) {
-    await repos.importBackupData(backup);
+    await repos.importBackupData(normalized);
   }
+  await repos.activities.append(normalized.tenantId, {
+    entityType: "lead",
+    entityId: normalized.tenantId,
+    action: "backup_restored",
+    title: "Local backup restored",
+    metadata: {
+      warnings: String(report.warnings.length),
+      orphanedRecipients: String(report.orphanedCampaignRecipients)
+    }
+  });
+  return report;
 }
