@@ -1,5 +1,6 @@
 export const moduleKeys = [
   "dashboard",
+  "crm",
   "customers",
   "products",
   "orders",
@@ -7,6 +8,13 @@ export const moduleKeys = [
   "inventory",
   "machines",
   "maintenance",
+  "molds",
+  "quality",
+  "purchasing",
+  "suppliers",
+  "sales",
+  "billing",
+  "reports",
   "marketing",
   "settings"
 ] as const;
@@ -15,6 +23,7 @@ export type ModuleKey = (typeof moduleKeys)[number];
 
 export const moduleRoutes: Record<ModuleKey, string> = {
   dashboard: "",
+  crm: "crm",
   customers: "customers",
   products: "products",
   orders: "quotations",
@@ -22,6 +31,13 @@ export const moduleRoutes: Record<ModuleKey, string> = {
   inventory: "inventory",
   machines: "machines",
   maintenance: "maintenance",
+  molds: "molds",
+  quality: "quality",
+  purchasing: "purchasing",
+  suppliers: "suppliers",
+  sales: "sales",
+  billing: "billing",
+  reports: "reports",
   marketing: "marketing",
   settings: "settings"
 };

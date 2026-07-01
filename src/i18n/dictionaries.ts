@@ -15,9 +15,14 @@ export type Dictionary = {
     environment: string;
     openMenu: string;
     closeMenu: string;
+    themeDark: string;
+    themeLight: string;
+    themeSystem: string;
+    toggleTheme: string;
   };
   navigation: {
     dashboard: string;
+    crm: string;
     customers: string;
     products: string;
     orders: string;
@@ -25,6 +30,13 @@ export type Dictionary = {
     inventory: string;
     machines: string;
     maintenance: string;
+    molds: string;
+    quality: string;
+    purchasing: string;
+    suppliers: string;
+    sales: string;
+    billing: string;
+    reports: string;
     marketing: string;
     leadops: string;
     settings: string;
@@ -161,7 +173,7 @@ export type Dictionary = {
       status: string;
       owner: string;
     };
-    modules: Record<
+    modules: Partial<Record<
       Exclude<ModuleKey, "dashboard">,
       {
         eyebrow: string;
@@ -180,7 +192,7 @@ export type Dictionary = {
           owner: string;
         }>;
       }
-    >;
+    >>;
   };
   productCatalog: {
     eyebrow: string;
@@ -1013,7 +1025,16 @@ export type Dictionary = {
       | "first_email"
       | "first_quotation"
       | "customizer_tested"
-      | "backup_exported",
+      | "backup_exported"
+      | "brand_kit_configured"
+      | "marketing_logo_added"
+      | "first_marketing_asset_uploaded"
+      | "first_marketing_audience_created"
+      | "first_marketing_campaign_created"
+      | "campaign_copy_generated"
+      | "campaign_image_approved"
+      | "campaign_package_exported"
+      | "advertising_account_configured",
       string
     >;
   };
@@ -1041,6 +1062,201 @@ export type Dictionary = {
         description: string;
         requirements: string[];
       }
+    >;
+  };
+  marketingStudio: {
+    title: string;
+    description: string;
+    sections: Record<
+      | "overview"
+      | "campaigns"
+      | "image-studio"
+      | "assets"
+      | "brand-kit"
+      | "audiences"
+      | "accounts"
+      | "analytics"
+      | "video-studio",
+      string
+    >;
+    actions: Record<
+      | "newCampaign"
+      | "createBrandKit"
+      | "refreshBrandKit"
+      | "createAudience"
+      | "saveAudience"
+      | "createCampaign"
+      | "saveCampaign"
+      | "generateCopy"
+      | "approve"
+      | "exportJson"
+      | "exportCsv"
+      | "uploadAsset"
+      | "chooseFile"
+      | "setProductAsset"
+      | "generateImage"
+      | "runDiagnostic"
+      | "livePublishDisabled"
+      | "generateStoryboard",
+      string
+    >;
+    labels: Record<
+      | "active"
+      | "approval"
+      | "archived"
+      | "aspectRatio"
+      | "aiRecommendations"
+      | "audience"
+      | "budget"
+      | "callToAction"
+      | "campaign"
+      | "channel"
+      | "claims"
+      | "colors"
+      | "copyVariants"
+      | "description"
+      | "duration"
+      | "endDate"
+      | "estimatedSize"
+      | "imageBrief"
+      | "industry"
+      | "languages"
+      | "landingPage"
+      | "loading"
+      | "localEstimated"
+      | "mockImage"
+      | "name"
+      | "noConcept"
+      | "none"
+      | "objective"
+      | "offer"
+      | "organizationTypes"
+      | "product"
+      | "products"
+      | "recentCampaigns"
+      | "regions"
+      | "startDate"
+      | "subnav"
+      | "targetRegions"
+      | "transformation"
+      | "videoProject"
+      | "interests",
+      string
+    >;
+    kpis: Record<
+      | "activeCampaigns"
+      | "awaitingApproval"
+      | "approvedAssets"
+      | "draftAssets"
+      | "productsWithAssets"
+      | "estimatedBudget"
+      | "approvedCampaigns"
+      | "assetsGenerated",
+      string
+    >;
+    help: Record<
+      | "analytics"
+      | "brandKit"
+      | "imageStudio"
+      | "noLiveImageProvider"
+      | "providerDisabled"
+      | "videoStudio",
+      string
+    >;
+    defaults: Record<
+      | "approvedClaim"
+      | "campaignName"
+      | "companyDescription"
+      | "cta"
+      | "imageBrief"
+      | "prohibitedClaim"
+      | "tone"
+      | "uploadedAssetDescription"
+      | "videoProjectName",
+      string
+    >;
+    feedback: Record<
+      | "assetApproved"
+      | "assetSaved"
+      | "audienceSaved"
+      | "brandKitSaved"
+      | "campaignApproved"
+      | "campaignExported"
+      | "campaignSaved"
+      | "copyGenerated"
+      | "imageGenerated"
+      | "productAssetSet"
+      | "providerPreviewSaved"
+      | "videoSaved",
+      string
+    >;
+    errors: Record<"approvedAssetRequired" | "campaignRequired" | "nameRequired", string>;
+    empty: Record<"assets" | "audiences" | "brandKit" | "campaigns" | "variants" | "videoProjects", string>;
+    recommendations: Record<"assets" | "brandKit" | "providers", string>;
+    objectives: Record<
+      | "brand_awareness"
+      | "lead_generation"
+      | "website_traffic"
+      | "product_promotion"
+      | "event_promotion"
+      | "customer_reactivation"
+      | "quotation_requests",
+      string
+    >;
+    channels: Record<
+      | "google_search"
+      | "google_display"
+      | "meta_facebook"
+      | "meta_instagram"
+      | "email"
+      | "cold_outreach"
+      | "linkedin"
+      | "website_banner"
+      | "landing_page",
+      string
+    >;
+    transformations: Record<
+      | "background_removal"
+      | "transparent_background"
+      | "white_catalogue_background"
+      | "background_replacement"
+      | "image_cleanup"
+      | "lighting_improvement"
+      | "product_centering"
+      | "crop_resize"
+      | "upscale"
+      | "lifestyle_scene"
+      | "advertising_composition"
+      | "email_banner"
+      | "website_hero"
+      | "social_post"
+      | "story_reel_cover",
+      string
+    >;
+    aspectRatios: Record<
+      "1:1" | "4:5" | "9:16" | "16:9" | "1.91:1" | "website_hero" | "email_banner" | "transparent_product",
+      string
+    >;
+    approvals: Record<"draft" | "pending_review" | "approved" | "rejected", string>;
+    statuses: Record<
+      | "draft"
+      | "generating"
+      | "ready_for_review"
+      | "approved"
+      | "export_ready"
+      | "scheduled_external"
+      | "active_external"
+      | "paused"
+      | "completed"
+      | "archived"
+      | "storyboard"
+      | "rendering_disabled",
+      string
+    >;
+    providers: Record<"google_ads" | "meta_ads", string>;
+    connectionStatuses: Record<
+      "not_configured" | "authentication_required" | "local_preview" | "connection_error" | "connected",
+      string
     >;
   };
 };

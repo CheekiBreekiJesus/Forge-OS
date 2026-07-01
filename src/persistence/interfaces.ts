@@ -29,6 +29,30 @@ import type {
 } from "@/domain/customizer-types";
 import type { CreateProductInput, Product, UpdateProductInput } from "@/domain/product-types";
 import type {
+  AdvertisingAccount,
+  AdvertisingCampaignMapping,
+  BrandKit,
+  CampaignContentVariant,
+  CreateAdvertisingAccountInput,
+  CreateBrandKitInput,
+  CreateCampaignContentVariantInput,
+  CreateMarketingAssetInput,
+  CreateMarketingAudienceInput,
+  CreateMarketingCampaignInput,
+  CreateVideoProjectInput,
+  MarketingAsset,
+  MarketingAudience,
+  MarketingCampaign,
+  UpdateAdvertisingAccountInput,
+  UpdateBrandKitInput,
+  UpdateCampaignContentVariantInput,
+  UpdateMarketingAssetInput,
+  UpdateMarketingAudienceInput,
+  UpdateMarketingCampaignInput,
+  UpdateVideoProjectInput,
+  VideoProject
+} from "@/domain/marketing-types";
+import type {
   ActivityEvent,
   Campaign,
   CreateActivityEventInput,
@@ -255,6 +279,96 @@ export interface ProductRepository {
   listEmailPromotable(tenantId: string): Promise<Product[]>;
 }
 
+export interface BrandKitRepository {
+  list(tenantId: string, options?: ListOptions): Promise<BrandKit[]>;
+  getById(tenantId: string, id: string): Promise<BrandKit | null>;
+  getDefault(tenantId: string): Promise<BrandKit | null>;
+  create(tenantId: string, input: CreateBrandKitInput): Promise<BrandKit>;
+  update(tenantId: string, id: string, input: UpdateBrandKitInput): Promise<BrandKit>;
+  duplicate(tenantId: string, id: string): Promise<BrandKit>;
+  archive(tenantId: string, id: string, input?: ArchiveInput): Promise<BrandKit>;
+  restore(tenantId: string, id: string): Promise<BrandKit>;
+  setDefault(tenantId: string, id: string): Promise<BrandKit>;
+}
+
+export interface MarketingAssetRepository {
+  list(tenantId: string, options?: ListOptions): Promise<MarketingAsset[]>;
+  getById(tenantId: string, id: string): Promise<MarketingAsset | null>;
+  listForProduct(tenantId: string, productId: string): Promise<MarketingAsset[]>;
+  listForCampaign(tenantId: string, campaignId: string): Promise<MarketingAsset[]>;
+  create(tenantId: string, input: CreateMarketingAssetInput): Promise<MarketingAsset>;
+  update(tenantId: string, id: string, input: UpdateMarketingAssetInput): Promise<MarketingAsset>;
+  duplicateMetadata(tenantId: string, id: string): Promise<MarketingAsset>;
+  approve(tenantId: string, id: string, approvedBy: string): Promise<MarketingAsset>;
+  reject(tenantId: string, id: string): Promise<MarketingAsset>;
+  archive(tenantId: string, id: string, input?: ArchiveInput): Promise<MarketingAsset>;
+  restore(tenantId: string, id: string): Promise<MarketingAsset>;
+}
+
+export interface MarketingCampaignRepository {
+  list(tenantId: string, options?: ListOptions): Promise<MarketingCampaign[]>;
+  getById(tenantId: string, id: string): Promise<MarketingCampaign | null>;
+  create(tenantId: string, input: CreateMarketingCampaignInput): Promise<MarketingCampaign>;
+  update(tenantId: string, id: string, input: UpdateMarketingCampaignInput): Promise<MarketingCampaign>;
+  duplicate(tenantId: string, id: string): Promise<MarketingCampaign>;
+  approve(tenantId: string, id: string, approvedBy: string): Promise<MarketingCampaign>;
+  markExported(tenantId: string, id: string): Promise<MarketingCampaign>;
+  archive(tenantId: string, id: string, input?: ArchiveInput): Promise<MarketingCampaign>;
+  restore(tenantId: string, id: string): Promise<MarketingCampaign>;
+}
+
+export interface CampaignContentVariantRepository {
+  listForCampaign(tenantId: string, campaignId: string): Promise<CampaignContentVariant[]>;
+  getById(tenantId: string, id: string): Promise<CampaignContentVariant | null>;
+  create(tenantId: string, input: CreateCampaignContentVariantInput): Promise<CampaignContentVariant>;
+  update(
+    tenantId: string,
+    id: string,
+    input: UpdateCampaignContentVariantInput
+  ): Promise<CampaignContentVariant>;
+  approve(tenantId: string, id: string): Promise<CampaignContentVariant>;
+  reject(tenantId: string, id: string): Promise<CampaignContentVariant>;
+  select(tenantId: string, id: string): Promise<CampaignContentVariant>;
+}
+
+export interface MarketingAudienceRepository {
+  list(tenantId: string, options?: ListOptions): Promise<MarketingAudience[]>;
+  getById(tenantId: string, id: string): Promise<MarketingAudience | null>;
+  create(tenantId: string, input: CreateMarketingAudienceInput): Promise<MarketingAudience>;
+  update(tenantId: string, id: string, input: UpdateMarketingAudienceInput): Promise<MarketingAudience>;
+  duplicate(tenantId: string, id: string): Promise<MarketingAudience>;
+  archive(tenantId: string, id: string, input?: ArchiveInput): Promise<MarketingAudience>;
+  restore(tenantId: string, id: string): Promise<MarketingAudience>;
+}
+
+export interface AdvertisingAccountRepository {
+  list(tenantId: string): Promise<AdvertisingAccount[]>;
+  getByProvider(
+    tenantId: string,
+    provider: AdvertisingAccount["provider"]
+  ): Promise<AdvertisingAccount | null>;
+  upsert(tenantId: string, input: CreateAdvertisingAccountInput): Promise<AdvertisingAccount>;
+  update(tenantId: string, id: string, input: UpdateAdvertisingAccountInput): Promise<AdvertisingAccount>;
+}
+
+export interface AdvertisingCampaignMappingRepository {
+  list(tenantId: string): Promise<AdvertisingCampaignMapping[]>;
+  listForCampaign(tenantId: string, campaignId: string): Promise<AdvertisingCampaignMapping[]>;
+  create(
+    tenantId: string,
+    input: Omit<AdvertisingCampaignMapping, "id" | "tenantId" | "createdAt" | "updatedAt">
+  ): Promise<AdvertisingCampaignMapping>;
+}
+
+export interface VideoProjectRepository {
+  list(tenantId: string, options?: ListOptions): Promise<VideoProject[]>;
+  getById(tenantId: string, id: string): Promise<VideoProject | null>;
+  create(tenantId: string, input: CreateVideoProjectInput): Promise<VideoProject>;
+  update(tenantId: string, id: string, input: UpdateVideoProjectInput): Promise<VideoProject>;
+  archive(tenantId: string, id: string, input?: ArchiveInput): Promise<VideoProject>;
+  restore(tenantId: string, id: string): Promise<VideoProject>;
+}
+
 export interface CampaignRepository {
   list(tenantId: string): Promise<Campaign[]>;
   getById(tenantId: string, campaignId: string): Promise<Campaign | null>;
@@ -305,6 +419,14 @@ export interface LocalRepositoryBundle {
   localAssets: LocalAssetRepository;
   products: ProductRepository;
   customizerSimulations: CustomizerSimulationRepository;
+  brandKits: BrandKitRepository;
+  marketingAssets: MarketingAssetRepository;
+  marketingCampaigns: MarketingCampaignRepository;
+  campaignContentVariants: CampaignContentVariantRepository;
+  marketingAudiences: MarketingAudienceRepository;
+  advertisingAccounts: AdvertisingAccountRepository;
+  advertisingCampaignMappings: AdvertisingCampaignMappingRepository;
+  videoProjects: VideoProjectRepository;
   reset(): Promise<void>;
   resetDemoData(tenantId: string): Promise<void>;
   seed(tenantId: string): Promise<void>;

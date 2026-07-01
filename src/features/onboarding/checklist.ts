@@ -11,7 +11,16 @@ export type OnboardingItemId =
   | "first_email"
   | "first_quotation"
   | "customizer_tested"
-  | "backup_exported";
+  | "backup_exported"
+  | "brand_kit_configured"
+  | "marketing_logo_added"
+  | "first_marketing_asset_uploaded"
+  | "first_marketing_audience_created"
+  | "first_marketing_campaign_created"
+  | "campaign_copy_generated"
+  | "campaign_image_approved"
+  | "campaign_package_exported"
+  | "advertising_account_configured";
 
 export type OnboardingItem = {
   id: OnboardingItemId;
@@ -43,7 +52,12 @@ export async function deriveOnboardingItems(
     quotes,
     simulations,
     outreach,
-    backupAt
+    backupAt,
+    brandKits,
+    marketingAssets,
+    marketingCampaigns,
+    marketingAudiences,
+    advertisingAccounts
   ] = await Promise.all([
     repos.companyProfiles.getForTenant(tenantId),
     repos.senderIdentities.list(tenantId),
@@ -52,7 +66,12 @@ export async function deriveOnboardingItems(
     repos.quotes.list(tenantId),
     repos.customizerSimulations.list(tenantId),
     repos.outreachMessages.listAll(tenantId),
-    repos.meta.get("lastBackupExportedAt")
+    repos.meta.get("lastBackupExportedAt"),
+    repos.brandKits.list(tenantId),
+    repos.marketingAssets.list(tenantId),
+    repos.marketingCampaigns.list(tenantId),
+    repos.marketingAudiences.list(tenantId),
+    repos.advertisingAccounts.list(tenantId)
   ]);
 
   const hasLogo = Boolean(company?.logoLocalAssetId || company?.logoPublicUrl);
@@ -117,6 +136,51 @@ export async function deriveOnboardingItems(
       completed: Boolean(backupAt),
       href: `${prefix}/settings`,
       id: "backup_exported"
+    },
+    {
+      completed: brandKits.some((kit) => kit.active),
+      href: `${prefix}/marketing/brand-kit`,
+      id: "brand_kit_configured"
+    },
+    {
+      completed: brandKits.some((kit) => kit.primaryLogoAssetId || kit.secondaryLogoAssetId || kit.iconAssetId),
+      href: `${prefix}/marketing/brand-kit`,
+      id: "marketing_logo_added"
+    },
+    {
+      completed: marketingAssets.length > 0,
+      href: `${prefix}/marketing/assets`,
+      id: "first_marketing_asset_uploaded"
+    },
+    {
+      completed: marketingAudiences.length > 0,
+      href: `${prefix}/marketing/audiences`,
+      id: "first_marketing_audience_created"
+    },
+    {
+      completed: marketingCampaigns.length > 0,
+      href: `${prefix}/marketing/campaigns`,
+      id: "first_marketing_campaign_created"
+    },
+    {
+      completed: marketingCampaigns.some((campaign) => campaign.campaignConcept.trim()),
+      href: `${prefix}/marketing/campaigns`,
+      id: "campaign_copy_generated"
+    },
+    {
+      completed: marketingAssets.some((asset) => asset.approvalStatus === "approved"),
+      href: `${prefix}/marketing/assets`,
+      id: "campaign_image_approved"
+    },
+    {
+      completed: marketingCampaigns.some((campaign) => campaign.status === "export_ready"),
+      href: `${prefix}/marketing/campaigns`,
+      id: "campaign_package_exported"
+    },
+    {
+      completed: advertisingAccounts.some((account) => account.connectionStatus === "connected"),
+      href: `${prefix}/marketing/accounts`,
+      id: "advertising_account_configured"
     }
   ];
 }

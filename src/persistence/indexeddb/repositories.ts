@@ -48,6 +48,16 @@ import {
   createMachineRepository,
   seedOperationsDefaults
 } from "./operations-repositories";
+import {
+  createAdvertisingAccountRepository,
+  createAdvertisingCampaignMappingRepository,
+  createBrandKitRepository,
+  createCampaignContentVariantRepository,
+  createMarketingAssetRepository,
+  createMarketingAudienceRepository,
+  createMarketingCampaignRepository,
+  createVideoProjectRepository
+} from "./marketing-repositories";
 import type { ForgeOSBackup } from "@/features/backup/service";
 import {
   PersistenceError,
@@ -1071,7 +1081,15 @@ export async function seedDatabase(
     db.machines,
     db.inventoryItems,
     db.stockMovements,
-    db.customerContacts
+    db.customerContacts,
+    db.brandKits,
+    db.marketingAssets,
+    db.marketingCampaigns,
+    db.campaignContentVariants,
+    db.marketingAudiences,
+    db.advertisingAccounts,
+    db.advertisingCampaignMappings,
+    db.videoProjects
   ];
 
   await db.transaction("rw", allTables, async () => {
@@ -1093,6 +1111,14 @@ export async function seedDatabase(
       await db.inventoryItems.where("tenantId").equals(tenantId).delete();
       await db.stockMovements.where("tenantId").equals(tenantId).delete();
       await db.customerContacts.where("tenantId").equals(tenantId).delete();
+      await db.brandKits.where("tenantId").equals(tenantId).delete();
+      await db.marketingAssets.where("tenantId").equals(tenantId).delete();
+      await db.marketingCampaigns.where("tenantId").equals(tenantId).delete();
+      await db.campaignContentVariants.where("tenantId").equals(tenantId).delete();
+      await db.marketingAudiences.where("tenantId").equals(tenantId).delete();
+      await db.advertisingAccounts.where("tenantId").equals(tenantId).delete();
+      await db.advertisingCampaignMappings.where("tenantId").equals(tenantId).delete();
+      await db.videoProjects.where("tenantId").equals(tenantId).delete();
     }
 
     await db.campaigns.bulkPut(campaigns);
@@ -1237,7 +1263,15 @@ export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
       db.inventoryItems,
       db.stockMovements,
       db.customerContacts,
-      db.customizerSimulations
+      db.customizerSimulations,
+      db.brandKits,
+      db.marketingAssets,
+      db.marketingCampaigns,
+      db.campaignContentVariants,
+      db.marketingAudiences,
+      db.advertisingAccounts,
+      db.advertisingCampaignMappings,
+      db.videoProjects
     ],
     async () => {
       await db.meta.clear();
@@ -1259,6 +1293,14 @@ export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
       await db.stockMovements.clear();
       await db.customerContacts.clear();
       await db.customizerSimulations.clear();
+      await db.brandKits.clear();
+      await db.marketingAssets.clear();
+      await db.marketingCampaigns.clear();
+      await db.campaignContentVariants.clear();
+      await db.marketingAudiences.clear();
+      await db.advertisingAccounts.clear();
+      await db.advertisingCampaignMappings.clear();
+      await db.videoProjects.clear();
     }
   );
 }
@@ -1285,7 +1327,15 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
       db.machines,
       db.inventoryItems,
       db.stockMovements,
-      db.customizerSimulations
+      db.customizerSimulations,
+      db.brandKits,
+      db.marketingAssets,
+      db.marketingCampaigns,
+      db.campaignContentVariants,
+      db.marketingAudiences,
+      db.advertisingAccounts,
+      db.advertisingCampaignMappings,
+      db.videoProjects
     ],
     async () => {
       await db.leads.bulkPut(tables.leads);
@@ -1300,6 +1350,14 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
       await db.userProfiles.bulkPut(tables.userProfiles);
       await db.senderIdentities.bulkPut(tables.senderIdentities);
       await db.products.bulkPut(tables.products);
+      await db.brandKits.bulkPut(tables.brandKits ?? []);
+      await db.marketingAssets.bulkPut(tables.marketingAssets ?? []);
+      await db.marketingCampaigns.bulkPut(tables.marketingCampaigns ?? []);
+      await db.campaignContentVariants.bulkPut(tables.campaignContentVariants ?? []);
+      await db.marketingAudiences.bulkPut(tables.marketingAudiences ?? []);
+      await db.advertisingAccounts.bulkPut(tables.advertisingAccounts ?? []);
+      await db.advertisingCampaignMappings.bulkPut(tables.advertisingCampaignMappings ?? []);
+      await db.videoProjects.bulkPut(tables.videoProjects ?? []);
       if (localAssets) {
         for (const asset of localAssets) {
           const binary = atob(asset.blobBase64);
@@ -1347,6 +1405,14 @@ export function createLocalRepositoryBundle(db: ForgeOSDatabase) {
   const localAssets = createLocalAssetRepository(db);
   const products = createProductRepository(db, activities);
   const customizerSimulations = createCustomizerSimulationRepository(db, activities);
+  const brandKits = createBrandKitRepository(db, activities);
+  const marketingAssets = createMarketingAssetRepository(db, activities);
+  const marketingCampaigns = createMarketingCampaignRepository(db, activities);
+  const campaignContentVariants = createCampaignContentVariantRepository(db);
+  const marketingAudiences = createMarketingAudienceRepository(db, activities);
+  const advertisingAccounts = createAdvertisingAccountRepository(db, activities);
+  const advertisingCampaignMappings = createAdvertisingCampaignMappingRepository(db);
+  const videoProjects = createVideoProjectRepository(db, activities);
 
   return {
     meta,
@@ -1367,6 +1433,14 @@ export function createLocalRepositoryBundle(db: ForgeOSDatabase) {
     localAssets,
     products,
     customizerSimulations,
+    brandKits,
+    marketingAssets,
+    marketingCampaigns,
+    campaignContentVariants,
+    marketingAudiences,
+    advertisingAccounts,
+    advertisingCampaignMappings,
+    videoProjects,
     async reset() {
       await resetDatabase(db);
     },

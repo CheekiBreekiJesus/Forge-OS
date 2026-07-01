@@ -2,6 +2,15 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { CustomizerSimulation } from "@/domain/customizer-types";
+import type {
+  AdvertisingAccount,
+  BrandKit,
+  CampaignContentVariant,
+  MarketingAsset,
+  MarketingAudience,
+  MarketingCampaign,
+  VideoProject
+} from "@/domain/marketing-types";
 import type { Machine, InventoryItem } from "@/domain/operations-types";
 import type { Product } from "@/domain/product-types";
 import type { Lead, ProductionOrder, Quote, Customer, ActivityEvent } from "@/domain/types";
@@ -346,4 +355,112 @@ export function useCustomizerSimulationById(simulationId: string | null): {
   }, [state, tenantId, simulationId, dataVersion]);
 
   return { simulation, loading };
+}
+
+export function useMarketingStudioData(includeArchived = false): {
+  advertisingAccounts: AdvertisingAccount[];
+  assets: MarketingAsset[];
+  audiences: MarketingAudience[];
+  brandKits: BrandKit[];
+  campaigns: MarketingCampaign[];
+  loading: boolean;
+  reload: () => Promise<void>;
+  variants: CampaignContentVariant[];
+  videoProjects: VideoProject[];
+} {
+  const { tenantId, state, dataVersion } = usePersistence();
+  const [brandKits, setBrandKits] = useState<BrandKit[]>([]);
+  const [assets, setAssets] = useState<MarketingAsset[]>([]);
+  const [campaigns, setCampaigns] = useState<MarketingCampaign[]>([]);
+  const [variants, setVariants] = useState<CampaignContentVariant[]>([]);
+  const [audiences, setAudiences] = useState<MarketingAudience[]>([]);
+  const [advertisingAccounts, setAdvertisingAccounts] = useState<AdvertisingAccount[]>([]);
+  const [videoProjects, setVideoProjects] = useState<VideoProject[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const reload = useCallback(async () => {
+    if (state.status !== "ready") return;
+    setLoading(true);
+    const options = toListOptions(includeArchived);
+    const [
+      nextBrandKits,
+      nextAssets,
+      nextCampaigns,
+      nextAudiences,
+      nextAdvertisingAccounts,
+      nextVideoProjects
+    ] = await Promise.all([
+      state.repos.brandKits.list(tenantId, options),
+      state.repos.marketingAssets.list(tenantId, options),
+      state.repos.marketingCampaigns.list(tenantId, options),
+      state.repos.marketingAudiences.list(tenantId, options),
+      state.repos.advertisingAccounts.list(tenantId),
+      state.repos.videoProjects.list(tenantId, options)
+    ]);
+    const nextVariants = (
+      await Promise.all(
+        nextCampaigns.map((campaign) =>
+          state.repos.campaignContentVariants.listForCampaign(tenantId, campaign.id)
+        )
+      )
+    ).flat();
+    setBrandKits(nextBrandKits);
+    setAssets(nextAssets.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+    setCampaigns(nextCampaigns.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+    setVariants(nextVariants);
+    setAudiences(nextAudiences.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+    setAdvertisingAccounts(nextAdvertisingAccounts);
+    setVideoProjects(nextVideoProjects.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+    setLoading(false);
+  }, [state, tenantId, includeArchived]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- repository read on mount
+    void reload();
+  }, [reload, dataVersion]);
+
+  return {
+    advertisingAccounts,
+    assets,
+    audiences,
+    brandKits,
+    campaigns,
+    loading,
+    reload,
+    variants,
+    videoProjects
+  };
+}
+
+export function useMarketingCampaignById(campaignId: string): {
+  campaign: MarketingCampaign | null;
+  loading: boolean;
+  variants: CampaignContentVariant[];
+} {
+  const { tenantId, state, dataVersion } = usePersistence();
+  const [campaign, setCampaign] = useState<MarketingCampaign | null>(null);
+  const [variants, setVariants] = useState<CampaignContentVariant[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (state.status !== "ready") return;
+    let cancelled = false;
+    void (async () => {
+      setLoading(true);
+      const nextCampaign = await state.repos.marketingCampaigns.getById(tenantId, campaignId);
+      const nextVariants = nextCampaign
+        ? await state.repos.campaignContentVariants.listForCampaign(tenantId, nextCampaign.id)
+        : [];
+      if (!cancelled) {
+        setCampaign(nextCampaign);
+        setVariants(nextVariants);
+        setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [state, tenantId, campaignId, dataVersion]);
+
+  return { campaign, loading, variants };
 }

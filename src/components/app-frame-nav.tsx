@@ -17,6 +17,27 @@ type AppFrameNavProps = {
   className?: string;
 };
 
+const moduleIcons: Record<ModuleKey, string> = {
+  dashboard: "D",
+  crm: "CRM",
+  customers: "C",
+  products: "P",
+  orders: "O",
+  production: "PR",
+  inventory: "I",
+  machines: "M",
+  maintenance: "MT",
+  molds: "MD",
+  quality: "Q",
+  purchasing: "PO",
+  suppliers: "S",
+  sales: "V",
+  billing: "B",
+  reports: "R",
+  marketing: "MK",
+  settings: "ST"
+};
+
 export function AppFrameNav({
   activeModule,
   dictionary,
@@ -31,19 +52,19 @@ export function AppFrameNav({
 
   return (
     <nav className={`space-y-1 ${className}`}>
-      {visibleModules.map((key, mapIndex) => (
+      {visibleModules.map((key) => (
           <Link
             className={
               key === activeModule && !isLeadOpsActive
-                ? "flex items-center gap-3 rounded-lg border-l-2 border-orange-400 bg-orange-500/10 px-3 py-3 text-sm font-semibold text-orange-300"
-                : "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
+                ? "flex items-center gap-3 rounded-lg border-l-2 border-orange-400 bg-[var(--forge-selected)] px-3 py-2.5 text-sm font-semibold text-orange-400"
+                : "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-[var(--forge-text-secondary)] hover:bg-[var(--forge-hover)] hover:text-[var(--forge-text)]"
             }
             href={getLocalizedModuleHref(locale, key)}
             key={key}
             onClick={onNavigate}
           >
-            <span className="grid size-6 place-items-center rounded-md border border-slate-700 text-xs">
-              {mapIndex + 1}
+            <span className="grid h-6 min-w-6 place-items-center rounded-md border border-[var(--forge-border)] px-1 text-[10px] font-bold">
+              {moduleIcons[key]}
             </span>
             {dictionary.navigation[key]}
           </Link>
@@ -52,13 +73,13 @@ export function AppFrameNav({
         <Link
           className={
             isLeadOpsActive
-              ? "flex items-center gap-3 rounded-lg border-l-2 border-orange-400 bg-orange-500/10 px-3 py-3 text-sm font-semibold text-orange-300"
-              : "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
+              ? "flex items-center gap-3 rounded-lg border-l-2 border-orange-400 bg-[var(--forge-selected)] px-3 py-2.5 text-sm font-semibold text-orange-400"
+              : "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-[var(--forge-text-secondary)] hover:bg-[var(--forge-hover)] hover:text-[var(--forge-text)]"
           }
           href={leadOpsHref}
           onClick={onNavigate}
         >
-          <span className="grid size-6 place-items-center rounded-md border border-slate-700 text-xs">
+          <span className="grid h-6 min-w-6 place-items-center rounded-md border border-[var(--forge-border)] px-1 text-[10px] font-bold">
             L
           </span>
           {dictionary.navigation.leadops}

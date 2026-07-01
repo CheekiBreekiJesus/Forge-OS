@@ -15,7 +15,9 @@ export function ModulePageShell({
   locale,
   moduleKey
 }: ModulePageShellProps) {
-  const moduleCopy = dictionary.modulePage.modules[moduleKey];
+  const moduleCopy =
+    dictionary.modulePage.modules[moduleKey] ??
+    createPreviewModuleCopy(dictionary.navigation[moduleKey], dictionary);
 
   return (
     <AppFrame activeModule={moduleKey} dictionary={dictionary} locale={locale}>
@@ -121,4 +123,42 @@ export function ModulePageShell({
       </section>
     </AppFrame>
   );
+}
+
+function createPreviewModuleCopy(title: string, dictionary: Dictionary) {
+  return {
+    description: dictionary.modulePage.emptyStateDescription,
+    eyebrow: dictionary.dashboard.status.planned,
+    roadmap: [
+      dictionary.modulePage.primaryAction,
+      dictionary.modulePage.secondaryAction,
+      dictionary.modulePage.prototypeNotice
+    ],
+    stats: [
+      {
+        detail: dictionary.modulePage.prototypeNotice,
+        label: dictionary.modulePage.tableHeaders.status,
+        value: dictionary.dashboard.status.planned
+      },
+      {
+        detail: dictionary.modulePage.emptyStateDescription,
+        label: dictionary.modulePage.tableHeaders.priority,
+        value: dictionary.dashboard.status.foundation
+      },
+      {
+        detail: dictionary.dashboard.operationalSnapshot,
+        label: dictionary.modulePage.tableHeaders.area,
+        value: dictionary.dashboard.status.prototype
+      }
+    ],
+    tableRows: [
+      {
+        area: title,
+        owner: "ForgeOS",
+        priority: dictionary.dashboard.status.foundation,
+        status: dictionary.dashboard.status.planned
+      }
+    ],
+    title
+  };
 }

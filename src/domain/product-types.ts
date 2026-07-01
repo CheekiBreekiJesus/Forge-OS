@@ -26,6 +26,10 @@ export type Product = {
   imageUrl: string;
   thumbnailUrl: string;
   customizerUrl: string;
+  approvedCatalogueMarketingAssetId: string | null;
+  approvedTransparentMarketingAssetId: string | null;
+  preferredMarketingAssetId: string | null;
+  marketingAssetHistoryIds: string[];
   defaultCtaLabel: string;
   emailTitle: string;
   emailDescription: string;

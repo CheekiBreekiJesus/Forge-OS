@@ -16,6 +16,7 @@ export const PREVIEW_ROLES: PreviewRole[] = [
 const ROLE_MODULES: Record<PreviewRole, ModuleKey[]> = {
   owner: [
     "dashboard",
+    "crm",
     "customers",
     "products",
     "orders",
@@ -23,12 +24,51 @@ const ROLE_MODULES: Record<PreviewRole, ModuleKey[]> = {
     "inventory",
     "machines",
     "maintenance",
+    "molds",
+    "quality",
+    "purchasing",
+    "suppliers",
+    "sales",
+    "billing",
+    "reports",
     "marketing",
     "settings"
   ],
-  sales: ["dashboard", "customers", "products", "orders", "marketing", "settings"],
-  production_manager: ["dashboard", "products", "orders", "production", "machines", "settings"],
-  warehouse_manager: ["dashboard", "products", "inventory", "machines", "settings"]
+  sales: [
+    "dashboard",
+    "crm",
+    "customers",
+    "products",
+    "orders",
+    "sales",
+    "billing",
+    "reports",
+    "marketing",
+    "settings"
+  ],
+  production_manager: [
+    "dashboard",
+    "products",
+    "orders",
+    "production",
+    "machines",
+    "maintenance",
+    "molds",
+    "quality",
+    "reports",
+    "settings"
+  ],
+  warehouse_manager: [
+    "dashboard",
+    "products",
+    "inventory",
+    "machines",
+    "maintenance",
+    "purchasing",
+    "suppliers",
+    "reports",
+    "settings"
+  ]
 };
 
 const ROLE_CREATE_ACTIONS: Record<PreviewRole, string[]> = {

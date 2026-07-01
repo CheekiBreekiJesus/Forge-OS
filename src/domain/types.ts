@@ -294,7 +294,21 @@ export type ActivityAction =
   | "stock_adjusted"
   | "production_status_changed"
   | "customizer_simulation_created"
-  | "customizer_simulation_converted";
+  | "customizer_simulation_converted"
+  | "brand_kit.created"
+  | "brand_kit.updated"
+  | "marketing_asset.uploaded"
+  | "marketing_asset.generated"
+  | "marketing_asset.approved"
+  | "marketing_asset.rejected"
+  | "marketing_campaign.created"
+  | "marketing_campaign.generated"
+  | "marketing_campaign.approved"
+  | "marketing_campaign.exported"
+  | "marketing_audience.created"
+  | "advertising_account.configured"
+  | "video_project.created"
+  | "video_storyboard.generated";
 
 export type ActivityEntityType =
   | "lead"
@@ -307,7 +321,13 @@ export type ActivityEntityType =
   | "product"
   | "machine"
   | "inventory"
-  | "customizer_simulation";
+  | "customizer_simulation"
+  | "brand_kit"
+  | "marketing_asset"
+  | "marketing_campaign"
+  | "marketing_audience"
+  | "advertising_account"
+  | "video_project";
 
 export type ActivityEvent = {
   id: string;

@@ -6,10 +6,15 @@ export const dictionary: Dictionary = {
     tenantLabel: "Empresa de referência",
     environment: "Base de protótipo",
     openMenu: "Abrir menu de navegação",
-    closeMenu: "Fechar menu de navegação"
+    closeMenu: "Fechar menu de navegação",
+    themeDark: "Escuro",
+    themeLight: "Claro",
+    themeSystem: "Sistema",
+    toggleTheme: "Alterar tema"
   },
   navigation: {
     dashboard: "Painel",
+    crm: "CRM",
     customers: "Clientes",
     products: "Produtos",
     orders: "Encomendas",
@@ -17,6 +22,13 @@ export const dictionary: Dictionary = {
     inventory: "Inventário",
     machines: "Máquinas",
     maintenance: "Manutenção",
+    molds: "Moldes",
+    quality: "Qualidade",
+    purchasing: "Compras",
+    suppliers: "Fornecedores",
+    sales: "Vendas",
+    billing: "Faturação",
+    reports: "Relatórios",
     marketing: "Marketing",
     leadops: "Contactos Comerciais",
     settings: "Definições"
@@ -1390,6 +1402,223 @@ export const dictionary: Dictionary = {
       openCustomizer: "Abrir Personalizador de Copos para este lead"
     }
   },
+  marketingStudio: {
+    title: "Marketing Studio",
+    description:
+      "Planeie campanhas, prepare recursos aprovados, exporte pacotes e mantenha publicidade paga desativada até as integrações estarem configuradas.",
+    sections: {
+      overview: "Visão geral",
+      campaigns: "Campanhas",
+      "image-studio": "Estúdio de Imagem",
+      assets: "Biblioteca de Recursos",
+      "brand-kit": "Kit de Marca",
+      audiences: "Públicos",
+      accounts: "Contas de Publicidade",
+      analytics: "Análises",
+      "video-studio": "Estúdio de Vídeo"
+    },
+    actions: {
+      newCampaign: "Nova campanha",
+      createBrandKit: "Criar Kit de Marca",
+      refreshBrandKit: "Atualizar pelo perfil da empresa",
+      createAudience: "Criar público",
+      saveAudience: "Guardar público",
+      createCampaign: "Criar campanha",
+      saveCampaign: "Guardar campanha",
+      generateCopy: "Gerar copy",
+      approve: "Aprovar",
+      exportJson: "Exportar JSON",
+      exportCsv: "Exportar folha de copy",
+      uploadAsset: "Carregar recurso",
+      chooseFile: "Escolher ficheiro",
+      setProductAsset: "Usar no produto",
+      generateImage: "Gerar imagem mock",
+      runDiagnostic: "Executar diagnóstico seguro",
+      livePublishDisabled: "Publicação desativada",
+      generateStoryboard: "Gerar storyboard"
+    },
+    labels: {
+      active: "Ativo",
+      approval: "Aprovação",
+      archived: "Arquivado",
+      aspectRatio: "Proporção",
+      aiRecommendations: "Recomendações AI",
+      audience: "Público",
+      budget: "Orçamento estimado",
+      callToAction: "Chamada à ação",
+      campaign: "Campanha",
+      channel: "Canal",
+      claims: "Afirmações",
+      colors: "Cores",
+      copyVariants: "Variantes de copy",
+      description: "Descrição",
+      duration: "Duração",
+      endDate: "Data de fim",
+      estimatedSize: "Dimensão estimada",
+      imageBrief: "Brief da imagem",
+      industry: "Indústria",
+      interests: "Interesses",
+      languages: "Idiomas",
+      landingPage: "Landing page",
+      loading: "A carregar Marketing Studio...",
+      localEstimated: "Local / estimado. Fornecedores não ligados.",
+      mockImage: "Imagem mock",
+      name: "Nome",
+      noConcept: "Ainda sem conceito gerado.",
+      none: "Nenhum",
+      objective: "Objetivo",
+      offer: "Oferta",
+      organizationTypes: "Tipos de organização",
+      product: "Produto",
+      products: "Produtos",
+      recentCampaigns: "Campanhas recentes",
+      regions: "Regiões",
+      startDate: "Data de início",
+      subnav: "Navegação de marketing",
+      targetRegions: "Regiões-alvo",
+      transformation: "Transformação",
+      videoProject: "Projeto de vídeo"
+    },
+    kpis: {
+      activeCampaigns: "Campanhas ativas",
+      awaitingApproval: "A aguardar aprovação",
+      approvedAssets: "Recursos aprovados",
+      draftAssets: "Recursos em rascunho",
+      productsWithAssets: "Produtos com recursos",
+      estimatedBudget: "Orçamento estimado",
+      approvedCampaigns: "Campanhas aprovadas",
+      assetsGenerated: "Recursos gerados"
+    },
+    help: {
+      analytics: "Até ligar fornecedores de anúncios, só são apresentados dados locais de campanhas, recursos, orçamento e estado.",
+      brandKit: "O Kit de Marca reutiliza factos do perfil da empresa e guarda afirmações seguras, cores, tom, CTAs e rodapé legal.",
+      imageStudio: "Prepare imagens de produto através de um pedido neutro por fornecedor. O fornecedor local cria apenas pré-visualizações determinísticas.",
+      noLiveImageProvider: "Remoção de fundo e geração de imagem estão em pré-visualização até configurar um fornecedor no servidor.",
+      providerDisabled: "OAuth, contas de teste, permissões e proteções de orçamento são obrigatórias antes de ativar publicidade real.",
+      videoStudio: "O planeamento por storyboard está disponível. Renderização e publicação de vídeo exigem fornecedores futuros configurados."
+    },
+    defaults: {
+      approvedClaim: "Capacidade de fabrico e personalização sujeita a confirmação comercial.",
+      campaignName: "Campanha de copos personalizados",
+      companyDescription: "Fabricante e fornecedor industrial para produtos personalizados.",
+      cta: "Pedir orçamento",
+      imageBrief: "Imagem de produto limpa com fundo neutro e espaço para chamada à ação.",
+      prohibitedClaim: "Não afirmar descontos, certificações, prazos garantidos ou nomes de clientes sem aprovação.",
+      tone: "prático, direto e fiável",
+      uploadedAssetDescription: "Recurso local carregado a aguardar revisão.",
+      videoProjectName: "Storyboard da campanha"
+    },
+    feedback: {
+      assetApproved: "Recurso aprovado.",
+      assetSaved: "Recurso guardado na biblioteca.",
+      audienceSaved: "Público guardado.",
+      brandKitSaved: "Kit de Marca guardado.",
+      campaignApproved: "Campanha aprovada.",
+      campaignExported: "Pacote da campanha exportado.",
+      campaignSaved: "Campanha guardada.",
+      copyGenerated: "Copy da campanha gerada.",
+      imageGenerated: "Imagem mock gerada.",
+      productAssetSet: "Recurso aprovado associado ao produto.",
+      providerPreviewSaved: "Estado de pré-visualização do fornecedor guardado.",
+      videoSaved: "Storyboard de vídeo guardado."
+    },
+    errors: {
+      approvedAssetRequired: "Aprove o recurso e associe-o primeiro a um produto.",
+      campaignRequired: "Nome da campanha e produto são obrigatórios.",
+      nameRequired: "O nome é obrigatório."
+    },
+    empty: {
+      assets: "Ainda sem recursos de marketing.",
+      audiences: "Ainda sem públicos.",
+      brandKit: "Ainda sem Kit de Marca configurado.",
+      campaigns: "Ainda sem campanhas de marketing.",
+      variants: "Ainda sem variantes de copy.",
+      videoProjects: "Ainda sem storyboards de vídeo."
+    },
+    recommendations: {
+      assets: "Aprove pelo menos uma imagem de produto antes de exportar o pacote da campanha.",
+      brandKit: "Configure as afirmações do Kit de Marca antes de usar copy gerada por AI.",
+      providers: "Os fornecedores de publicidade estão em pré-visualização local; os controlos de gasto real continuam desativados."
+    },
+    objectives: {
+      brand_awareness: "Reconhecimento de marca",
+      lead_generation: "Geração de leads",
+      website_traffic: "Tráfego para website",
+      product_promotion: "Promoção de produto",
+      event_promotion: "Promoção de evento",
+      customer_reactivation: "Reativação de clientes",
+      quotation_requests: "Pedidos de orçamento"
+    },
+    channels: {
+      google_search: "Google Search",
+      google_display: "Google Display",
+      meta_facebook: "Meta Facebook",
+      meta_instagram: "Meta Instagram",
+      email: "Email",
+      cold_outreach: "Cold Outreach",
+      linkedin: "LinkedIn",
+      website_banner: "Banner do website",
+      landing_page: "Landing Page"
+    },
+    transformations: {
+      background_removal: "Remover fundo",
+      transparent_background: "Fundo transparente",
+      white_catalogue_background: "Fundo branco de catálogo",
+      background_replacement: "Substituir fundo",
+      image_cleanup: "Limpeza de imagem",
+      lighting_improvement: "Melhorar iluminação",
+      product_centering: "Centrar produto",
+      crop_resize: "Cortar e redimensionar",
+      upscale: "Aumentar resolução",
+      lifestyle_scene: "Cena lifestyle",
+      advertising_composition: "Composição publicitária",
+      email_banner: "Banner de email",
+      website_hero: "Hero de website",
+      social_post: "Post social",
+      story_reel_cover: "Capa story/reel"
+    },
+    aspectRatios: {
+      "1:1": "1:1",
+      "4:5": "4:5",
+      "9:16": "9:16",
+      "16:9": "16:9",
+      "1.91:1": "1,91:1",
+      website_hero: "Hero de website",
+      email_banner: "Banner de email",
+      transparent_product: "Produto transparente"
+    },
+    approvals: {
+      draft: "Rascunho",
+      pending_review: "A aguardar aprovação",
+      approved: "Aprovado",
+      rejected: "Rejeitado"
+    },
+    statuses: {
+      draft: "Rascunho",
+      generating: "A gerar",
+      ready_for_review: "Pronta para revisão",
+      approved: "Aprovada",
+      export_ready: "Pronta para exportar",
+      scheduled_external: "Agendada externamente",
+      active_external: "Ativa externamente",
+      paused: "Pausada",
+      completed: "Concluída",
+      archived: "Arquivada",
+      storyboard: "Storyboard",
+      rendering_disabled: "Renderização desativada"
+    },
+    providers: {
+      google_ads: "Google Ads",
+      meta_ads: "Meta Ads"
+    },
+    connectionStatuses: {
+      not_configured: "Não configurado",
+      authentication_required: "Autenticação necessária",
+      local_preview: "Pré-visualização local",
+      connection_error: "Erro de ligação",
+      connected: "Ligado"
+    }
+  },
   onboardingModule: {
     title: "Primeiros passos",
     subtitle: "Conclua estes passos para validar o fluxo MVP local.",
@@ -1406,7 +1635,16 @@ export const dictionary: Dictionary = {
       first_email: "Gerar primeiro email de outreach",
       first_quotation: "Criar primeiro orçamento",
       customizer_tested: "Testar Personalizador de Copos",
-      backup_exported: "Exportar backup local"
+      backup_exported: "Exportar backup local",
+      brand_kit_configured: "Configurar Kit de Marca",
+      marketing_logo_added: "Adicionar logótipo de marketing",
+      first_marketing_asset_uploaded: "Carregar primeiro recurso de marketing",
+      first_marketing_audience_created: "Criar primeiro público",
+      first_marketing_campaign_created: "Criar primeira campanha",
+      campaign_copy_generated: "Gerar copy da campanha",
+      campaign_image_approved: "Aprovar imagem da campanha",
+      campaign_package_exported: "Exportar pacote da campanha",
+      advertising_account_configured: "Configurar conta de publicidade"
     }
   },
   notificationsModule: {

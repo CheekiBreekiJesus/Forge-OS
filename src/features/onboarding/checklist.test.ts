@@ -79,7 +79,7 @@ describe("onboarding checklist", () => {
 
     const items = await deriveOnboardingItems(repos, DEFAULT_TENANT_ID, "pt-PT");
     const progress = onboardingProgress(items);
-    expect(progress.total).toBe(11);
+    expect(progress.total).toBe(20);
     expect(progress.percent).toBeGreaterThanOrEqual(0);
   });
 });

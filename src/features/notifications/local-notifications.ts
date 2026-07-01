@@ -42,13 +42,26 @@ export async function deriveLocalNotifications(
   const items: LocalNotification[] = [];
   const pt = locale === "pt-PT";
 
-  const [leads, quotes, inventory, machines, productionOrders, outreach] = await Promise.all([
+  const [
+    leads,
+    quotes,
+    inventory,
+    machines,
+    productionOrders,
+    outreach,
+    marketingCampaigns,
+    marketingAssets,
+    advertisingAccounts
+  ] = await Promise.all([
     repos.leads.list(tenantId),
     repos.quotes.list(tenantId),
     repos.inventory.list(tenantId),
     repos.machines.list(tenantId),
     repos.productionOrders.list(tenantId),
-    repos.outreachMessages.listAll(tenantId)
+    repos.outreachMessages.listAll(tenantId),
+    repos.marketingCampaigns.list(tenantId),
+    repos.marketingAssets.list(tenantId),
+    repos.advertisingAccounts.list(tenantId)
   ]);
 
   for (const lead of leads) {
@@ -178,6 +191,108 @@ export async function deriveLocalNotifications(
       severity: "info",
       tenantId,
       title: pt ? "Backup recomendado" : "Backup recommended"
+    });
+  }
+
+  for (const campaign of marketingCampaigns) {
+    if (campaign.approvalStatus === "pending_review") {
+      items.push({
+        createdAt: campaign.updatedAt,
+        entityId: campaign.id,
+        entityType: "marketing_campaign",
+        href: `/${locale}/marketing/campaigns/${campaign.id}`,
+        id: `marketing-review-${campaign.id}`,
+        kind: "campaign_awaiting_review",
+        message: pt ? `${campaign.name} aguarda aprovaÃ§Ã£o` : `${campaign.name} awaiting approval`,
+        read: readIds.has(`marketing-review-${campaign.id}`),
+        severity: "action",
+        tenantId,
+        title: pt ? "Campanha para rever" : "Campaign awaiting review"
+      });
+    }
+    if (!campaign.landingPageUrl.trim()) {
+      items.push({
+        createdAt: campaign.updatedAt,
+        entityId: campaign.id,
+        entityType: "marketing_campaign",
+        href: `/${locale}/marketing/campaigns/${campaign.id}`,
+        id: `marketing-missing-landing-${campaign.id}`,
+        kind: "campaign_missing_landing_page",
+        message: pt ? `${campaign.name} nÃ£o tem landing page` : `${campaign.name} has no landing page`,
+        read: readIds.has(`marketing-missing-landing-${campaign.id}`),
+        severity: "warning",
+        tenantId,
+        title: pt ? "Landing page em falta" : "Landing page missing"
+      });
+    }
+    const hasApprovedAsset = marketingAssets.some(
+      (asset) => asset.campaignId === campaign.id && asset.approvalStatus === "approved"
+    );
+    if (!hasApprovedAsset) {
+      items.push({
+        createdAt: campaign.updatedAt,
+        entityId: campaign.id,
+        entityType: "marketing_campaign",
+        href: `/${locale}/marketing/image-studio`,
+        id: `marketing-missing-image-${campaign.id}`,
+        kind: "campaign_missing_image",
+        message: pt ? `${campaign.name} precisa de imagem aprovada` : `${campaign.name} needs an approved image`,
+        read: readIds.has(`marketing-missing-image-${campaign.id}`),
+        severity: "warning",
+        tenantId,
+        title: pt ? "Imagem de campanha em falta" : "Campaign image missing"
+      });
+    }
+    if (campaign.status === "approved") {
+      items.push({
+        createdAt: campaign.updatedAt,
+        entityId: campaign.id,
+        entityType: "marketing_campaign",
+        href: `/${locale}/marketing/campaigns/${campaign.id}`,
+        id: `marketing-ready-export-${campaign.id}`,
+        kind: "campaign_ready_for_export",
+        message: pt ? `${campaign.name} pode ser exportada` : `${campaign.name} is ready to export`,
+        read: readIds.has(`marketing-ready-export-${campaign.id}`),
+        severity: "action",
+        tenantId,
+        title: pt ? "Campanha pronta para exportar" : "Campaign ready to export"
+      });
+    }
+  }
+
+  for (const asset of marketingAssets) {
+    if (asset.approvalStatus === "pending_review") {
+      items.push({
+        createdAt: asset.updatedAt,
+        entityId: asset.id,
+        entityType: "marketing_asset",
+        href: `/${locale}/marketing/assets`,
+        id: `marketing-asset-review-${asset.id}`,
+        kind: "asset_awaiting_approval",
+        message: pt ? `${asset.title} aguarda aprovaÃ§Ã£o` : `${asset.title} awaiting approval`,
+        read: readIds.has(`marketing-asset-review-${asset.id}`),
+        severity: "action",
+        tenantId,
+        title: pt ? "Recurso para aprovar" : "Asset awaiting approval"
+      });
+    }
+  }
+
+  if (!advertisingAccounts.some((account) => account.connectionStatus === "connected")) {
+    items.push({
+      createdAt: now,
+      entityId: "advertising-providers",
+      entityType: "advertising_account",
+      href: `/${locale}/marketing/accounts`,
+      id: "advertising-provider-not-configured",
+      kind: "advertising_provider_not_configured",
+      message: pt
+        ? "Google Ads e Meta Ads estÃ£o em modo de prÃ©-visualizaÃ§Ã£o local"
+        : "Google Ads and Meta Ads are in local preview mode",
+      read: readIds.has("advertising-provider-not-configured"),
+      severity: "info",
+      tenantId,
+      title: pt ? "Publicidade nÃ£o ligada" : "Advertising not connected"
     });
   }
 

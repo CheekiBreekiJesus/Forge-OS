@@ -14,6 +14,14 @@ import {
   writePreviewRole,
   type PreviewRole
 } from "@/features/crud/role-preview";
+import {
+  applyThemeMode,
+  getStoredThemeMode,
+  nextThemeMode,
+  persistThemeMode,
+  resolveThemeMode,
+  type ForgeThemeMode
+} from "@/features/theme/theme";
 import { moduleRoutes, type ModuleKey } from "@/modules/config";
 
 type AppFrameClientProps = {
@@ -33,11 +41,31 @@ export function AppFrameClient({
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [previewRole, setPreviewRole] = useState<PreviewRole>(() => readPreviewRole());
   const [customizeOpen, setCustomizeOpen] = useState(false);
+  const [themeMode, setThemeMode] = useState<ForgeThemeMode>(() => getStoredThemeMode());
+  const [density, setDensity] = useState<"comfortable" | "compact">(() => {
+    if (typeof window === "undefined") return "comfortable";
+    return window.localStorage.getItem("forgeos:dashboard-density") === "compact"
+      ? "compact"
+      : "comfortable";
+  });
 
   const openPalette = useCallback(() => setPaletteOpen(true), []);
   const closePalette = useCallback(() => setPaletteOpen(false), []);
 
   useCommandPaletteShortcut(() => setPaletteOpen((v) => !v));
+
+  useEffect(() => {
+    document.documentElement.dataset.dashboardDensity = density;
+  }, [density]);
+
+  useEffect(() => {
+    applyThemeMode(themeMode);
+    if (themeMode !== "system") return;
+    const query = window.matchMedia("(prefers-color-scheme: light)");
+    const handleChange = () => applyThemeMode("system");
+    query.addEventListener("change", handleChange);
+    return () => query.removeEventListener("change", handleChange);
+  }, [themeMode]);
 
   function handleRoleChange(role: PreviewRole) {
     writePreviewRole(role);
@@ -45,12 +73,30 @@ export function AppFrameClient({
     window.dispatchEvent(new CustomEvent("forgeos:preview-role-changed", { detail: role }));
   }
 
+  function handleThemeToggle() {
+    const nextMode = nextThemeMode(themeMode);
+    persistThemeMode(nextMode);
+    setThemeMode(nextMode);
+  }
+
+  function handleDensityChange(nextDensity: "comfortable" | "compact") {
+    window.localStorage.setItem("forgeos:dashboard-density", nextDensity);
+    setDensity(nextDensity);
+  }
+
   const roleCopy = dictionary.crudModule.rolePreview;
+  const resolvedTheme = resolveThemeMode(themeMode);
+  const themeLabel =
+    themeMode === "system"
+      ? dictionary.app.themeSystem
+      : themeMode === "light"
+        ? dictionary.app.themeLight
+        : dictionary.app.themeDark;
 
   return (
     <div className="flex min-w-0 flex-1 items-center gap-4">
       <button
-        className="hidden min-w-0 flex-1 items-center rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-2 text-sm text-slate-400 hover:border-slate-600 sm:flex"
+        className="hidden min-w-0 flex-1 items-center rounded-lg border border-[var(--forge-border)] bg-[var(--forge-input)] px-3 py-2 text-sm text-[var(--forge-text-muted)] hover:border-slate-500 sm:flex"
         onClick={openPalette}
         type="button"
       >
@@ -61,9 +107,11 @@ export function AppFrameClient({
 
       <div className="ml-auto flex items-center gap-2">
         <NotificationCenter dictionary={dictionary} locale={locale} />
-        <QuickCreateMenu dictionary={dictionary} locale={locale} previewRole={previewRole} />
+        <div className="hidden sm:block">
+          <QuickCreateMenu dictionary={dictionary} locale={locale} previewRole={previewRole} />
+        </div>
 
-        <label className="hidden items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-xs text-amber-200 sm:flex">
+        <label className="hidden items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-xs text-amber-200 xl:flex">
           <span className="font-semibold">{roleCopy.badge}</span>
           <select
             aria-label={roleCopy.label}
@@ -79,16 +127,16 @@ export function AppFrameClient({
           </select>
         </label>
 
-        <div className="hidden items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 sm:flex">
+        <div className="hidden items-center gap-2 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-2 text-sm text-[var(--forge-text-secondary)] xl:flex">
           {dictionary.dashboard.dateRange}
         </div>
-        <div className="flex rounded-lg border border-slate-700 bg-slate-900 p-1">
+        <div className="flex rounded-lg border border-[var(--forge-border)] bg-[var(--forge-surface)] p-1">
           {supportedLocales.map((supportedLocale) => (
             <Link
               className={
                 supportedLocale === locale
                   ? "rounded-md bg-slate-700 px-3 py-1.5 text-sm font-semibold text-white"
-                  : "rounded-md px-3 py-1.5 text-sm font-semibold text-slate-400 hover:text-white"
+                  : "rounded-md px-3 py-1.5 text-sm font-semibold text-[var(--forge-text-muted)] hover:text-[var(--forge-text)]"
               }
               href={`/${supportedLocale}${activeRoute ? `/${activeRoute}` : ""}`}
               key={supportedLocale}
@@ -98,7 +146,16 @@ export function AppFrameClient({
           ))}
         </div>
         <button
-          className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800"
+          aria-label={`${dictionary.app.toggleTheme}: ${themeLabel}`}
+          className="inline-flex items-center gap-2 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-2 text-sm font-semibold text-[var(--forge-text-secondary)] hover:bg-[var(--forge-hover)]"
+          onClick={handleThemeToggle}
+          type="button"
+        >
+          <span aria-hidden>{resolvedTheme === "light" ? "☀" : "☾"}</span>
+          <span className="hidden md:inline">{themeLabel}</span>
+        </button>
+        <button
+          className="hidden rounded-lg border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-2 text-sm font-semibold text-[var(--forge-text-secondary)] hover:bg-[var(--forge-hover)] sm:block"
           onClick={() => setCustomizeOpen(true)}
           type="button"
         >
@@ -136,9 +193,25 @@ export function AppFrameClient({
             onClick={() => setCustomizeOpen(false)}
             type="button"
           />
-          <div className="relative w-full max-w-md rounded-lg border border-slate-700 bg-[#07101d] p-5 shadow-xl">
+          <div className="relative w-full max-w-md rounded-lg border border-[var(--forge-border)] bg-[var(--forge-surface-solid)] p-5 shadow-xl">
             <h2 className="text-lg font-bold">{dictionary.crudModule.customizeDialog.title}</h2>
-            <p className="mt-2 text-sm text-slate-400">{dictionary.crudModule.customizeDialog.message}</p>
+            <p className="mt-2 text-sm text-[var(--forge-text-muted)]">{dictionary.crudModule.customizeDialog.message}</p>
+            <div className="mt-4 grid gap-2">
+              {(["comfortable", "compact"] as const).map((option) => (
+                <button
+                  className={
+                    density === option
+                      ? "rounded-lg border border-orange-400 bg-orange-500/10 px-3 py-2 text-left text-sm font-semibold text-orange-400"
+                      : "rounded-lg border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-2 text-left text-sm font-semibold text-[var(--forge-text-secondary)]"
+                  }
+                  key={option}
+                  onClick={() => handleDensityChange(option)}
+                  type="button"
+                >
+                  {option === "comfortable" ? "Comfortable" : "Compact"}
+                </button>
+              ))}
+            </div>
             <button
               className="mt-4 rounded-lg bg-orange-500 px-4 py-2 text-sm font-bold text-white"
               onClick={() => setCustomizeOpen(false)}

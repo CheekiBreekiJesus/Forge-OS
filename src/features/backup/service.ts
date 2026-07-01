@@ -6,6 +6,16 @@ import type {
 } from "@/domain/profile-types";
 import type { Product } from "@/domain/product-types";
 import type {
+  AdvertisingAccount,
+  AdvertisingCampaignMapping,
+  BrandKit,
+  CampaignContentVariant,
+  MarketingAsset,
+  MarketingAudience,
+  MarketingCampaign,
+  VideoProject
+} from "@/domain/marketing-types";
+import type {
   ActivityEvent,
   Campaign,
   Customer,
@@ -36,6 +46,14 @@ export type ForgeOSBackup = {
     userProfiles: UserProfile[];
     senderIdentities: SenderIdentity[];
     products: Product[];
+    brandKits?: BrandKit[];
+    marketingAssets?: MarketingAsset[];
+    marketingCampaigns?: MarketingCampaign[];
+    campaignContentVariants?: CampaignContentVariant[];
+    marketingAudiences?: MarketingAudience[];
+    advertisingAccounts?: AdvertisingAccount[];
+    advertisingCampaignMappings?: AdvertisingCampaignMapping[];
+    videoProjects?: VideoProject[];
   };
   localAssets?: Array<Omit<LocalAsset, "blob"> & { blobBase64: string }>;
 };
@@ -58,6 +76,14 @@ export async function exportBackup(
     userProfiles,
     senderIdentities,
     products,
+    brandKits,
+    marketingAssets,
+    marketingCampaigns,
+    campaignContentVariants,
+    marketingAudiences,
+    advertisingAccounts,
+    advertisingCampaignMappings,
+    videoProjects,
     assets
   ] = await Promise.all([
     repos.leads.list(tenantId),
@@ -72,6 +98,16 @@ export async function exportBackup(
     repos.userProfiles.list(tenantId),
     repos.senderIdentities.listAll(tenantId),
     repos.products.list(tenantId),
+    repos.brandKits.list(tenantId, { includeArchived: true }),
+    repos.marketingAssets.list(tenantId, { includeArchived: true }),
+    repos.marketingCampaigns.list(tenantId, { includeArchived: true }),
+    Promise.all((await repos.marketingCampaigns.list(tenantId, { includeArchived: true })).map((campaign) =>
+      repos.campaignContentVariants.listForCampaign(tenantId, campaign.id)
+    )).then((groups) => groups.flat()),
+    repos.marketingAudiences.list(tenantId, { includeArchived: true }),
+    repos.advertisingAccounts.list(tenantId),
+    repos.advertisingCampaignMappings.list(tenantId),
+    repos.videoProjects.list(tenantId, { includeArchived: true }),
     includeAssets ? repos.localAssets.list(tenantId) : Promise.resolve([])
   ]);
 
@@ -89,7 +125,15 @@ export async function exportBackup(
       products,
       quotes,
       senderIdentities,
-      userProfiles
+      userProfiles,
+      brandKits,
+      marketingAssets,
+      marketingCampaigns,
+      campaignContentVariants,
+      marketingAudiences,
+      advertisingAccounts,
+      advertisingCampaignMappings,
+      videoProjects
     },
     tenantId,
     version: BACKUP_VERSION

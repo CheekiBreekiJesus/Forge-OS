@@ -23,6 +23,16 @@ import type {
   UserProfile
 } from "@/domain/profile-types";
 import type { CustomizerSimulation } from "@/domain/customizer-types";
+import type {
+  AdvertisingAccount,
+  AdvertisingCampaignMapping,
+  BrandKit,
+  CampaignContentVariant,
+  MarketingAsset,
+  MarketingAudience,
+  MarketingCampaign,
+  VideoProject
+} from "@/domain/marketing-types";
 import type { Product } from "@/domain/product-types";
 import { DEFAULT_ARCHIVABLE } from "@/persistence/archive-utils";
 
@@ -55,6 +65,14 @@ export class ForgeOSDatabase extends Dexie {
   inventoryItems!: Table<InventoryItem, string>;
   stockMovements!: Table<StockMovement, string>;
   customizerSimulations!: Table<CustomizerSimulation, string>;
+  brandKits!: Table<BrandKit, string>;
+  marketingAssets!: Table<MarketingAsset, string>;
+  marketingCampaigns!: Table<MarketingCampaign, string>;
+  campaignContentVariants!: Table<CampaignContentVariant, string>;
+  marketingAudiences!: Table<MarketingAudience, string>;
+  advertisingAccounts!: Table<AdvertisingAccount, string>;
+  advertisingCampaignMappings!: Table<AdvertisingCampaignMapping, string>;
+  videoProjects!: Table<VideoProject, string>;
 
   constructor(name: string = LOCAL_DB_NAME) {
     super(name);
@@ -198,13 +216,39 @@ export class ForgeOSDatabase extends Dexie {
         inventoryItems: "id, tenantId, sku, active, [tenantId+sku]",
         stockMovements: "id, tenantId, inventoryItemId, [tenantId+inventoryItemId]",
         customizerSimulations:
-          "id, tenantId, customerId, leadId, productId, quoteId, status, active, [tenantId+status]"
+          "id, tenantId, customerId, leadId, productId, quoteId, status, active, [tenantId+status]",
+        brandKits: "id, tenantId, active, [tenantId+active]",
+        marketingAssets:
+          "id, tenantId, productId, campaignId, assetType, channel, approvalStatus, active, [tenantId+approvalStatus]",
+        marketingCampaigns:
+          "id, tenantId, status, objective, approvalStatus, active, [tenantId+status]",
+        campaignContentVariants:
+          "id, tenantId, campaignId, channel, approvalStatus, selected, [tenantId+campaignId]",
+        marketingAudiences: "id, tenantId, active, industry, [tenantId+active]",
+        advertisingAccounts: "id, tenantId, provider, connectionStatus, active, [tenantId+provider]",
+        advertisingCampaignMappings:
+          "id, tenantId, marketingCampaignId, advertisingAccountId, provider, syncStatus, [tenantId+marketingCampaignId]",
+        videoProjects: "id, tenantId, campaignId, status, active, [tenantId+status]"
       })
       .upgrade(async (tx) => {
         await tx.table("quotes").toCollection().modify((row: Record<string, unknown>) => {
           if (row.simulationId === undefined) row.simulationId = null;
           if (row.mockupAssetId === undefined) row.mockupAssetId = null;
           if (row.isEstimate === undefined) row.isEstimate = false;
+        });
+        await tx.table("products").toCollection().modify((row: Record<string, unknown>) => {
+          if (row.approvedCatalogueMarketingAssetId === undefined) {
+            row.approvedCatalogueMarketingAssetId = null;
+          }
+          if (row.approvedTransparentMarketingAssetId === undefined) {
+            row.approvedTransparentMarketingAssetId = null;
+          }
+          if (row.preferredMarketingAssetId === undefined) {
+            row.preferredMarketingAssetId = null;
+          }
+          if (row.marketingAssetHistoryIds === undefined) {
+            row.marketingAssetHistoryIds = [];
+          }
         });
         await tx.table("meta").put({ key: "schemaVersion", value: String(SCHEMA_VERSION) });
       });

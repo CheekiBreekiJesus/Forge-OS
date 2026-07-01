@@ -6,10 +6,15 @@ export const dictionary: Dictionary = {
     tenantLabel: "Reference tenant",
     environment: "Prototype foundation",
     openMenu: "Open navigation menu",
-    closeMenu: "Close navigation menu"
+    closeMenu: "Close navigation menu",
+    themeDark: "Dark",
+    themeLight: "Light",
+    themeSystem: "System",
+    toggleTheme: "Change theme"
   },
   navigation: {
     dashboard: "Dashboard",
+    crm: "CRM",
     customers: "Customers",
     products: "Products",
     orders: "Orders",
@@ -17,6 +22,13 @@ export const dictionary: Dictionary = {
     inventory: "Inventory",
     machines: "Machines",
     maintenance: "Maintenance",
+    molds: "Molds",
+    quality: "Quality",
+    purchasing: "Purchasing",
+    suppliers: "Suppliers",
+    sales: "Sales",
+    billing: "Billing",
+    reports: "Reports",
     marketing: "Marketing",
     leadops: "Outreach",
     settings: "Settings"
@@ -1390,6 +1402,223 @@ export const dictionary: Dictionary = {
       openCustomizer: "Open Cup Customizer for this lead"
     }
   },
+  marketingStudio: {
+    title: "Marketing Studio",
+    description:
+      "Plan campaigns, prepare approved assets, export packages, and keep paid advertising safely disabled until integrations are configured.",
+    sections: {
+      overview: "Overview",
+      campaigns: "Campaigns",
+      "image-studio": "Image Studio",
+      assets: "Asset Library",
+      "brand-kit": "Brand Kit",
+      audiences: "Audiences",
+      accounts: "Advertising Accounts",
+      analytics: "Analytics",
+      "video-studio": "Video Studio"
+    },
+    actions: {
+      newCampaign: "New campaign",
+      createBrandKit: "Create Brand Kit",
+      refreshBrandKit: "Refresh from company profile",
+      createAudience: "Create audience",
+      saveAudience: "Save audience",
+      createCampaign: "Create campaign",
+      saveCampaign: "Save campaign",
+      generateCopy: "Generate copy",
+      approve: "Approve",
+      exportJson: "Export JSON",
+      exportCsv: "Export copy sheet",
+      uploadAsset: "Upload asset",
+      chooseFile: "Choose file",
+      setProductAsset: "Use on product",
+      generateImage: "Generate mock image",
+      runDiagnostic: "Run safe diagnostic",
+      livePublishDisabled: "Live publish disabled",
+      generateStoryboard: "Generate storyboard"
+    },
+    labels: {
+      active: "Active",
+      approval: "Approval",
+      archived: "Archived",
+      aspectRatio: "Aspect ratio",
+      aiRecommendations: "AI recommendations",
+      audience: "Audience",
+      budget: "Estimated budget",
+      callToAction: "Call to action",
+      campaign: "Campaign",
+      channel: "Channel",
+      claims: "Claims",
+      colors: "Colours",
+      copyVariants: "Copy variants",
+      description: "Description",
+      duration: "Duration",
+      endDate: "End date",
+      estimatedSize: "Estimated size",
+      imageBrief: "Image brief",
+      industry: "Industry",
+      interests: "Interests",
+      languages: "Languages",
+      landingPage: "Landing page",
+      loading: "Loading Marketing Studio...",
+      localEstimated: "Local / estimated. Providers not connected.",
+      mockImage: "Mock image",
+      name: "Name",
+      noConcept: "No concept generated yet.",
+      none: "None",
+      objective: "Objective",
+      offer: "Offer",
+      organizationTypes: "Organization types",
+      product: "Product",
+      products: "Products",
+      recentCampaigns: "Recent campaigns",
+      regions: "Regions",
+      startDate: "Start date",
+      subnav: "Marketing navigation",
+      targetRegions: "Target regions",
+      transformation: "Transformation",
+      videoProject: "Video project"
+    },
+    kpis: {
+      activeCampaigns: "Active campaigns",
+      awaitingApproval: "Awaiting approval",
+      approvedAssets: "Approved assets",
+      draftAssets: "Draft assets",
+      productsWithAssets: "Products with assets",
+      estimatedBudget: "Estimated budget",
+      approvedCampaigns: "Approved campaigns",
+      assetsGenerated: "Assets generated"
+    },
+    help: {
+      analytics: "Only local campaign, asset, budget, and status metrics are shown until ad providers are connected.",
+      brandKit: "The Brand Kit reuses company profile facts and stores campaign-safe claims, colours, tone, CTAs, and legal footer.",
+      imageStudio: "Prepare product images through a provider-neutral request shape. The local provider creates deterministic previews only.",
+      noLiveImageProvider: "Background removal and image generation are preview-only until a server-side provider is configured.",
+      providerDisabled: "OAuth, test accounts, permissions, and spend safeguards are required before live advertising can be enabled.",
+      videoStudio: "Storyboard planning is available. Live video rendering and publishing require future configured providers."
+    },
+    defaults: {
+      approvedClaim: "Manufacturing and personalization capability subject to commercial confirmation.",
+      campaignName: "Personalized cups campaign",
+      companyDescription: "Industrial manufacturer and supplier for personalized products.",
+      cta: "Request quotation",
+      imageBrief: "Clean product image with neutral background and space for a call to action.",
+      prohibitedClaim: "Do not claim discounts, certifications, delivery guarantees, or customer names without approval.",
+      tone: "practical, direct and trustworthy",
+      uploadedAssetDescription: "Uploaded local asset awaiting review.",
+      videoProjectName: "Campaign storyboard"
+    },
+    feedback: {
+      assetApproved: "Asset approved.",
+      assetSaved: "Asset saved to the library.",
+      audienceSaved: "Audience saved.",
+      brandKitSaved: "Brand Kit saved.",
+      campaignApproved: "Campaign approved.",
+      campaignExported: "Campaign package exported.",
+      campaignSaved: "Campaign saved.",
+      copyGenerated: "Campaign copy generated.",
+      imageGenerated: "Mock image generated.",
+      productAssetSet: "Approved asset linked to product.",
+      providerPreviewSaved: "Provider preview status saved.",
+      videoSaved: "Video storyboard saved."
+    },
+    errors: {
+      approvedAssetRequired: "Approve the asset and associate it with a product first.",
+      campaignRequired: "Campaign name and product are required.",
+      nameRequired: "Name is required."
+    },
+    empty: {
+      assets: "No marketing assets yet.",
+      audiences: "No audiences yet.",
+      brandKit: "No Brand Kit configured yet.",
+      campaigns: "No marketing campaigns yet.",
+      variants: "No copy variants yet.",
+      videoProjects: "No video storyboards yet."
+    },
+    recommendations: {
+      assets: "Approve at least one product image before exporting a campaign package.",
+      brandKit: "Configure Brand Kit claims before using AI-generated copy.",
+      providers: "Advertising providers are in local preview; live spend controls remain disabled."
+    },
+    objectives: {
+      brand_awareness: "Brand awareness",
+      lead_generation: "Lead generation",
+      website_traffic: "Website traffic",
+      product_promotion: "Product promotion",
+      event_promotion: "Event promotion",
+      customer_reactivation: "Customer reactivation",
+      quotation_requests: "Quotation requests"
+    },
+    channels: {
+      google_search: "Google Search",
+      google_display: "Google Display",
+      meta_facebook: "Meta Facebook",
+      meta_instagram: "Meta Instagram",
+      email: "Email",
+      cold_outreach: "Cold Outreach",
+      linkedin: "LinkedIn",
+      website_banner: "Website Banner",
+      landing_page: "Landing Page"
+    },
+    transformations: {
+      background_removal: "Background removal",
+      transparent_background: "Transparent background",
+      white_catalogue_background: "White catalogue background",
+      background_replacement: "Background replacement",
+      image_cleanup: "Image cleanup",
+      lighting_improvement: "Lighting improvement",
+      product_centering: "Product centering",
+      crop_resize: "Crop and resize",
+      upscale: "Upscale",
+      lifestyle_scene: "Lifestyle scene",
+      advertising_composition: "Advertising composition",
+      email_banner: "Email banner",
+      website_hero: "Website hero",
+      social_post: "Social post",
+      story_reel_cover: "Story/Reel cover"
+    },
+    aspectRatios: {
+      "1:1": "1:1",
+      "4:5": "4:5",
+      "9:16": "9:16",
+      "16:9": "16:9",
+      "1.91:1": "1.91:1",
+      website_hero: "Website hero",
+      email_banner: "Email banner",
+      transparent_product: "Transparent product"
+    },
+    approvals: {
+      draft: "Draft",
+      pending_review: "Awaiting approval",
+      approved: "Approved",
+      rejected: "Rejected"
+    },
+    statuses: {
+      draft: "Draft",
+      generating: "Generating",
+      ready_for_review: "Ready for review",
+      approved: "Approved",
+      export_ready: "Export ready",
+      scheduled_external: "Scheduled external",
+      active_external: "Active external",
+      paused: "Paused",
+      completed: "Completed",
+      archived: "Archived",
+      storyboard: "Storyboard",
+      rendering_disabled: "Rendering disabled"
+    },
+    providers: {
+      google_ads: "Google Ads",
+      meta_ads: "Meta Ads"
+    },
+    connectionStatuses: {
+      not_configured: "Not configured",
+      authentication_required: "Authentication required",
+      local_preview: "Local preview",
+      connection_error: "Connection error",
+      connected: "Connected"
+    }
+  },
   onboardingModule: {
     title: "Getting started",
     subtitle: "Complete these steps to validate the local MVP workflow.",
@@ -1406,7 +1635,16 @@ export const dictionary: Dictionary = {
       first_email: "Generate first outreach email",
       first_quotation: "Create first quotation",
       customizer_tested: "Test Cup Customizer",
-      backup_exported: "Export local backup"
+      backup_exported: "Export local backup",
+      brand_kit_configured: "Configure Brand Kit",
+      marketing_logo_added: "Add marketing logo",
+      first_marketing_asset_uploaded: "Upload first marketing asset",
+      first_marketing_audience_created: "Create first audience",
+      first_marketing_campaign_created: "Create first campaign",
+      campaign_copy_generated: "Generate campaign copy",
+      campaign_image_approved: "Approve campaign image",
+      campaign_package_exported: "Export campaign package",
+      advertising_account_configured: "Configure advertising account"
     }
   },
   notificationsModule: {

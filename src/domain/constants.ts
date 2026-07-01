@@ -14,7 +14,7 @@ function resolveLocalDbName(): string {
 export const LOCAL_DB_NAME = resolveLocalDbName();
 
 /** Bump when seed data shape changes to trigger optional reseed prompts. */
-export const SEED_VERSION = 4 as const;
+export const SEED_VERSION = 5 as const;
 
 /** IndexedDB Dexie schema version. */
-export const SCHEMA_VERSION = 4 as const;
+export const SCHEMA_VERSION = 5 as const;
