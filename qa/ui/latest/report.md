@@ -1,5 +1,40 @@
 # ForgeOS UI/UX QA Report
 
+## Codex Addendum - Marketing Studio Foundation
+
+**Branch:** `feat/marketing-studio-foundation`
+**Date:** 2026-07-01
+**Scope:** Marketing Studio routes and local-only provider previews
+
+### Routes Added For Review
+
+| Route | Locale | Notes |
+|---|---|---|
+| `/pt-PT/marketing` | Portuguese | Marketing Studio overview |
+| `/en/marketing` | English | Marketing Studio overview |
+| `/pt-PT/marketing/campaigns` | Portuguese | Campaign Builder |
+| `/pt-PT/marketing/image-studio` | Portuguese | Mock image generation |
+| `/pt-PT/marketing/assets` | Portuguese | Asset Library |
+| `/pt-PT/marketing/brand-kit` | Portuguese | Brand Kit |
+| `/pt-PT/marketing/audiences` | Portuguese | Audiences |
+| `/pt-PT/marketing/accounts` | Portuguese | Advertising account diagnostics |
+| `/pt-PT/marketing/analytics` | Portuguese | Local analytics |
+| `/pt-PT/marketing/video-studio` | Portuguese | Storyboard-only video studio |
+
+### Current Assessment
+
+Marketing Studio is suitable for local demo review only. It has local deterministic copy generation, mock image output, disabled Google Ads/Meta Ads provider previews, and local export packages. It does not perform live publishing, paid generation, external uploads, or provider metric sync.
+
+### Required Manual Browser QA
+
+- Verify the full-width desktop layout at 1440x900.
+- Verify tablet layout at 768x1024.
+- Verify mobile layout at 390x844.
+- Confirm forms submit in Campaigns, Brand Kit, Audiences, Image Studio, Advertising Accounts, and Video Studio.
+- Confirm the live-publish disabled state is visible and cannot be bypassed.
+
+---
+
 **Branch:** `codex/forgeos-foundation-app-shell`  
 **Commit:** `65d253c`  
 **Date:** 2026-06-29  

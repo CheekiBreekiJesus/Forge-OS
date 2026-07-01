@@ -1,5 +1,12 @@
 # ForgeOS Acceptance Suite — Latest Summary
 
+## Dashboard Refresh Addendum - 2026-07-01
+
+- Added dark/light/system theme foundation with local persistence.
+- Added complete industrial navigation map with preview shells for missing modules.
+- Rebuilt the localized dashboard around local repository metrics, Outreach visibility, Marketing Studio summary, OEE preview, inventory risk, production orders, revenue estimate, alerts, and Copilot preview.
+- Live provider publishing, paid image generation, auth, RLS, and production deployment remain out of scope.
+
 | Field | Value |
 | --- | --- |
 | **Date** | 2026-06-30 |

@@ -12,6 +12,7 @@ ForgeOS is **not production-ready**. This document describes gaps between the cu
 - JSON backup/restore for local profile and product data
 - Simulation email delivery only
 - Reset/reseed for local development
+- Marketing Studio foundation for local campaign planning, asset review, provider diagnostics, exports, and storyboard previews
 
 ## 2. Required Supabase work
 
@@ -20,6 +21,7 @@ ForgeOS is **not production-ready**. This document describes gaps between the cu
 - [ ] Implement `SupabaseRepositoryBundle`
 - [ ] Replace IndexedDB registry in production/staging env
 - [ ] Validate seed SQL against repository mappers
+- [ ] Add Supabase-backed marketing repositories before production Marketing Studio use
 
 ## 3. Authentication
 
@@ -40,12 +42,14 @@ ForgeOS is **not production-ready**. This document describes gaps between the cu
 - [ ] Policies: `tenant_id = auth.jwt() -> tenant_id`
 - [ ] Integration tests against real Supabase project
 - [ ] No cross-tenant reads in API routes
+- [ ] Marketing campaign, asset, audience, ad account, and video project tables must be tenant-scoped
 
 ## 6. Server persistence
 
 - [ ] Move write-heavy operations to Server Actions or API routes where appropriate
 - [ ] Outreach workflow state on server for multi-device consistency
 - [ ] Optimistic UI with server reconciliation
+- [ ] Move Marketing Studio provider adapters to server-only code before live integrations
 
 ## 7. Smartlead live delivery
 
@@ -70,12 +74,26 @@ ForgeOS is **not production-ready**. This document describes gaps between the cu
 - [ ] Supabase automated backups
 - [ ] Recovery drill documented
 
+## 11. Marketing integrations
+
+- [x] Local deterministic campaign copy generation
+- [x] Local deterministic image preview provider
+- [x] Disabled Google Ads and Meta Ads provider previews
+- [x] Local campaign JSON and CSV export
+- [ ] OAuth for Google Ads and Meta Ads
+- [ ] Encrypted provider token storage
+- [ ] Tenant-level provider enablement
+- [ ] Spend limits and publish confirmation workflow
+- [ ] Provider audit logging
+- [ ] External metrics sync
+
 ## 13. Profile and hosted assets
 
 - [ ] Supabase Storage for company logos and product images
 - [ ] Public CDN URLs for embeddable outreach HTML
 - [ ] Migrate `LocalAsset` blobs to hosted storage (including customizer artwork/mockups)
 - [ ] Sender identity approval locks with immutable snapshots (local MVP done)
+- [ ] Migrate Marketing Studio image assets to hosted storage before external publishing
 
 ## 14. Email client integration
 
@@ -90,6 +108,7 @@ ForgeOS is **not production-ready**. This document describes gaps between the cu
 - [ ] Data processing agreement
 - [ ] Export and erasure procedures
 - [ ] Retention policy for leads and activity
+- [ ] Marketing export retention policy
 
 ## 12. Email suppression and unsubscribe
 
@@ -102,17 +121,20 @@ ForgeOS is **not production-ready**. This document describes gaps between the cu
 - [ ] AI gateway rate limits per tenant
 - [ ] API route throttling
 - [ ] Smartlead send quotas
+- [ ] Image generation and advertising provider rate limits
 
 ## 14. Audit retention
 
 - [ ] Persist activity events server-side with retention policy
 - [ ] Admin audit log UI
+- [ ] Approval/export/publish audit trails for Marketing Studio
 
 ## 15. Secrets management
 
 - [ ] Vercel encrypted env vars
 - [ ] No secrets in client bundle
 - [ ] Key rotation procedure
+- [ ] No advertising provider credentials in IndexedDB or browser bundles
 
 ---
 
@@ -132,6 +154,7 @@ ForgeOS is **not production-ready**. This document describes gaps between the cu
 - [x] Deterministic E2E (no paid AI in CI)
 - [x] Abacus remains server-side optional
 - [x] Cup Customizer in-app (`/quotations/customizer`) with simulation → quotation conversion
+- [x] Marketing Studio local foundation (`/marketing`) with disabled live provider previews
 
 ### STAGING READY
 
@@ -141,6 +164,7 @@ ForgeOS is **not production-ready**. This document describes gaps between the cu
 - [ ] Staging env on Vercel
 - [ ] Smartlead sandbox
 - [ ] Monitoring baseline
+- [ ] Marketing provider adapters tested only in dry-run/test-account mode
 
 ### PRODUCTION READY
 
@@ -150,5 +174,6 @@ ForgeOS is **not production-ready**. This document describes gaps between the cu
 - [ ] Production Smartlead + suppression
 - [ ] Security review
 - [ ] Load/rate limit validation
+- [ ] Advertising provider spend safeguards validated
 
 **The application must not be described as production-ready until all PRODUCTION READY items are complete.**
