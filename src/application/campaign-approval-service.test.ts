@@ -133,10 +133,16 @@ const leadRow = {
   outreachStatus: "ready"
 } as unknown as Lead;
 
+const mockRepos = {
+  emailSuppressions: {
+    listActive: async () => []
+  }
+} as never;
+
 describe("campaign approval service", () => {
   it("evaluates approval requirements for safe drafted content", async () => {
     const evaluation = await evaluateRecipientApproval(
-      {} as never,
+      mockRepos,
       "tenant_a",
       campaign,
       recipient(),
@@ -148,7 +154,7 @@ describe("campaign approval service", () => {
 
   it("blocks approval for unresolved variables and missing opt-out", async () => {
     const unresolved = await evaluateRecipientApproval(
-      {} as never,
+      mockRepos,
       "tenant_a",
       campaign,
       recipient({
@@ -162,7 +168,7 @@ describe("campaign approval service", () => {
     expect(unresolved.reasons).toContain("needs_review");
 
     const missingOptOut = await evaluateRecipientApproval(
-      {} as never,
+      mockRepos,
       "tenant_a",
       campaign,
       recipient({ personalizedPlainText: "Hello there, no instruction here." }),
