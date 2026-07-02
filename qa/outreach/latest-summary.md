@@ -1,40 +1,33 @@
-# Outreach Latest Summary - Step 8
+# Outreach Latest Summary - Step 7 Recovery Checkpoint
 
 Date: 2026-07-02
-Branch: `feat/email-outreach-provider`
+Branch: `feat/email-outreach-send-jobs`
+Base: `9cf9936`
 
 ## Scope
 
-Step 8 adds durable unsubscribe, Brevo webhook ingestion, and delivery-event reconciliation foundations. No real email, campaign batch, or live webhook call was executed.
+Composer stabilization checkpoint for interrupted Codex Step 7 send-job recovery. Local simulation is working; production durable sending is explicitly incomplete.
 
-## Implemented
+## Fully Working
 
-- HMAC signed, versioned unsubscribe tokens.
-- Public unsubscribe confirmation page for `pt-PT` and `en`.
-- Public unsubscribe mutation endpoint with generic invalid-token response.
-- Narrow Supabase durable storage boundary for public suppressions and provider events.
-- Brevo webhook endpoint with bearer/basic/shared-secret protection, JSON-only parsing, and 64 KB body limit.
-- Brevo transactional event normalization and sanitized metadata handling.
-- Provider event fingerprinting and duplicate webhook idempotency.
-- Local event reconciliation for delivered, soft bounce, hard bounce, complaint, unsubscribe, failed/deferred, invalid email, blocked, and unknown events.
-- Terminal event precedence so complaint/unsubscribe/hard bounce cannot be reversed by later delivered/deferred events.
-- Provider send blocking when a real provider request lacks an unsubscribe URL.
-- Local IndexedDB provider-event persistence, backup/restore v7, and a campaign detail provider-event list.
+- Local simulation job creation with explicit `QUEUE SIMULATION` confirmation.
+- Bounded local simulation batches and counters.
+- Local idempotency (active job guard, attempt dedupe).
+- Local pause, resume, cancel unsent.
+- Mocked provider unit tests and Step 8 regression tests.
+- Campaign detail UI labeled as local simulation only.
+- Playwright simulation coverage (`e2e/campaign-send-job-simulation.spec.ts`).
 
-## Current Validation
+## Draft Or Incomplete
 
-| Check | Result |
-|-------|--------|
-| Focused Step 8 tests | Pass: 25 passed |
-| Current typecheck | Pass |
-| Current lint | Pass with 7 pre-existing warnings |
-| Current unit tests | Pass: 208 passed |
-| Current build | Pass |
-| Current e2e | Pass: 90 passed, 1 optional live AI skipped |
-| Current acceptance | Pass: 50 passed, 1 optional live AI skipped |
+- Final ID model (UUID migration vs ForgeOS string IDs).
+- Production Supabase send-job repository.
+- Production lock RPC hardening and tenant checks.
+- Trusted server mutation routes.
+- Durable Brevo campaign jobs.
+- Production migration application.
+- Deployment and real campaign sending.
 
-No live provider calls, live webhooks, live AI calls, or real campaign sends were executed.
+## Validation
 
-## Known Limitation
-
-The current app still uses browser IndexedDB for the operational outreach workspace. Public unsubscribe and webhook requests use the new durable Supabase boundary rather than pretending local browser data is server data. Step 9 must verify deployed migrations, HTTPS endpoint reachability, and durable-to-local operational sync before any authorized internal pilot send.
+See `qa/outreach/composer-step-7-stabilization.md` for final command results after Composer validation pass.
