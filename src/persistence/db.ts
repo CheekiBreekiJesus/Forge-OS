@@ -25,6 +25,12 @@ import type {
 import type { CustomizerSimulation } from "@/domain/customizer-types";
 import type { CampaignRecipient, OutreachCampaign } from "@/domain/campaign-types";
 import type { OutreachProviderEvent, OutreachSendAttempt } from "@/domain/email-delivery-types";
+import type {
+  OutreachSendJob,
+  OutreachSendJobAttempt,
+  OutreachSendJobDailyUsage,
+  OutreachSendJobRecipient
+} from "@/domain/send-job-types";
 import type { EmailSuppression } from "@/domain/suppression-types";
 import type { ImportBatch, ImportRow, LeadContact } from "@/domain/import-types";
 import type { Product } from "@/domain/product-types";
@@ -66,6 +72,10 @@ export class ForgeOSDatabase extends Dexie {
   emailSuppressions!: Table<EmailSuppression, string>;
   outreachSendAttempts!: Table<OutreachSendAttempt, string>;
   outreachProviderEvents!: Table<OutreachProviderEvent, string>;
+  outreachSendJobs!: Table<OutreachSendJob, string>;
+  outreachSendJobRecipients!: Table<OutreachSendJobRecipient, string>;
+  outreachSendJobAttempts!: Table<OutreachSendJobAttempt, string>;
+  outreachSendJobDailyUsage!: Table<OutreachSendJobDailyUsage, string>;
 
   constructor(name: string = LOCAL_DB_NAME) {
     super(name);
@@ -478,7 +488,15 @@ export class ForgeOSDatabase extends Dexie {
         outreachSendAttempts:
           "id, tenantId, provider, deliveryMode, campaignId, campaignRecipientId, leadId, idempotencyKey, status, startedAt, providerMessageId, [tenantId+campaignId], [tenantId+campaignRecipientId], [tenantId+idempotencyKey], [tenantId+status]",
         outreachProviderEvents:
-          "id, tenantId, provider, eventFingerprint, providerMessageId, eventType, receivedAt, campaignRecipientId, sendAttemptId, processingStatus, [tenantId+eventFingerprint], [tenantId+eventType], [tenantId+processingStatus], [tenantId+campaignRecipientId]"
+          "id, tenantId, provider, eventFingerprint, providerMessageId, eventType, receivedAt, campaignRecipientId, sendAttemptId, processingStatus, [tenantId+eventFingerprint], [tenantId+eventType], [tenantId+processingStatus], [tenantId+campaignRecipientId]",
+        outreachSendJobs:
+          "id, tenantId, campaignId, provider, deliveryMode, status, lockExpiresAt, [tenantId+campaignId], [tenantId+status]",
+        outreachSendJobRecipients:
+          "id, tenantId, sendJobId, campaignId, campaignRecipientId, leadId, normalizedEmail, status, idempotencyKey, nextAttemptAt, [tenantId+sendJobId], [tenantId+campaignRecipientId], [tenantId+idempotencyKey], [tenantId+status]",
+        outreachSendJobAttempts:
+          "id, tenantId, sendJobId, sendJobRecipientId, campaignId, campaignRecipientId, idempotencyKey, status, providerMessageId, [tenantId+sendJobId], [tenantId+idempotencyKey], [tenantId+campaignRecipientId]",
+        outreachSendJobDailyUsage:
+          "id, tenantId, provider, usageDate, [tenantId+provider+usageDate]"
       })
       .upgrade(async (tx) => {
         await tx.table("meta").put({ key: "schemaVersion", value: String(SCHEMA_VERSION) });

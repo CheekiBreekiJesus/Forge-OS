@@ -61,6 +61,12 @@ import { createEmailSuppressionRepository } from "./suppression-repositories";
 import { createOutreachProviderEventRepository } from "./provider-event-repositories";
 import { createOutreachSendAttemptRepository } from "./send-attempt-repositories";
 import {
+  createOutreachSendJobAttemptRepository,
+  createOutreachSendJobDailyUsageRepository,
+  createOutreachSendJobRecipientRepository,
+  createOutreachSendJobRepository
+} from "./send-job-repositories";
+import {
   createCustomerContactRepository,
   createInventoryRepository,
   createMachineRepository,
@@ -1263,7 +1269,11 @@ export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
       db.campaignRecipients,
       db.emailSuppressions,
       db.outreachSendAttempts,
-      db.outreachProviderEvents
+      db.outreachProviderEvents,
+      db.outreachSendJobs,
+      db.outreachSendJobRecipients,
+      db.outreachSendJobAttempts,
+      db.outreachSendJobDailyUsage
     ],
     async () => {
       await db.meta.clear();
@@ -1292,6 +1302,10 @@ export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
       await db.emailSuppressions.clear();
       await db.outreachSendAttempts.clear();
       await db.outreachProviderEvents.clear();
+      await db.outreachSendJobs.clear();
+      await db.outreachSendJobRecipients.clear();
+      await db.outreachSendJobAttempts.clear();
+      await db.outreachSendJobDailyUsage.clear();
     }
   );
 }
@@ -1325,7 +1339,11 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
       db.campaignRecipients,
       db.emailSuppressions,
       db.outreachSendAttempts,
-      db.outreachProviderEvents
+      db.outreachProviderEvents,
+      db.outreachSendJobs,
+      db.outreachSendJobRecipients,
+      db.outreachSendJobAttempts,
+      db.outreachSendJobDailyUsage
     ],
     async () => {
       await db.leads.bulkPut(tables.leads);
@@ -1347,6 +1365,10 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
       await db.emailSuppressions.bulkPut(tables.emailSuppressions ?? []);
       await db.outreachSendAttempts.bulkPut(tables.outreachSendAttempts ?? []);
       await db.outreachProviderEvents.bulkPut(tables.outreachProviderEvents ?? []);
+      await db.outreachSendJobs.bulkPut(tables.outreachSendJobs ?? []);
+      await db.outreachSendJobRecipients.bulkPut(tables.outreachSendJobRecipients ?? []);
+      await db.outreachSendJobAttempts.bulkPut(tables.outreachSendJobAttempts ?? []);
+      await db.outreachSendJobDailyUsage.bulkPut(tables.outreachSendJobDailyUsage ?? []);
       if (localAssets) {
         for (const asset of localAssets) {
           const binary = atob(asset.blobBase64);
@@ -1401,6 +1423,10 @@ export function createLocalRepositoryBundle(db: ForgeOSDatabase) {
   const campaignRecipients = createCampaignRecipientRepository(db);
   const outreachSendAttempts = createOutreachSendAttemptRepository(db);
   const outreachProviderEvents = createOutreachProviderEventRepository(db);
+  const outreachSendJobs = createOutreachSendJobRepository(db);
+  const outreachSendJobRecipients = createOutreachSendJobRecipientRepository(db);
+  const outreachSendJobAttempts = createOutreachSendJobAttemptRepository(db);
+  const outreachSendJobDailyUsage = createOutreachSendJobDailyUsageRepository(db);
 
   return {
     meta,
@@ -1428,6 +1454,10 @@ export function createLocalRepositoryBundle(db: ForgeOSDatabase) {
     emailSuppressions,
     outreachSendAttempts,
     outreachProviderEvents,
+    outreachSendJobs,
+    outreachSendJobRecipients,
+    outreachSendJobAttempts,
+    outreachSendJobDailyUsage,
     async reset() {
       await resetDatabase(db);
     },

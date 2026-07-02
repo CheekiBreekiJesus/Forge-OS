@@ -4,11 +4,27 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   refreshCampaignRecipients
 } from "@/application/campaign-segmentation-service";
+import {
+  cancelSendJob,
+  pauseSendJob,
+  processNextCampaignBatch,
+  queueCampaignSendJob,
+  resumeSendJob
+} from "@/application/campaign-send-job-service";
 import { AppFrame, panelClass } from "@/components/app-frame";
 import { CampaignTemplateDraftsPanel } from "@/components/campaign-template-drafts-panel";
-import { computeCampaignProgress } from "@/application/campaign-approval-service";
+import { computeCampaignProgress, deriveCampaignStatus } from "@/application/campaign-approval-service";
 import type { CampaignRecipient, OutreachCampaign } from "@/domain/campaign-types";
-import type { OutreachProviderEvent } from "@/domain/email-delivery-types";
+import type {
+  EmailDeliveryRequest,
+  EmailProviderDiagnostic,
+  OutreachProviderEvent
+} from "@/domain/email-delivery-types";
+import type {
+  OutreachSendJob,
+  OutreachSendJobRecipient,
+  SendJobDeliveryProvider
+} from "@/domain/send-job-types";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { usePersistence } from "@/persistence/provider";
@@ -25,10 +41,13 @@ export function LeadOpsCampaignDetailShell({
   campaignId
 }: LeadOpsCampaignDetailShellProps) {
   const copy = dictionary.leadops;
-  const { state, tenantId, notifyDataChanged } = usePersistence();
+  const { state, tenantId, dataVersion, notifyDataChanged } = usePersistence();
   const [campaign, setCampaign] = useState<OutreachCampaign | null>(null);
   const [recipients, setRecipients] = useState<CampaignRecipient[]>([]);
   const [providerEvents, setProviderEvents] = useState<OutreachProviderEvent[]>([]);
+  const [sendJobs, setSendJobs] = useState<OutreachSendJob[]>([]);
+  const [sendJobRecipients, setSendJobRecipients] = useState<OutreachSendJobRecipient[]>([]);
+  const [sendJobResult, setSendJobResult] = useState<string | null>(null);
   const [refreshDiff, setRefreshDiff] = useState<string | null>(null);
   const [confirmRefresh, setConfirmRefresh] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -40,30 +59,53 @@ export function LeadOpsCampaignDetailShell({
       const row = await state.repos.campaigns.getById(tenantId, campaignId);
       const snapshot = await state.repos.campaignRecipients.listForCampaign(tenantId, campaignId);
       const events = await state.repos.outreachProviderEvents.listRecent(tenantId, 25);
+      const jobs = await state.repos.outreachSendJobs.listForCampaign(tenantId, campaignId);
+      const latestJob = jobs.toSorted((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+      const jobRecipients = latestJob
+        ? await state.repos.outreachSendJobRecipients.listForJob(tenantId, latestJob.id)
+        : [];
       if (cancelled) return;
       setCampaign(row);
       setRecipients(snapshot);
       setProviderEvents(events.filter((event) => event.campaignId === campaignId));
+      setSendJobs(jobs);
+      setSendJobRecipients(jobRecipients);
     })();
     return () => {
       cancelled = true;
     };
-  }, [campaignId, state, tenantId]);
+  }, [campaignId, dataVersion, state, tenantId]);
 
   const reloadSnapshot = async () => {
     if (state.status !== "ready") return;
     const row = await state.repos.campaigns.getById(tenantId, campaignId);
     const snapshot = await state.repos.campaignRecipients.listForCampaign(tenantId, campaignId);
     const events = await state.repos.outreachProviderEvents.listRecent(tenantId, 25);
+    const jobs = await state.repos.outreachSendJobs.listForCampaign(tenantId, campaignId);
+    const latestJob = jobs.toSorted((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+    const jobRecipients = latestJob
+      ? await state.repos.outreachSendJobRecipients.listForJob(tenantId, latestJob.id)
+      : [];
     setCampaign(row);
     setRecipients(snapshot);
     setProviderEvents(events.filter((event) => event.campaignId === campaignId));
+    setSendJobs(jobs);
+    setSendJobRecipients(jobRecipients);
   };
 
   const included = useMemo(() => recipients.filter((row) => row.status === "included"), [recipients]);
   const excluded = useMemo(() => recipients.filter((row) => row.status === "excluded"), [recipients]);
   const progress = useMemo(() => computeCampaignProgress(recipients), [recipients]);
   const progressCopy = copy.campaigns.progress;
+  const latestSendJob = useMemo(
+    () => sendJobs.toSorted((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null,
+    [sendJobs]
+  );
+  const sendJobCopy = copy.sendJobs;
+  const derivedCampaignStatus = useMemo(
+    () => (campaign ? deriveCampaignStatus(campaign, recipients) : null),
+    [campaign, recipients]
+  );
 
   async function handleRefresh() {
     if (state.status !== "ready" || !campaign || campaign.status !== "draft") return;
@@ -83,6 +125,58 @@ export function LeadOpsCampaignDetailShell({
     } finally {
       setRefreshing(false);
     }
+  }
+
+  async function handleQueueSimulation() {
+    if (state.status !== "ready" || !campaign) return;
+    const result = await queueCampaignSendJob(state.repos, {
+      batchSize: 5,
+      campaignId: campaign.id,
+      confirmation: "QUEUE SIMULATION",
+      deliveryMode: "simulation",
+      provider: "simulation",
+      tenantId
+    });
+    setSendJobResult(result.alreadyQueued ? sendJobCopy.alreadyQueued : sendJobCopy.queuedSimulationJob);
+    notifyDataChanged();
+    await reloadSnapshot();
+  }
+
+  async function handleProcessBatch() {
+    if (state.status !== "ready" || !latestSendJob) return;
+    const result = await processNextCampaignBatch(state.repos, new LocalSimulationProvider(), {
+      sendJobId: latestSendJob.id,
+      tenantId
+    });
+    setSendJobResult(`${result.stopReason}: ${result.processed}`);
+    notifyDataChanged();
+    await reloadSnapshot();
+  }
+
+  async function handlePauseJob() {
+    if (state.status !== "ready" || !latestSendJob) return;
+    if (!window.confirm(sendJobCopy.confirmPause)) return;
+    await pauseSendJob(state.repos, tenantId, latestSendJob.id, "local-user", "operator_pause");
+    setSendJobResult(sendJobCopy.pausedResult);
+    notifyDataChanged();
+    await reloadSnapshot();
+  }
+
+  async function handleResumeJob() {
+    if (state.status !== "ready" || !latestSendJob) return;
+    await resumeSendJob(state.repos, tenantId, latestSendJob.id, "local-user");
+    setSendJobResult(sendJobCopy.resumedResult);
+    notifyDataChanged();
+    await reloadSnapshot();
+  }
+
+  async function handleCancelJob() {
+    if (state.status !== "ready" || !latestSendJob) return;
+    if (!window.confirm(sendJobCopy.confirmCancel)) return;
+    await cancelSendJob(state.repos, tenantId, latestSendJob.id, "local-user", "operator_cancel");
+    setSendJobResult(sendJobCopy.cancelledResult);
+    notifyDataChanged();
+    await reloadSnapshot();
   }
 
   if (!campaign) {
@@ -228,6 +322,130 @@ export function LeadOpsCampaignDetailShell({
           </div>
         </section>
 
+        <section className={`${panelClass} p-5 xl:col-span-2`} data-testid="send-job-panel">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-bold">{sendJobCopy.title}</h2>
+              <p className="mt-2 text-sm text-slate-400">{sendJobCopy.description}</p>
+              <p
+                className="mt-2 rounded border border-orange-500/40 bg-orange-500/10 px-3 py-2 text-xs text-orange-200"
+                data-testid="send-job-simulation-banner"
+              >
+                {sendJobCopy.simulationBanner}
+              </p>
+              <p
+                className="mt-2 rounded border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-400"
+                data-testid="send-job-production-incomplete"
+              >
+                {sendJobCopy.productionIncomplete}
+              </p>
+              <p className="mt-2 text-xs text-slate-500" data-testid="send-job-brevo-disabled">
+                {sendJobCopy.brevoDisabled}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                className="rounded border border-orange-400 px-3 py-1 text-sm text-orange-300 disabled:cursor-not-allowed disabled:opacity-50"
+                data-testid="queue-simulation-job"
+                disabled={derivedCampaignStatus !== "approved"}
+                onClick={() => void handleQueueSimulation()}
+                type="button"
+              >
+                {sendJobCopy.queueSimulation}
+              </button>
+              <button
+                className="rounded border border-slate-700 px-3 py-1 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                data-testid="process-next-send-batch"
+                disabled={
+                  !latestSendJob ||
+                  latestSendJob.status === "COMPLETED" ||
+                  latestSendJob.status === "CANCELLED" ||
+                  latestSendJob.status === "PAUSED"
+                }
+                onClick={() => void handleProcessBatch()}
+                type="button"
+              >
+                {sendJobCopy.processNextBatch}
+              </button>
+              <button
+                className="rounded border border-slate-700 px-3 py-1 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                data-testid="pause-send-job"
+                disabled={!latestSendJob || latestSendJob.status !== "QUEUED"}
+                onClick={() => void handlePauseJob()}
+                type="button"
+              >
+                {sendJobCopy.pause}
+              </button>
+              <button
+                className="rounded border border-slate-700 px-3 py-1 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                data-testid="resume-send-job"
+                disabled={!latestSendJob || latestSendJob.status !== "PAUSED"}
+                onClick={() => void handleResumeJob()}
+                type="button"
+              >
+                {sendJobCopy.resume}
+              </button>
+              <button
+                className="rounded border border-red-500 px-3 py-1 text-sm text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
+                data-testid="cancel-send-job"
+                disabled={!latestSendJob || latestSendJob.status === "COMPLETED" || latestSendJob.status === "CANCELLED"}
+                onClick={() => void handleCancelJob()}
+                type="button"
+              >
+                {sendJobCopy.cancel}
+              </button>
+            </div>
+          </div>
+          {latestSendJob ? (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <ProgressItem label={sendJobCopy.status} testId="send-job-status" value={latestSendJob.status} />
+              <ProgressItem label={sendJobCopy.batchSize} testId="send-job-batch-size" value={latestSendJob.batchSize} />
+              <ProgressItem label={sendJobCopy.processed} testId="send-job-processed" value={latestSendJob.processedCount} />
+              <ProgressItem label={sendJobCopy.sent} testId="send-job-sent" value={latestSendJob.sentCount} />
+              <ProgressItem label={sendJobCopy.failed} testId="send-job-failed" value={latestSendJob.failedCount} />
+              <ProgressItem label={sendJobCopy.retryPending} testId="send-job-retry" value={latestSendJob.retryPendingCount} />
+              <ProgressItem label={sendJobCopy.skipped} testId="send-job-skipped" value={latestSendJob.skippedCount} />
+              <ProgressItem label={sendJobCopy.remaining} testId="send-job-remaining" value={latestSendJob.remainingCount} />
+              <ProgressItem label={sendJobCopy.lock} value={latestSendJob.lockOwner ? sendJobCopy.processing : sendJobCopy.queued} />
+            </div>
+          ) : (
+            <p className="mt-4 text-sm text-slate-500">{sendJobCopy.empty}</p>
+          )}
+          {latestSendJob ? (
+            <div className="mt-4 overflow-x-auto">
+              <table className="min-w-full text-left text-sm">
+                <thead className="text-slate-400">
+                  <tr>
+                    <th className="px-3 py-2">{copy.table.email}</th>
+                    <th className="px-3 py-2">{sendJobCopy.status}</th>
+                    <th className="px-3 py-2">{sendJobCopy.provider}</th>
+                    <th className="px-3 py-2">{sendJobCopy.lastProcessed}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sendJobRecipients.slice(0, 8).map((recipient) => (
+                    <tr className="border-t border-slate-800" key={recipient.id}>
+                      <td className="px-3 py-2">{recipient.normalizedEmail}</td>
+                      <td className="px-3 py-2">{recipient.status}</td>
+                      <td className="px-3 py-2">{latestSendJob.provider}</td>
+                      <td className="px-3 py-2">
+                        {recipient.completedAt ? new Date(recipient.completedAt).toLocaleString(locale) : "-"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
+          {sendJobResult ? (
+            <p className="mt-3 text-sm text-green-400">
+              {sendJobCopy.result}: {sendJobResult}
+            </p>
+          ) : (
+            <p className="mt-3 text-xs text-slate-500">{sendJobCopy.confirmationRequired}</p>
+          )}
+        </section>
+
         <section className={`${panelClass} p-5 xl:col-span-2`} data-testid="provider-events-panel">
           <h2 className="text-lg font-bold">{copy.providerEvents.title}</h2>
           <p className="mt-2 text-sm text-slate-400">{copy.providerEvents.description}</p>
@@ -280,11 +498,39 @@ export function LeadOpsCampaignDetailShell({
   );
 }
 
-function ProgressItem({ label, value }: { label: string; value: number }) {
+class LocalSimulationProvider implements SendJobDeliveryProvider {
+  diagnostic(): Pick<EmailProviderDiagnostic, "configured" | "realSendEnabled"> {
+    return { configured: true, realSendEnabled: false };
+  }
+
+  async send(request: EmailDeliveryRequest) {
+    return {
+      errorCode: null,
+      errorMessage: null,
+      mode: request.mode,
+      provider: "simulation" as const,
+      providerMessageId: `simulation-${request.idempotencyKey}`,
+      retryable: false,
+      status: "accepted" as const
+    };
+  }
+}
+
+function ProgressItem({
+  label,
+  testId,
+  value
+}: {
+  label: string;
+  testId?: string;
+  value: number | string;
+}) {
   return (
     <div className="rounded-lg border border-slate-800 bg-slate-950 p-3">
       <p className="text-xs text-slate-500">{label}</p>
-      <p className="mt-1 text-lg font-semibold">{value}</p>
+      <p className="mt-1 text-lg font-semibold" data-testid={testId}>
+        {value}
+      </p>
     </div>
   );
 }

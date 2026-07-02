@@ -127,6 +127,45 @@ export async function reconcileProviderEvent(
     ? attempts.find((row) => row.providerMessageId === event.providerMessageId)
     : null;
 
+  if (!attempt && event.providerMessageId) {
+    const jobs = await repos.outreachSendJobs.listForTenant(tenantId);
+    for (const job of jobs) {
+      const jobAttempts = await repos.outreachSendJobAttempts.listForJob(tenantId, job.id);
+      const jobAttempt = jobAttempts.find((row) => row.providerMessageId === event.providerMessageId);
+      if (!jobAttempt) continue;
+      const jobRecipient = await repos.outreachSendJobRecipients.getById(
+        tenantId,
+        jobAttempt.sendJobRecipientId
+      );
+      if (jobRecipient) {
+        const status = EVENT_STATUS[event.eventType] ?? null;
+        if (status === "DELIVERED") {
+          await repos.outreachSendJobRecipients.update(tenantId, jobRecipient.id, {
+            status: "DELIVERED"
+          });
+        }
+        if (status === "HARD_BOUNCED" || status === "COMPLAINED" || status === "UNSUBSCRIBED") {
+          await repos.outreachSendJobRecipients.update(tenantId, jobRecipient.id, {
+            status: "SUPPRESSED"
+          });
+        }
+      }
+      return repos.outreachProviderEvents.create({
+        ...event,
+        campaignId: jobAttempt.campaignId,
+        campaignRecipientId: jobAttempt.campaignRecipientId,
+        duplicate: false,
+        effect: EVENT_EFFECT[event.eventType] ?? "none",
+        errorMessage: null,
+        leadId: jobAttempt.leadId,
+        processingStatus: event.eventType === "unknown" ? "ignored" : "processed",
+        receivedAt: new Date().toISOString(),
+        sendAttemptId: jobAttempt.id,
+        tenantId
+      });
+    }
+  }
+
   if (!attempt) {
     return repos.outreachProviderEvents.create({
       ...event,

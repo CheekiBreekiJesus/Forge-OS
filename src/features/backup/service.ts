@@ -17,6 +17,12 @@ import type {
 } from "@/domain/types";
 import type { CampaignRecipient } from "@/domain/campaign-types";
 import type { OutreachProviderEvent, OutreachSendAttempt } from "@/domain/email-delivery-types";
+import type {
+  OutreachSendJob,
+  OutreachSendJobAttempt,
+  OutreachSendJobDailyUsage,
+  OutreachSendJobRecipient
+} from "@/domain/send-job-types";
 import type { EmailSuppression } from "@/domain/suppression-types";
 import type { ImportBatch, ImportRow, LeadContact } from "@/domain/import-types";
 import type { LocalRepositoryBundle } from "@/persistence/interfaces";
@@ -26,8 +32,8 @@ import {
   type BackupRestoreReport
 } from "@/features/backup/restore-validation";
 
-export const BACKUP_VERSION = 7 as const;
-export const SUPPORTED_BACKUP_VERSIONS = [4, 5, 6, 7] as const;
+export const BACKUP_VERSION = 8 as const;
+export const SUPPORTED_BACKUP_VERSIONS = [4, 5, 6, 7, 8] as const;
 
 export type ForgeOSBackup = {
   version: typeof BACKUP_VERSION;
@@ -53,6 +59,10 @@ export type ForgeOSBackup = {
     emailSuppressions: EmailSuppression[];
     outreachSendAttempts: OutreachSendAttempt[];
     outreachProviderEvents: OutreachProviderEvent[];
+    outreachSendJobs: OutreachSendJob[];
+    outreachSendJobRecipients: OutreachSendJobRecipient[];
+    outreachSendJobAttempts: OutreachSendJobAttempt[];
+    outreachSendJobDailyUsage: OutreachSendJobDailyUsage[];
   };
   localAssets?: Array<Omit<LocalAsset, "blob"> & { blobBase64: string }>;
 };
@@ -82,6 +92,10 @@ export async function exportBackup(
     emailSuppressions,
     outreachSendAttempts,
     outreachProviderEvents,
+    outreachSendJobs,
+    outreachSendJobRecipients,
+    outreachSendJobAttempts,
+    outreachSendJobDailyUsage,
     assets
   ] = await Promise.all([
     repos.leads.list(tenantId),
@@ -109,6 +123,31 @@ export async function exportBackup(
     repos.emailSuppressions.list(tenantId),
     repos.outreachSendAttempts.listForTenant(tenantId),
     repos.outreachProviderEvents.listForTenant(tenantId),
+    repos.outreachSendJobs.listForTenant(tenantId),
+    Promise.resolve([]).then(async () => {
+      const jobs = await repos.outreachSendJobs.listForTenant(tenantId);
+      const rows = await Promise.all(
+        jobs.map((job) => repos.outreachSendJobRecipients.listForJob(tenantId, job.id))
+      );
+      return rows.flat();
+    }),
+    Promise.resolve([]).then(async () => {
+      const jobs = await repos.outreachSendJobs.listForTenant(tenantId);
+      const rows = await Promise.all(
+        jobs.map((job) => repos.outreachSendJobAttempts.listForJob(tenantId, job.id))
+      );
+      return rows.flat();
+    }),
+    Promise.resolve([]).then(async () => {
+      const jobs = await repos.outreachSendJobs.listForTenant(tenantId);
+      const dates = new Set(jobs.map((job) => job.createdAt.slice(0, 10)));
+      const rows = await Promise.all(
+        Array.from(dates).map((date) =>
+          repos.outreachSendJobDailyUsage.get(tenantId, "brevo", date)
+        )
+      );
+      return rows.filter((row): row is OutreachSendJobDailyUsage => Boolean(row));
+    }),
     includeAssets ? repos.localAssets.list(tenantId) : Promise.resolve([])
   ]);
 
@@ -133,7 +172,11 @@ export async function exportBackup(
       campaignRecipients,
       emailSuppressions,
       outreachSendAttempts,
-      outreachProviderEvents
+      outreachProviderEvents,
+      outreachSendJobs,
+      outreachSendJobRecipients,
+      outreachSendJobAttempts,
+      outreachSendJobDailyUsage
     },
     tenantId,
     version: BACKUP_VERSION
@@ -161,7 +204,7 @@ export async function exportBackup(
 export function validateBackup(data: unknown): data is ForgeOSBackup {
   if (!data || typeof data !== "object") return false;
   const record = data as Record<string, unknown>;
-  if (!SUPPORTED_BACKUP_VERSIONS.includes(record.version as 4 | 5 | 6 | 7)) return false;
+  if (!SUPPORTED_BACKUP_VERSIONS.includes(record.version as 4 | 5 | 6 | 7 | 8)) return false;
   if (typeof record.tenantId !== "string") return false;
   if (!record.tables || typeof record.tables !== "object") return false;
   const tables = record.tables as Record<string, unknown>;
@@ -190,7 +233,11 @@ export async function importBackup(
       ...backup.tables,
       emailSuppressions: backup.tables.emailSuppressions ?? [],
       outreachSendAttempts: backup.tables.outreachSendAttempts ?? [],
-      outreachProviderEvents: backup.tables.outreachProviderEvents ?? []
+      outreachProviderEvents: backup.tables.outreachProviderEvents ?? [],
+      outreachSendJobs: backup.tables.outreachSendJobs ?? [],
+      outreachSendJobRecipients: backup.tables.outreachSendJobRecipients ?? [],
+      outreachSendJobAttempts: backup.tables.outreachSendJobAttempts ?? [],
+      outreachSendJobDailyUsage: backup.tables.outreachSendJobDailyUsage ?? []
     }
   });
   const report = validateBackupRestoreIntegrity(normalized);

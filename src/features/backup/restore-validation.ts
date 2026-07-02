@@ -1,6 +1,12 @@
 import type { EmailSuppression } from "@/domain/suppression-types";
 import type { CampaignRecipient } from "@/domain/campaign-types";
 import type { OutreachProviderEvent, OutreachSendAttempt } from "@/domain/email-delivery-types";
+import type {
+  OutreachSendJob,
+  OutreachSendJobAttempt,
+  OutreachSendJobDailyUsage,
+  OutreachSendJobRecipient
+} from "@/domain/send-job-types";
 import type { ImportBatch, ImportRow, LeadContact } from "@/domain/import-types";
 import type { ForgeOSBackup } from "@/features/backup/service";
 
@@ -11,6 +17,8 @@ export type BackupRestoreReport = {
   orphanedLeadContacts: number;
   orphanedSendAttempts: number;
   orphanedProviderEvents: number;
+  orphanedSendJobRecipients: number;
+  orphanedSendJobAttempts: number;
   warnings: string[];
 };
 
@@ -23,6 +31,9 @@ export function validateBackupRestoreIntegrity(backup: ForgeOSBackup): BackupRes
   const contacts = backup.tables.leadContacts ?? [];
   const attempts = backup.tables.outreachSendAttempts ?? [];
   const events = backup.tables.outreachProviderEvents ?? [];
+  const sendJobs = backup.tables.outreachSendJobs ?? [];
+  const sendJobRecipients = backup.tables.outreachSendJobRecipients ?? [];
+  const sendJobAttempts = backup.tables.outreachSendJobAttempts ?? [];
 
   const orphanedCampaignRecipients = recipients.filter(
     (row) => !leadIds.has(row.leadId) || !campaignIds.has(row.campaignId)
@@ -43,6 +54,23 @@ export function validateBackupRestoreIntegrity(backup: ForgeOSBackup): BackupRes
       (row.campaignRecipientId != null && !recipientIds.has(row.campaignRecipientId)) ||
       (row.sendAttemptId != null && !attemptIds.has(row.sendAttemptId))
   ).length;
+  const sendJobIds = new Set(sendJobs.map((row) => row.id));
+  const sendJobRecipientIds = new Set(sendJobRecipients.map((row) => row.id));
+  const orphanedSendJobRecipients = sendJobRecipients.filter(
+    (row) =>
+      !sendJobIds.has(row.sendJobId) ||
+      !leadIds.has(row.leadId) ||
+      !campaignIds.has(row.campaignId) ||
+      !recipientIds.has(row.campaignRecipientId)
+  ).length;
+  const orphanedSendJobAttempts = sendJobAttempts.filter(
+    (row) =>
+      !sendJobIds.has(row.sendJobId) ||
+      !sendJobRecipientIds.has(row.sendJobRecipientId) ||
+      !leadIds.has(row.leadId) ||
+      !campaignIds.has(row.campaignId) ||
+      !recipientIds.has(row.campaignRecipientId)
+  ).length;
 
   if (orphanedCampaignRecipients > 0) {
     warnings.push(`${orphanedCampaignRecipients} campaign recipient snapshot(s) reference missing lead or campaign records.`);
@@ -59,6 +87,12 @@ export function validateBackupRestoreIntegrity(backup: ForgeOSBackup): BackupRes
   if (orphanedProviderEvents > 0) {
     warnings.push(`${orphanedProviderEvents} provider event(s) reference missing outreach records.`);
   }
+  if (orphanedSendJobRecipients > 0) {
+    warnings.push(`${orphanedSendJobRecipients} send-job recipient(s) reference missing outreach records.`);
+  }
+  if (orphanedSendJobAttempts > 0) {
+    warnings.push(`${orphanedSendJobAttempts} send-job attempt(s) reference missing outreach records.`);
+  }
 
   const sentRecipients = recipients.filter((row: CampaignRecipient) => row.draftStatus === "SENT_MANUALLY");
   const missingIdempotency = sentRecipients.filter((row) => !row.sendIdempotencyKey).length;
@@ -73,6 +107,8 @@ export function validateBackupRestoreIntegrity(backup: ForgeOSBackup): BackupRes
     orphanedLeadContacts,
     orphanedSendAttempts,
     orphanedProviderEvents,
+    orphanedSendJobRecipients,
+    orphanedSendJobAttempts,
     warnings
   };
 }
@@ -88,7 +124,11 @@ export function normalizeBackupTables(backup: ForgeOSBackup): ForgeOSBackup {
       campaignRecipients: backup.tables.campaignRecipients ?? [],
       emailSuppressions: backup.tables.emailSuppressions ?? [],
       outreachSendAttempts: backup.tables.outreachSendAttempts ?? [],
-      outreachProviderEvents: backup.tables.outreachProviderEvents ?? []
+      outreachProviderEvents: backup.tables.outreachProviderEvents ?? [],
+      outreachSendJobs: backup.tables.outreachSendJobs ?? [],
+      outreachSendJobRecipients: backup.tables.outreachSendJobRecipients ?? [],
+      outreachSendJobAttempts: backup.tables.outreachSendJobAttempts ?? [],
+      outreachSendJobDailyUsage: backup.tables.outreachSendJobDailyUsage ?? []
     }
   };
 }
@@ -100,5 +140,9 @@ export type {
   CampaignRecipient,
   EmailSuppression,
   OutreachProviderEvent,
-  OutreachSendAttempt
+  OutreachSendAttempt,
+  OutreachSendJob,
+  OutreachSendJobAttempt,
+  OutreachSendJobDailyUsage,
+  OutreachSendJobRecipient
 };
