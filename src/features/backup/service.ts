@@ -16,6 +16,7 @@ import type {
   Quote
 } from "@/domain/types";
 import type { CampaignRecipient } from "@/domain/campaign-types";
+import type { OutreachSendAttempt } from "@/domain/email-delivery-types";
 import type { EmailSuppression } from "@/domain/suppression-types";
 import type { ImportBatch, ImportRow, LeadContact } from "@/domain/import-types";
 import type { LocalRepositoryBundle } from "@/persistence/interfaces";
@@ -25,8 +26,8 @@ import {
   type BackupRestoreReport
 } from "@/features/backup/restore-validation";
 
-export const BACKUP_VERSION = 5 as const;
-export const SUPPORTED_BACKUP_VERSIONS = [4, 5] as const;
+export const BACKUP_VERSION = 6 as const;
+export const SUPPORTED_BACKUP_VERSIONS = [4, 5, 6] as const;
 
 export type ForgeOSBackup = {
   version: typeof BACKUP_VERSION;
@@ -50,6 +51,7 @@ export type ForgeOSBackup = {
     leadContacts: LeadContact[];
     campaignRecipients: CampaignRecipient[];
     emailSuppressions: EmailSuppression[];
+    outreachSendAttempts: OutreachSendAttempt[];
   };
   localAssets?: Array<Omit<LocalAsset, "blob"> & { blobBase64: string }>;
 };
@@ -77,6 +79,7 @@ export async function exportBackup(
     leadContacts,
     campaignRecipients,
     emailSuppressions,
+    outreachSendAttempts,
     assets
   ] = await Promise.all([
     repos.leads.list(tenantId),
@@ -102,6 +105,7 @@ export async function exportBackup(
     repos.leadContacts.list(tenantId),
     repos.campaignRecipients.listForTenant(tenantId),
     repos.emailSuppressions.list(tenantId),
+    repos.outreachSendAttempts.listForTenant(tenantId),
     includeAssets ? repos.localAssets.list(tenantId) : Promise.resolve([])
   ]);
 
@@ -124,7 +128,8 @@ export async function exportBackup(
       importRows,
       leadContacts,
       campaignRecipients,
-      emailSuppressions
+      emailSuppressions,
+      outreachSendAttempts
     },
     tenantId,
     version: BACKUP_VERSION
@@ -152,7 +157,7 @@ export async function exportBackup(
 export function validateBackup(data: unknown): data is ForgeOSBackup {
   if (!data || typeof data !== "object") return false;
   const record = data as Record<string, unknown>;
-  if (!SUPPORTED_BACKUP_VERSIONS.includes(record.version as 4 | 5)) return false;
+  if (!SUPPORTED_BACKUP_VERSIONS.includes(record.version as 4 | 5 | 6)) return false;
   if (typeof record.tenantId !== "string") return false;
   if (!record.tables || typeof record.tables !== "object") return false;
   const tables = record.tables as Record<string, unknown>;
@@ -179,7 +184,8 @@ export async function importBackup(
     version: BACKUP_VERSION,
     tables: {
       ...backup.tables,
-      emailSuppressions: backup.tables.emailSuppressions ?? []
+      emailSuppressions: backup.tables.emailSuppressions ?? [],
+      outreachSendAttempts: backup.tables.outreachSendAttempts ?? []
     }
   });
   const report = validateBackupRestoreIntegrity(normalized);

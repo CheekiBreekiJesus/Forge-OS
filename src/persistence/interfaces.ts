@@ -53,6 +53,7 @@ import type {
   OutreachCampaignRepository
 } from "@/persistence/indexeddb/campaign-repositories";
 import type { EmailSuppressionRepository } from "@/persistence/indexeddb/suppression-repositories";
+import type { OutreachSendAttemptRepository } from "@/persistence/indexeddb/send-attempt-repositories";
 import type {
   ImportBatchRepository,
   ImportRowRepository,
@@ -318,6 +319,7 @@ export interface LocalRepositoryBundle {
   importRows: ImportRowRepository;
   leadContacts: LeadContactRepository;
   emailSuppressions: EmailSuppressionRepository;
+  outreachSendAttempts: OutreachSendAttemptRepository;
   reset(): Promise<void>;
   resetDemoData(tenantId: string): Promise<void>;
   seed(tenantId: string): Promise<void>;

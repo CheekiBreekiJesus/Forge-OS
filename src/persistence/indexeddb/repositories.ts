@@ -58,6 +58,7 @@ import {
   createLeadContactRepository
 } from "./import-repositories";
 import { createEmailSuppressionRepository } from "./suppression-repositories";
+import { createOutreachSendAttemptRepository } from "./send-attempt-repositories";
 import {
   createCustomerContactRepository,
   createInventoryRepository,
@@ -1259,7 +1260,8 @@ export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
       db.importRows,
       db.leadContacts,
       db.campaignRecipients,
-      db.emailSuppressions
+      db.emailSuppressions,
+      db.outreachSendAttempts
     ],
     async () => {
       await db.meta.clear();
@@ -1286,6 +1288,7 @@ export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
       await db.leadContacts.clear();
       await db.campaignRecipients.clear();
       await db.emailSuppressions.clear();
+      await db.outreachSendAttempts.clear();
     }
   );
 }
@@ -1317,7 +1320,8 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
       db.importRows,
       db.leadContacts,
       db.campaignRecipients,
-      db.emailSuppressions
+      db.emailSuppressions,
+      db.outreachSendAttempts
     ],
     async () => {
       await db.leads.bulkPut(tables.leads);
@@ -1337,6 +1341,7 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
       await db.leadContacts.bulkPut(tables.leadContacts ?? []);
       await db.campaignRecipients.bulkPut(tables.campaignRecipients ?? []);
       await db.emailSuppressions.bulkPut(tables.emailSuppressions ?? []);
+      await db.outreachSendAttempts.bulkPut(tables.outreachSendAttempts ?? []);
       if (localAssets) {
         for (const asset of localAssets) {
           const binary = atob(asset.blobBase64);
@@ -1389,6 +1394,7 @@ export function createLocalRepositoryBundle(db: ForgeOSDatabase) {
   const leadContacts = createLeadContactRepository(db);
   const emailSuppressions = createEmailSuppressionRepository(db);
   const campaignRecipients = createCampaignRecipientRepository(db);
+  const outreachSendAttempts = createOutreachSendAttemptRepository(db);
 
   return {
     meta,
@@ -1414,6 +1420,7 @@ export function createLocalRepositoryBundle(db: ForgeOSDatabase) {
     importRows,
     leadContacts,
     emailSuppressions,
+    outreachSendAttempts,
     async reset() {
       await resetDatabase(db);
     },

@@ -792,6 +792,24 @@ export const dictionary: Dictionary = {
         "local-only": "Local only",
         "hosted-feature": "Hosted version feature",
         unavailable: "Unavailable"
+      },
+      provider: {
+        title: "Email delivery provider",
+        description: "Server-side delivery readiness for protected outreach test emails. Secrets are never shown in the browser.",
+        refresh: "Refresh provider status",
+        loading: "Loading provider status...",
+        unavailable: "Provider status is unavailable.",
+        provider: "Provider",
+        configured: "Configured",
+        realSend: "Real send gate",
+        testSend: "Test send gate",
+        apiKey: "API key present",
+        sender: "Sender configured",
+        allowlist: "Allowlisted test recipients",
+        yes: "Yes",
+        no: "No",
+        missing: "Missing",
+        warnings: "Warnings"
       }
     },
     backup: {

@@ -1,5 +1,4 @@
 import {
-  buildSequencePreview,
   generatePtPtEmail,
   validateQueue
 } from "./workflow";
@@ -45,7 +44,7 @@ export type OutreachGenerationResult = {
 };
 
 export type OutreachDeliveryResult = {
-  mode: "simulation" | "smartlead" | "configuration-missing" | "provider-error";
+  mode: "simulation" | "smartlead" | "brevo" | "configuration-missing" | "provider-error";
   providerMessageId?: string;
   providerStatus: "queued" | "sent" | "blocked" | "failed";
   error?: string;
@@ -150,75 +149,28 @@ export async function deliverOutreachMessage(
     };
   }
 
-  const provider = process.env.OUTREACH_DELIVERY_PROVIDER ?? "simulation";
+  const provider =
+    process.env.EMAIL_DELIVERY_PROVIDER ?? process.env.OUTREACH_DELIVERY_PROVIDER ?? "simulation";
 
-  if (provider !== "smartlead") {
+  if (provider === "brevo") {
     return {
-      mode: "simulation",
-      providerMessageId: `simulation-${state.lead.id}`,
-      providerStatus: "sent"
+      error: "Brevo delivery is available only through the protected test-email workflow.",
+      mode: "brevo",
+      providerStatus: "blocked"
     };
   }
 
-  const apiKey = process.env.SMARTLEAD_API_KEY;
-  const apiBaseUrl = process.env.SMARTLEAD_API_BASE_URL;
-  const campaignId = process.env.SMARTLEAD_DEFAULT_CAMPAIGN_ID;
-
-  if (!apiKey || !apiBaseUrl || !campaignId) {
+  if (provider === "smartlead") {
     return {
-      error: "Smartlead delivery is selected but configuration is incomplete.",
+      error: "Smartlead delivery is deprecated. Use EMAIL_DELIVERY_PROVIDER=simulation or the protected Brevo test workflow.",
       mode: "configuration-missing",
       providerStatus: "blocked"
     };
   }
 
-  try {
-    const endpoint = new URL(`/api/v1/campaigns/${campaignId}/leads`, apiBaseUrl);
-    endpoint.searchParams.set("api_key", apiKey);
-
-    const response = await fetch(endpoint, {
-      body: JSON.stringify({
-        lead_list: [
-          {
-            company_name: state.lead.companyName,
-            custom_fields: {
-              forgeos_lead_id: state.lead.id,
-              forgeos_sequence_preview: buildSequencePreview(state.message)
-                .map((step) => `${step.delay}: ${step.title}`)
-                .join(" | ")
-            },
-            email: state.lead.email,
-            first_name: state.lead.contactName.split(" ")[0] ?? state.lead.contactName,
-            last_name: state.lead.contactName.split(" ").slice(1).join(" ")
-          }
-        ]
-      }),
-      headers: {
-        "Content-Type": "application/json"
-      },
-      method: "POST"
-    });
-
-    if (!response.ok) {
-      return {
-        error: "Smartlead rejected the delivery request.",
-        mode: "provider-error",
-        providerStatus: "failed"
-      };
-    }
-
-    const payload = await response.json().catch(() => ({}));
-
-    return {
-      mode: "smartlead",
-      providerMessageId: String(payload.id ?? payload.lead_id ?? `smartlead-${state.lead.id}`),
-      providerStatus: "queued"
-    };
-  } catch {
-    return {
-      error: "Smartlead delivery request failed.",
-      mode: "provider-error",
-      providerStatus: "failed"
-    };
-  }
+  return {
+    mode: "simulation",
+    providerMessageId: `simulation-${state.lead.id}`,
+    providerStatus: "sent"
+  };
 }

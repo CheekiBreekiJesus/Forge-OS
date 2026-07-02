@@ -449,6 +449,24 @@ export type Dictionary = {
     integrations: {
       diagnostic: string;
       statuses: Record<string, string>;
+      provider: {
+        title: string;
+        description: string;
+        refresh: string;
+        loading: string;
+        unavailable: string;
+        provider: string;
+        configured: string;
+        realSend: string;
+        testSend: string;
+        apiKey: string;
+        sender: string;
+        allowlist: string;
+        yes: string;
+        no: string;
+        missing: string;
+        warnings: string;
+      };
     };
     backup: {
       description: string;

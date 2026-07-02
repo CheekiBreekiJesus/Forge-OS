@@ -1,35 +1,38 @@
-# Email Outreach Status — Release Checkpoint (Step 5)
+# Email Outreach Status - Release Checkpoint (Step 6)
 
-Date: 2026-07-01  
-Branch: `feat/email-outreach-live-mvp`  
-Starting commit: `a88035b`
+Date: 2026-07-02
+Branch: `feat/email-outreach-provider`
+Starting commit: `b9c41f1`
 
 ## Release readiness checklist
 
-- [x] Import → campaign → draft → approve → Gmail/Outlook → manual sent
+- [x] Import -> campaign -> draft -> approve -> Gmail/Outlook -> manual sent
 - [x] Tenant-scoped suppression with immediate enforcement
 - [x] Duplicate outreach prevention and cooldown warnings
 - [x] Manual sent history and idempotency keys
-- [x] Backup/restore v5 includes outreach operational data
-- [x] Demo reset preserves imported outreach data
-- [x] Operational dashboard metrics from local data
-- [x] CSV export formula injection protection
-- [x] Unit, integration, e2e, and acceptance tests passing
-- [ ] Live Brevo/provider delivery (deferred)
+- [x] Server-side email provider interface
+- [x] Brevo transactional adapter with mocked tests
+- [x] Safe provider diagnostics without secret disclosure
+- [x] Protected one-recipient test-email route
+- [x] Local send-attempt persistence and backup/restore v6
+- [x] Unit tests passing
+- [ ] Full validation after Step 6 implementation
+- [ ] First authorized internal Brevo test email (deferred; must be operator approved)
 - [ ] Provider webhooks for bounce/complaint (deferred)
 
 ## Schema
 
-IndexedDB schema v9 — `emailSuppressions` table.
+IndexedDB schema v10 adds `outreachSendAttempts`.
 
 ## Backup version
 
-JSON backup v5 — adds `emailSuppressions`; accepts restore from v4 (empty suppressions).
+JSON backup v6 adds `outreachSendAttempts`; v4/v5 imports normalize missing send attempts to an empty table.
 
-## Next milestone prerequisites (automated provider sending)
+## Next milestone prerequisites
 
-1. Server-side provider credentials (never in browser)
-2. Outbound send queue with idempotent jobs
-3. Webhook endpoints for bounce, complaint, unsubscribe
-4. Delivery status model distinct from manual confirmation
-5. Rate limits and tenant billing guards
+1. Server persistence and auth for provider send authorization.
+2. Server-side tenant ownership verification for campaigns, recipients, and sender profiles.
+3. Outbound send queue with idempotent jobs.
+4. Webhook endpoints for bounce, complaint, unsubscribe.
+5. Delivery status model distinct from manual confirmation.
+6. Rate limits and tenant billing guards.

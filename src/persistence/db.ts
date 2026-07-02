@@ -24,6 +24,7 @@ import type {
 } from "@/domain/profile-types";
 import type { CustomizerSimulation } from "@/domain/customizer-types";
 import type { CampaignRecipient, OutreachCampaign } from "@/domain/campaign-types";
+import type { OutreachSendAttempt } from "@/domain/email-delivery-types";
 import type { EmailSuppression } from "@/domain/suppression-types";
 import type { ImportBatch, ImportRow, LeadContact } from "@/domain/import-types";
 import type { Product } from "@/domain/product-types";
@@ -63,6 +64,7 @@ export class ForgeOSDatabase extends Dexie {
   importRows!: Table<ImportRow, string>;
   leadContacts!: Table<LeadContact, string>;
   emailSuppressions!: Table<EmailSuppression, string>;
+  outreachSendAttempts!: Table<OutreachSendAttempt, string>;
 
   constructor(name: string = LOCAL_DB_NAME) {
     super(name);
@@ -471,7 +473,9 @@ export class ForgeOSDatabase extends Dexie {
         leadContacts:
           "id, tenantId, leadId, normalizedEmail, active, isPrimary, [tenantId+leadId], [tenantId+normalizedEmail]",
         emailSuppressions:
-          "id, tenantId, normalizedEmail, reason, source, active, campaignId, leadId, [tenantId+normalizedEmail], [tenantId+reason], [tenantId+source]"
+          "id, tenantId, normalizedEmail, reason, source, active, campaignId, leadId, [tenantId+normalizedEmail], [tenantId+reason], [tenantId+source]",
+        outreachSendAttempts:
+          "id, tenantId, provider, deliveryMode, campaignId, campaignRecipientId, leadId, idempotencyKey, status, startedAt, [tenantId+campaignId], [tenantId+campaignRecipientId], [tenantId+idempotencyKey], [tenantId+status]"
       })
       .upgrade(async (tx) => {
         await tx.table("meta").put({ key: "schemaVersion", value: String(SCHEMA_VERSION) });

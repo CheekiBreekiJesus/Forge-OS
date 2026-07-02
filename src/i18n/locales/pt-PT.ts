@@ -792,6 +792,24 @@ export const dictionary: Dictionary = {
         "local-only": "Apenas local",
         "hosted-feature": "Funcionalidade da versão alojada",
         unavailable: "Indisponível"
+      },
+      provider: {
+        title: "Fornecedor de envio de email",
+        description: "Estado server-side para emails de teste protegidos em outreach. Segredos nunca aparecem no browser.",
+        refresh: "Atualizar estado do fornecedor",
+        loading: "A carregar estado do fornecedor...",
+        unavailable: "Estado do fornecedor indisponivel.",
+        provider: "Fornecedor",
+        configured: "Configurado",
+        realSend: "Protecao de envio real",
+        testSend: "Protecao de envio de teste",
+        apiKey: "Chave API presente",
+        sender: "Remetente configurado",
+        allowlist: "Destinatarios de teste permitidos",
+        yes: "Sim",
+        no: "Nao",
+        missing: "Em falta",
+        warnings: "Avisos"
       }
     },
     backup: {

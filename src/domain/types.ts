@@ -320,6 +320,7 @@ export type ActivityAction =
   | "campaign_draft_sent_simulated"
   | "campaign_draft_duplicate_blocked"
   | "campaign_draft_cooldown_override"
+  | "campaign_test_email_attempted"
   | "suppression_created"
   | "suppression_removed"
   | "lead_record_corrected"
