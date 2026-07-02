@@ -83,7 +83,8 @@ describe("segmentation filters and counts", () => {
     ],
     contacts: [contact("a"), contact("b", { email: "" }), contact("c")],
     recipients: [],
-    outreachSentAtByLeadId: new Map()
+    outreachSentAtByLeadId: new Map(),
+    suppressedEmails: new Set()
   };
 
   it("filters by category and valid email", () => {
