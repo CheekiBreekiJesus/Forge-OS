@@ -35,6 +35,13 @@ export type CampaignDraftStatus =
   | "EXCLUDED"
   | "OPENED_EXTERNALLY"
   | "SENT_MANUALLY"
+  | "DELIVERED"
+  | "SOFT_BOUNCED"
+  | "HARD_BOUNCED"
+  | "COMPLAINED"
+  | "UNSUBSCRIBED"
+  | "DELIVERY_FAILED"
+  | "DEFERRED"
   | "SKIPPED"
   | "SUPPRESSED";
 

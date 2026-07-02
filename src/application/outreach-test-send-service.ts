@@ -7,8 +7,12 @@ import type {
 import type { CampaignRecipient, OutreachCampaign } from "@/domain/campaign-types";
 import { isEmailSuppressed } from "@/application/suppression-service";
 import { buildApprovalContentHash } from "@/application/campaign-approval-service";
+import { readEmailDeliveryConfig } from "@/features/email-delivery/config";
+import { buildUnsubscribeUrl, createUnsubscribeToken } from "@/features/email-delivery/unsubscribe-token";
+import { normalizeEmail } from "@/features/leadops/import-normalization";
 import type { LocalRepositoryBundle } from "@/persistence/interfaces";
 import { PersistenceError } from "@/persistence/interfaces";
+import { createHash } from "node:crypto";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -161,6 +165,18 @@ function buildProviderRequest(
   idempotencyKey: string,
   initiatedBy: string
 ): EmailDeliveryRequest {
+  const config = readEmailDeliveryConfig();
+  const emailHash = hashNormalizedEmail(tenantId, recipient.snapshotEmail);
+  const unsubscribeToken = createUnsubscribeToken(
+    {
+      campaignId: campaign.id,
+      campaignRecipientId: recipient.id,
+      emailHash,
+      leadId: recipient.leadId,
+      tenantId
+    },
+    config.unsubscribeSigningSecret
+  );
   return {
     approvedContentHash: recipient.approvalContentHash!,
     campaignId: campaign.id,
@@ -174,8 +190,15 @@ function buildProviderRequest(
     subject: recipient.personalizedSubject,
     tenantId,
     toEmail: testRecipientEmail,
-    toName: `${recipient.snapshotContactName || recipient.snapshotCompanyName} (test)`
+    toName: `${recipient.snapshotContactName || recipient.snapshotCompanyName} (test)`,
+    unsubscribeUrl: buildUnsubscribeUrl(config.publicBaseUrl, campaign.language || "pt-PT", unsubscribeToken)
   };
+}
+
+function hashNormalizedEmail(tenantId: string, email: string): string {
+  return createHash("sha256")
+    .update(`${tenantId}:${normalizeEmail(email)}`)
+    .digest("hex");
 }
 
 function mapAttemptStatus(status: EmailDeliveryResponse["status"]): OutreachSendAttemptStatus {

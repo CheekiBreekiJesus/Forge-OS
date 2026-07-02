@@ -12,6 +12,9 @@ export type EmailDeliveryConfig = {
   provider: EmailDeliveryProviderKey;
   realSendEnabled: boolean;
   testSendEnabled: boolean;
+  publicBaseUrl: string;
+  unsubscribeSigningSecret: string;
+  webhookSecret: string;
   brevoApiKey: string;
   brevoSenderEmail: string;
   brevoSenderName: string;
@@ -52,6 +55,9 @@ export function readEmailDeliveryConfig(
     provider: readProvider(env.EMAIL_DELIVERY_PROVIDER ?? env.OUTREACH_DELIVERY_PROVIDER),
     realSendEnabled: readBoolean(env.OUTREACH_REAL_SEND_ENABLED),
     testSendEnabled: readBoolean(env.OUTREACH_TEST_SEND_ENABLED),
+    publicBaseUrl: env.FORGEOS_PUBLIC_BASE_URL?.trim() ?? "",
+    unsubscribeSigningSecret: env.OUTREACH_UNSUBSCRIBE_SECRET?.trim() ?? "",
+    webhookSecret: env.BREVO_WEBHOOK_SECRET?.trim() ?? "",
     brevoApiKey: env.BREVO_API_KEY?.trim() ?? "",
     brevoSenderEmail: env.BREVO_SENDER_EMAIL?.trim() ?? "",
     brevoSenderName: env.BREVO_SENDER_NAME?.trim() ?? "",
@@ -76,6 +82,9 @@ export function buildEmailProviderDiagnostic(
     }
     if (!config.realSendEnabled) warnings.push("OUTREACH_REAL_SEND_ENABLED is false.");
     if (!config.testSendEnabled) warnings.push("OUTREACH_TEST_SEND_ENABLED is false.");
+    if (!isValidPublicBaseUrl(config.publicBaseUrl)) missing.push("FORGEOS_PUBLIC_BASE_URL");
+    if (config.unsubscribeSigningSecret.length < 32) missing.push("OUTREACH_UNSUBSCRIBE_SECRET");
+    if (config.webhookSecret.length < 24) missing.push("BREVO_WEBHOOK_SECRET");
     if (config.testRecipientAllowlist.length === 0) {
       warnings.push("OUTREACH_TEST_RECIPIENT_ALLOWLIST is empty.");
     }
@@ -93,6 +102,9 @@ export function buildEmailProviderDiagnostic(
     replyToConfigured: !config.brevoReplyTo || EMAIL_RE.test(config.brevoReplyTo),
     allowlistConfigured: config.testRecipientAllowlist.length > 0,
     allowlistCount: config.testRecipientAllowlist.length,
+    publicBaseUrlConfigured: isValidPublicBaseUrl(config.publicBaseUrl),
+    unsubscribeSecretConfigured: config.unsubscribeSigningSecret.length >= 32,
+    webhookSecretConfigured: config.webhookSecret.length >= 24,
     missing,
     warnings
   };
@@ -101,4 +113,13 @@ export function buildEmailProviderDiagnostic(
 export function isAllowlistedTestRecipient(config: EmailDeliveryConfig, email: string): boolean {
   const normalized = email.trim().toLowerCase();
   return config.testRecipientAllowlist.includes(normalized);
+}
+
+export function isValidPublicBaseUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.hostname === "localhost" || url.hostname === "127.0.0.1";
+  } catch {
+    return false;
+  }
 }

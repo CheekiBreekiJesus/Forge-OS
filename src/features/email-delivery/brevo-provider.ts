@@ -46,6 +46,9 @@ export class BrevoEmailDeliveryProvider implements EmailDeliveryProvider {
     if (request.mode === "provider_test" && !isAllowlistedTestRecipient(this.config, request.toEmail)) {
       return blocked("recipient_not_allowed", "The test recipient is not allowlisted.");
     }
+    if (!request.unsubscribeUrl?.trim()) {
+      return blocked("invalid_request", "Real provider delivery requires a valid unsubscribe URL.");
+    }
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.config.timeoutMs);
@@ -105,8 +108,9 @@ export class BrevoEmailDeliveryProvider implements EmailDeliveryProvider {
   }
 
   private buildPayload(request: EmailDeliveryRequest) {
+    const unsubscribeUrl = request.unsubscribeUrl ?? "";
     const payload: Record<string, unknown> = {
-      htmlContent: request.html?.trim() ? request.html : undefined,
+      htmlContent: appendHtmlUnsubscribe(request.html, unsubscribeUrl),
       replyTo: this.config.brevoReplyTo
         ? { email: this.config.brevoReplyTo, name: this.config.brevoSenderName }
         : undefined,
@@ -115,7 +119,12 @@ export class BrevoEmailDeliveryProvider implements EmailDeliveryProvider {
         name: this.config.brevoSenderName
       },
       subject: request.subject,
-      textContent: request.plainText,
+      tags: [
+        `tenant:${request.tenantId}`,
+        `campaign:${request.campaignId}`,
+        `recipient:${request.campaignRecipientId}`
+      ],
+      textContent: appendTextUnsubscribe(request.plainText, unsubscribeUrl),
       to: [
         {
           email: request.toEmail,
@@ -126,6 +135,19 @@ export class BrevoEmailDeliveryProvider implements EmailDeliveryProvider {
 
     return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
   }
+}
+
+function appendTextUnsubscribe(content: string, unsubscribeUrl: string): string {
+  return `${content.trim()}\n\n--\nOpt-out: ${unsubscribeUrl}`;
+}
+
+function appendHtmlUnsubscribe(content: string | undefined, unsubscribeUrl: string): string | undefined {
+  if (!content?.trim()) return undefined;
+  return `${content.trim()}<p><a href="${escapeHtml(unsubscribeUrl)}">Opt out of future outreach</a></p>`;
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 function blocked(

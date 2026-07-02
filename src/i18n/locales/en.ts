@@ -1006,6 +1006,13 @@ export const dictionary: Dictionary = {
           EXCLUDED: "Excluded",
           OPENED_EXTERNALLY: "Opened externally",
           SENT_MANUALLY: "Sent manually",
+          DELIVERED: "Delivered",
+          SOFT_BOUNCED: "Soft bounced",
+          HARD_BOUNCED: "Hard bounced",
+          COMPLAINED: "Complaint",
+          UNSUBSCRIBED: "Unsubscribed",
+          DELIVERY_FAILED: "Delivery failed",
+          DEFERRED: "Deferred",
           SKIPPED: "Skipped",
           SUPPRESSED: "Suppressed"
         },
@@ -1072,6 +1079,16 @@ export const dictionary: Dictionary = {
         skipped: "Skipped"
       }
     },
+    providerEvents: {
+      title: "Provider events",
+      description: "Recent delivery, bounce, complaint, unsubscribe, and unknown provider events with sanitized metadata.",
+      empty: "No provider events recorded yet.",
+      eventType: "Event",
+      status: "Processing",
+      effect: "Effect",
+      receivedAt: "Received",
+      message: "Message"
+    },
     suppression: {
       title: "Suppression list",
       description: "Blocked emails cannot be approved, opened in Gmail/Outlook, or marked sent until suppression is removed where permitted.",
@@ -1095,6 +1112,8 @@ export const dictionary: Dictionary = {
       reasons: {
         manual: "Manual",
         unsubscribe: "Unsubscribe",
+        hard_bounce: "Hard bounce",
+        complaint: "Complaint",
         invalid_address: "Invalid address",
         duplicate: "Duplicate",
         legal_request: "Legal request",
@@ -1105,6 +1124,8 @@ export const dictionary: Dictionary = {
         import: "Import",
         campaign: "Campaign",
         lead_detail: "Lead detail",
+        provider_webhook: "Provider webhook",
+        public_unsubscribe: "Public unsubscribe",
         system: "System"
       },
       columns: {

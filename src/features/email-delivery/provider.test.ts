@@ -16,7 +16,8 @@ const request: EmailDeliveryRequest = {
   subject: "ForgeOS test",
   tenantId: "tenant_jh_gomes",
   toEmail: "qa@example.com",
-  toName: "QA"
+  toName: "QA",
+  unsubscribeUrl: "https://forgeos.example/pt-PT/unsubscribe?token=test-token"
 };
 
 afterEach(() => {
@@ -42,6 +43,9 @@ describe("email delivery configuration", () => {
       BREVO_SENDER_EMAIL: "sender@example.com",
       BREVO_SENDER_NAME: "ForgeOS",
       EMAIL_DELIVERY_PROVIDER: "brevo",
+      FORGEOS_PUBLIC_BASE_URL: "https://forgeos.example",
+      OUTREACH_UNSUBSCRIBE_SECRET: "test-secret-with-enough-entropy-for-hmac-signing",
+      BREVO_WEBHOOK_SECRET: "test-webhook-secret-with-enough-entropy",
       OUTREACH_REAL_SEND_ENABLED: "true",
       OUTREACH_TEST_RECIPIENT_ALLOWLIST: "qa@example.com, QA@example.com",
       OUTREACH_TEST_SEND_ENABLED: "true"
@@ -64,6 +68,9 @@ describe("BrevoEmailDeliveryProvider", () => {
         BREVO_SENDER_EMAIL: "sender@example.com",
         BREVO_SENDER_NAME: "ForgeOS",
         EMAIL_DELIVERY_PROVIDER: "brevo",
+        FORGEOS_PUBLIC_BASE_URL: "https://forgeos.example",
+        OUTREACH_UNSUBSCRIBE_SECRET: "test-secret-with-enough-entropy-for-hmac-signing",
+        BREVO_WEBHOOK_SECRET: "test-webhook-secret-with-enough-entropy",
         OUTREACH_REAL_SEND_ENABLED: "false",
         OUTREACH_TEST_RECIPIENT_ALLOWLIST: "qa@example.com",
         OUTREACH_TEST_SEND_ENABLED: "true"
@@ -85,6 +92,9 @@ describe("BrevoEmailDeliveryProvider", () => {
         BREVO_SENDER_EMAIL: "sender@example.com",
         BREVO_SENDER_NAME: "ForgeOS",
         EMAIL_DELIVERY_PROVIDER: "brevo",
+        FORGEOS_PUBLIC_BASE_URL: "https://forgeos.example",
+        OUTREACH_UNSUBSCRIBE_SECRET: "test-secret-with-enough-entropy-for-hmac-signing",
+        BREVO_WEBHOOK_SECRET: "test-webhook-secret-with-enough-entropy",
         OUTREACH_REAL_SEND_ENABLED: "true",
         OUTREACH_TEST_RECIPIENT_ALLOWLIST: "other@example.com",
         OUTREACH_TEST_SEND_ENABLED: "true"
@@ -110,6 +120,9 @@ describe("BrevoEmailDeliveryProvider", () => {
         BREVO_SENDER_EMAIL: "sender@example.com",
         BREVO_SENDER_NAME: "ForgeOS",
         EMAIL_DELIVERY_PROVIDER: "brevo",
+        FORGEOS_PUBLIC_BASE_URL: "https://forgeos.example",
+        OUTREACH_UNSUBSCRIBE_SECRET: "test-secret-with-enough-entropy-for-hmac-signing",
+        BREVO_WEBHOOK_SECRET: "test-webhook-secret-with-enough-entropy",
         OUTREACH_REAL_SEND_ENABLED: "true",
         OUTREACH_TEST_RECIPIENT_ALLOWLIST: "qa@example.com",
         OUTREACH_TEST_SEND_ENABLED: "true"
@@ -128,8 +141,8 @@ describe("BrevoEmailDeliveryProvider", () => {
     expect(body.replyTo).toEqual({ email: "reply@example.com", name: "ForgeOS" });
     expect(body.to).toEqual([{ email: "qa@example.com", name: "QA" }]);
     expect(body.subject).toBe("ForgeOS test");
-    expect(body.textContent).toBe("Hello");
-    expect(body.htmlContent).toBe("<p>Hello</p>");
+    expect(body.textContent).toContain("Opt-out: https://forgeos.example/pt-PT/unsubscribe?token=test-token");
+    expect(body.htmlContent).toContain("Opt out of future outreach");
   });
 
   it("sanitizes provider error messages and classifies rate limits as retryable", async () => {
@@ -145,6 +158,9 @@ describe("BrevoEmailDeliveryProvider", () => {
         BREVO_SENDER_EMAIL: "sender@example.com",
         BREVO_SENDER_NAME: "ForgeOS",
         EMAIL_DELIVERY_PROVIDER: "brevo",
+        FORGEOS_PUBLIC_BASE_URL: "https://forgeos.example",
+        OUTREACH_UNSUBSCRIBE_SECRET: "test-secret-with-enough-entropy-for-hmac-signing",
+        BREVO_WEBHOOK_SECRET: "test-webhook-secret-with-enough-entropy",
         OUTREACH_REAL_SEND_ENABLED: "true",
         OUTREACH_TEST_RECIPIENT_ALLOWLIST: "qa@example.com",
         OUTREACH_TEST_SEND_ENABLED: "true"

@@ -24,7 +24,7 @@ import type {
 } from "@/domain/profile-types";
 import type { CustomizerSimulation } from "@/domain/customizer-types";
 import type { CampaignRecipient, OutreachCampaign } from "@/domain/campaign-types";
-import type { OutreachSendAttempt } from "@/domain/email-delivery-types";
+import type { OutreachProviderEvent, OutreachSendAttempt } from "@/domain/email-delivery-types";
 import type { EmailSuppression } from "@/domain/suppression-types";
 import type { ImportBatch, ImportRow, LeadContact } from "@/domain/import-types";
 import type { Product } from "@/domain/product-types";
@@ -65,6 +65,7 @@ export class ForgeOSDatabase extends Dexie {
   leadContacts!: Table<LeadContact, string>;
   emailSuppressions!: Table<EmailSuppression, string>;
   outreachSendAttempts!: Table<OutreachSendAttempt, string>;
+  outreachProviderEvents!: Table<OutreachProviderEvent, string>;
 
   constructor(name: string = LOCAL_DB_NAME) {
     super(name);
@@ -475,7 +476,9 @@ export class ForgeOSDatabase extends Dexie {
         emailSuppressions:
           "id, tenantId, normalizedEmail, reason, source, active, campaignId, leadId, [tenantId+normalizedEmail], [tenantId+reason], [tenantId+source]",
         outreachSendAttempts:
-          "id, tenantId, provider, deliveryMode, campaignId, campaignRecipientId, leadId, idempotencyKey, status, startedAt, [tenantId+campaignId], [tenantId+campaignRecipientId], [tenantId+idempotencyKey], [tenantId+status]"
+          "id, tenantId, provider, deliveryMode, campaignId, campaignRecipientId, leadId, idempotencyKey, status, startedAt, providerMessageId, [tenantId+campaignId], [tenantId+campaignRecipientId], [tenantId+idempotencyKey], [tenantId+status]",
+        outreachProviderEvents:
+          "id, tenantId, provider, eventFingerprint, providerMessageId, eventType, receivedAt, campaignRecipientId, sendAttemptId, processingStatus, [tenantId+eventFingerprint], [tenantId+eventType], [tenantId+processingStatus], [tenantId+campaignRecipientId]"
       })
       .upgrade(async (tx) => {
         await tx.table("meta").put({ key: "schemaVersion", value: String(SCHEMA_VERSION) });

@@ -1,6 +1,6 @@
 import type { EmailSuppression } from "@/domain/suppression-types";
 import type { CampaignRecipient } from "@/domain/campaign-types";
-import type { OutreachSendAttempt } from "@/domain/email-delivery-types";
+import type { OutreachProviderEvent, OutreachSendAttempt } from "@/domain/email-delivery-types";
 import type { ImportBatch, ImportRow, LeadContact } from "@/domain/import-types";
 import type { ForgeOSBackup } from "@/features/backup/service";
 
@@ -10,6 +10,7 @@ export type BackupRestoreReport = {
   orphanedSuppressions: number;
   orphanedLeadContacts: number;
   orphanedSendAttempts: number;
+  orphanedProviderEvents: number;
   warnings: string[];
 };
 
@@ -21,6 +22,7 @@ export function validateBackupRestoreIntegrity(backup: ForgeOSBackup): BackupRes
   const suppressions = backup.tables.emailSuppressions ?? [];
   const contacts = backup.tables.leadContacts ?? [];
   const attempts = backup.tables.outreachSendAttempts ?? [];
+  const events = backup.tables.outreachProviderEvents ?? [];
 
   const orphanedCampaignRecipients = recipients.filter(
     (row) => !leadIds.has(row.leadId) || !campaignIds.has(row.campaignId)
@@ -32,6 +34,14 @@ export function validateBackupRestoreIntegrity(backup: ForgeOSBackup): BackupRes
   const recipientIds = new Set(recipients.map((row) => row.id));
   const orphanedSendAttempts = attempts.filter(
     (row) => !leadIds.has(row.leadId) || !campaignIds.has(row.campaignId) || !recipientIds.has(row.campaignRecipientId)
+  ).length;
+  const attemptIds = new Set(attempts.map((row) => row.id));
+  const orphanedProviderEvents = events.filter(
+    (row) =>
+      (row.leadId != null && !leadIds.has(row.leadId)) ||
+      (row.campaignId != null && !campaignIds.has(row.campaignId)) ||
+      (row.campaignRecipientId != null && !recipientIds.has(row.campaignRecipientId)) ||
+      (row.sendAttemptId != null && !attemptIds.has(row.sendAttemptId))
   ).length;
 
   if (orphanedCampaignRecipients > 0) {
@@ -46,6 +56,9 @@ export function validateBackupRestoreIntegrity(backup: ForgeOSBackup): BackupRes
   if (orphanedSendAttempts > 0) {
     warnings.push(`${orphanedSendAttempts} outreach send attempt(s) reference missing lead, campaign, or recipient records.`);
   }
+  if (orphanedProviderEvents > 0) {
+    warnings.push(`${orphanedProviderEvents} provider event(s) reference missing outreach records.`);
+  }
 
   const sentRecipients = recipients.filter((row: CampaignRecipient) => row.draftStatus === "SENT_MANUALLY");
   const missingIdempotency = sentRecipients.filter((row) => !row.sendIdempotencyKey).length;
@@ -59,6 +72,7 @@ export function validateBackupRestoreIntegrity(backup: ForgeOSBackup): BackupRes
     orphanedSuppressions,
     orphanedLeadContacts,
     orphanedSendAttempts,
+    orphanedProviderEvents,
     warnings
   };
 }
@@ -73,7 +87,8 @@ export function normalizeBackupTables(backup: ForgeOSBackup): ForgeOSBackup {
       leadContacts: backup.tables.leadContacts ?? [],
       campaignRecipients: backup.tables.campaignRecipients ?? [],
       emailSuppressions: backup.tables.emailSuppressions ?? [],
-      outreachSendAttempts: backup.tables.outreachSendAttempts ?? []
+      outreachSendAttempts: backup.tables.outreachSendAttempts ?? [],
+      outreachProviderEvents: backup.tables.outreachProviderEvents ?? []
     }
   };
 }
@@ -84,5 +99,6 @@ export type {
   LeadContact,
   CampaignRecipient,
   EmailSuppression,
+  OutreachProviderEvent,
   OutreachSendAttempt
 };

@@ -21,6 +21,11 @@ Manual outreach release candidate for ForgeOS LeadOps (local-first, Gmail/Outloo
 | Templates/drafts | [templates-and-drafts.md](./templates-and-drafts.md) |
 | Review/approval | [review-and-manual-send.md](./review-and-manual-send.md) |
 | Suppression | [compliance-and-suppression.md](./compliance-and-suppression.md) |
+| Durable unsubscribe | [unsubscribe.md](./unsubscribe.md) |
+| Brevo webhooks | [brevo-webhooks.md](./brevo-webhooks.md) |
+| Event reconciliation | [event-reconciliation.md](./event-reconciliation.md) |
+| Suppression source of truth | [suppression-source-of-truth.md](./suppression-source-of-truth.md) |
+| Public endpoint security | [security-review.md](./security-review.md) |
 | Troubleshooting | [troubleshooting.md](./troubleshooting.md) |
 
 ## Release checkpoint
@@ -29,8 +34,8 @@ See [docs/checkpoints/email-outreach-status.md](../checkpoints/email-outreach-st
 
 ## Out of scope (this milestone)
 
-- Live Brevo/provider delivery
-- Provider webhooks and bounce/complaint automation
+- Authorized live Brevo/provider delivery
+- Automatic production campaign batches
 - Automated scheduling and bulk auto-send
 - Website enrichment and image generation
 - Marketing Studio integration

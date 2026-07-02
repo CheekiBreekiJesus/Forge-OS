@@ -8,6 +8,7 @@ import { AppFrame, panelClass } from "@/components/app-frame";
 import { CampaignTemplateDraftsPanel } from "@/components/campaign-template-drafts-panel";
 import { computeCampaignProgress } from "@/application/campaign-approval-service";
 import type { CampaignRecipient, OutreachCampaign } from "@/domain/campaign-types";
+import type { OutreachProviderEvent } from "@/domain/email-delivery-types";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { usePersistence } from "@/persistence/provider";
@@ -27,6 +28,7 @@ export function LeadOpsCampaignDetailShell({
   const { state, tenantId, notifyDataChanged } = usePersistence();
   const [campaign, setCampaign] = useState<OutreachCampaign | null>(null);
   const [recipients, setRecipients] = useState<CampaignRecipient[]>([]);
+  const [providerEvents, setProviderEvents] = useState<OutreachProviderEvent[]>([]);
   const [refreshDiff, setRefreshDiff] = useState<string | null>(null);
   const [confirmRefresh, setConfirmRefresh] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -37,9 +39,11 @@ export function LeadOpsCampaignDetailShell({
     void (async () => {
       const row = await state.repos.campaigns.getById(tenantId, campaignId);
       const snapshot = await state.repos.campaignRecipients.listForCampaign(tenantId, campaignId);
+      const events = await state.repos.outreachProviderEvents.listRecent(tenantId, 25);
       if (cancelled) return;
       setCampaign(row);
       setRecipients(snapshot);
+      setProviderEvents(events.filter((event) => event.campaignId === campaignId));
     })();
     return () => {
       cancelled = true;
@@ -50,8 +54,10 @@ export function LeadOpsCampaignDetailShell({
     if (state.status !== "ready") return;
     const row = await state.repos.campaigns.getById(tenantId, campaignId);
     const snapshot = await state.repos.campaignRecipients.listForCampaign(tenantId, campaignId);
+    const events = await state.repos.outreachProviderEvents.listRecent(tenantId, 25);
     setCampaign(row);
     setRecipients(snapshot);
+    setProviderEvents(events.filter((event) => event.campaignId === campaignId));
   };
 
   const included = useMemo(() => recipients.filter((row) => row.status === "included"), [recipients]);
@@ -220,6 +226,39 @@ export function LeadOpsCampaignDetailShell({
             <ProgressItem label={progressCopy.suppressed} value={progress.suppressed} />
             <ProgressItem label={progressCopy.skipped} value={progress.skipped} />
           </div>
+        </section>
+
+        <section className={`${panelClass} p-5 xl:col-span-2`} data-testid="provider-events-panel">
+          <h2 className="text-lg font-bold">{copy.providerEvents.title}</h2>
+          <p className="mt-2 text-sm text-slate-400">{copy.providerEvents.description}</p>
+          {providerEvents.length === 0 ? (
+            <p className="mt-4 text-sm text-slate-500">{copy.providerEvents.empty}</p>
+          ) : (
+            <div className="mt-4 overflow-x-auto">
+              <table className="min-w-full text-left text-sm">
+                <thead className="text-slate-400">
+                  <tr>
+                    <th className="px-3 py-2">{copy.providerEvents.eventType}</th>
+                    <th className="px-3 py-2">{copy.providerEvents.status}</th>
+                    <th className="px-3 py-2">{copy.providerEvents.effect}</th>
+                    <th className="px-3 py-2">{copy.providerEvents.message}</th>
+                    <th className="px-3 py-2">{copy.providerEvents.receivedAt}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {providerEvents.map((event) => (
+                    <tr className="border-t border-slate-800" key={event.id}>
+                      <td className="px-3 py-2">{event.eventType}</td>
+                      <td className="px-3 py-2">{event.processingStatus}</td>
+                      <td className="px-3 py-2">{event.effect}</td>
+                      <td className="px-3 py-2">{event.providerMessageId ? "recorded" : "unmatched"}</td>
+                      <td className="px-3 py-2">{new Date(event.receivedAt).toLocaleString(locale)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
 
         {state.status === "ready" ? (

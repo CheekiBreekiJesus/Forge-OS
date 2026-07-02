@@ -1006,6 +1006,13 @@ export const dictionary: Dictionary = {
           EXCLUDED: "Excluído",
           OPENED_EXTERNALLY: "Aberto externamente",
           SENT_MANUALLY: "Enviado manualmente",
+          DELIVERED: "Entregue",
+          SOFT_BOUNCED: "Bounce temporario",
+          HARD_BOUNCED: "Bounce definitivo",
+          COMPLAINED: "Reclamacao",
+          UNSUBSCRIBED: "Cancelado",
+          DELIVERY_FAILED: "Falha de entrega",
+          DEFERRED: "Adiado",
           SKIPPED: "Ignorado",
           SUPPRESSED: "Suprimido"
         },
@@ -1072,6 +1079,16 @@ export const dictionary: Dictionary = {
         skipped: "Ignorados"
       }
     },
+    providerEvents: {
+      title: "Eventos do fornecedor",
+      description: "Eventos recentes de entrega, bounce, reclamacao, cancelamento e desconhecidos com metadados sanitizados.",
+      empty: "Ainda nao ha eventos do fornecedor.",
+      eventType: "Evento",
+      status: "Processamento",
+      effect: "Efeito",
+      receivedAt: "Recebido",
+      message: "Mensagem"
+    },
     suppression: {
       title: "Lista de supressão",
       description: "Emails bloqueados não podem ser aprovados, abertos no Gmail/Outlook ou marcados como enviados até remoção permitida.",
@@ -1095,6 +1112,8 @@ export const dictionary: Dictionary = {
       reasons: {
         manual: "Manual",
         unsubscribe: "Cancelamento",
+        hard_bounce: "Bounce definitivo",
+        complaint: "Reclamacao",
         invalid_address: "Endereço inválido",
         duplicate: "Duplicado",
         legal_request: "Pedido legal",
@@ -1105,6 +1124,8 @@ export const dictionary: Dictionary = {
         import: "Importação",
         campaign: "Campanha",
         lead_detail: "Detalhe do lead",
+        provider_webhook: "Webhook do fornecedor",
+        public_unsubscribe: "Cancelamento publico",
         system: "Sistema"
       },
       columns: {

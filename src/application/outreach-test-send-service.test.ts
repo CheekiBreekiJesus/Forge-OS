@@ -112,6 +112,9 @@ function createProvider(): EmailDeliveryProvider {
       senderEmailConfigured: true,
       senderNameConfigured: true,
       testSendEnabled: true,
+      publicBaseUrlConfigured: true,
+      unsubscribeSecretConfigured: true,
+      webhookSecretConfigured: true,
       warnings: []
     })),
     send: vi.fn(async () => ({
@@ -128,6 +131,8 @@ function createProvider(): EmailDeliveryProvider {
 
 describe("protected outreach test send service", () => {
   it("persists TEST_SENT attempt without marking the original lead sent", async () => {
+    vi.stubEnv("FORGEOS_PUBLIC_BASE_URL", "https://forgeos.example");
+    vi.stubEnv("OUTREACH_UNSUBSCRIBE_SECRET", "test-secret-with-enough-entropy-for-hmac-signing");
     const recipient = approvedRecipient();
     const repos = createRepos(recipient);
     const provider = createProvider();
@@ -143,6 +148,7 @@ describe("protected outreach test send service", () => {
 
     expect(result.delivery.status).toBe("accepted");
     expect(provider.send).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(provider.send).mock.calls[0]?.[0].unsubscribeUrl).toContain("/pt-PT/unsubscribe?token=");
     expect(repos.outreachSendAttempts.create).toHaveBeenCalledWith(
       expect.objectContaining({
         actualDestinationEmail: "qa@example.com",
@@ -156,6 +162,8 @@ describe("protected outreach test send service", () => {
   });
 
   it("returns an existing result for duplicate idempotency without calling provider", async () => {
+    vi.stubEnv("FORGEOS_PUBLIC_BASE_URL", "https://forgeos.example");
+    vi.stubEnv("OUTREACH_UNSUBSCRIBE_SECRET", "test-secret-with-enough-entropy-for-hmac-signing");
     const recipient = approvedRecipient();
     const key = buildTestSendIdempotencyKey(campaign.id, recipient, "qa@example.com");
     const repos = createRepos(recipient);

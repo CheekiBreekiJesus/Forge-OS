@@ -647,6 +647,13 @@ export type Dictionary = {
           | "EXCLUDED"
           | "OPENED_EXTERNALLY"
           | "SENT_MANUALLY"
+          | "DELIVERED"
+          | "SOFT_BOUNCED"
+          | "HARD_BOUNCED"
+          | "COMPLAINED"
+          | "UNSUBSCRIBED"
+          | "DELIVERY_FAILED"
+          | "DEFERRED"
           | "SKIPPED"
           | "SUPPRESSED",
           string
@@ -714,6 +721,16 @@ export type Dictionary = {
         skipped: string;
       };
     };
+    providerEvents: {
+      title: string;
+      description: string;
+      empty: string;
+      eventType: string;
+      status: string;
+      effect: string;
+      receivedAt: string;
+      message: string;
+    };
     suppression: {
       title: string;
       description: string;
@@ -735,10 +752,20 @@ export type Dictionary = {
       viewContact: string;
       viewCampaign: string;
       reasons: Record<
-        "manual" | "unsubscribe" | "invalid_address" | "duplicate" | "legal_request" | "other",
+        | "manual"
+        | "unsubscribe"
+        | "hard_bounce"
+        | "complaint"
+        | "invalid_address"
+        | "duplicate"
+        | "legal_request"
+        | "other",
         string
       >;
-      sources: Record<"operator" | "import" | "campaign" | "lead_detail" | "system", string>;
+      sources: Record<
+        "operator" | "import" | "campaign" | "lead_detail" | "provider_webhook" | "public_unsubscribe" | "system",
+        string
+      >;
       columns: {
         email: string;
         reason: string;

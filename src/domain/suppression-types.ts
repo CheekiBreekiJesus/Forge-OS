@@ -13,6 +13,8 @@ export type SuppressionSource =
   | "import"
   | "campaign"
   | "lead_detail"
+  | "provider_webhook"
+  | "public_unsubscribe"
   | "system";
 
 export type EmailSuppression = {

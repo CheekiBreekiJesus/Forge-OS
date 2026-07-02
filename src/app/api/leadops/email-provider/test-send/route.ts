@@ -39,6 +39,7 @@ function parsePayload(payload: unknown): EmailDeliveryRequest | null {
   if (!value.approvedContentHash || !value.idempotencyKey) return null;
   if (!EMAIL_RE.test(value.toEmail)) return null;
   if (!value.subject.trim() || !value.plainText.trim()) return null;
+  if (!value.unsubscribeUrl?.trim()) return null;
 
   return {
     approvedContentHash: value.approvedContentHash,
@@ -53,6 +54,7 @@ function parsePayload(payload: unknown): EmailDeliveryRequest | null {
     subject: value.subject,
     tenantId: value.tenantId,
     toEmail: value.toEmail.trim().toLowerCase(),
-    toName: value.toName || value.toEmail
+    toName: value.toName || value.toEmail,
+    unsubscribeUrl: value.unsubscribeUrl
   };
 }

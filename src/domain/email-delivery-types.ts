@@ -36,6 +36,9 @@ export type EmailProviderDiagnostic = {
   replyToConfigured: boolean;
   allowlistConfigured: boolean;
   allowlistCount: number;
+  publicBaseUrlConfigured: boolean;
+  unsubscribeSecretConfigured: boolean;
+  webhookSecretConfigured: boolean;
   missing: string[];
   warnings: string[];
 };
@@ -52,6 +55,7 @@ export type EmailDeliveryRequest = {
   subject: string;
   plainText: string;
   html?: string;
+  unsubscribeUrl?: string;
   initiatedBy: string;
   mode: EmailDeliveryMode;
 };
@@ -94,3 +98,78 @@ export type OutreachSendAttempt = {
 };
 
 export type CreateOutreachSendAttemptInput = Omit<OutreachSendAttempt, "id">;
+
+export type ProviderEventType =
+  | "sent"
+  | "delivered"
+  | "soft_bounce"
+  | "hard_bounce"
+  | "complaint"
+  | "unsubscribe"
+  | "failed"
+  | "deferred"
+  | "blocked"
+  | "invalid_email"
+  | "opened"
+  | "clicked"
+  | "unknown";
+
+export type ProviderEventProcessingStatus =
+  | "processed"
+  | "duplicate"
+  | "ignored"
+  | "unmatched"
+  | "failed";
+
+export type ProviderEventEffect =
+  | "none"
+  | "marked_delivered"
+  | "marked_soft_bounced"
+  | "suppressed_hard_bounce"
+  | "suppressed_complaint"
+  | "suppressed_unsubscribe"
+  | "marked_failed"
+  | "marked_deferred";
+
+export type OutreachProviderEvent = {
+  id: string;
+  tenantId: string;
+  provider: EmailDeliveryProviderKey;
+  providerEventId: string | null;
+  eventFingerprint: string;
+  providerMessageId: string | null;
+  eventType: ProviderEventType;
+  occurredAt: string;
+  receivedAt: string;
+  campaignId: string | null;
+  campaignRecipientId: string | null;
+  leadId: string | null;
+  sendAttemptId: string | null;
+  normalizedEmail: string | null;
+  sanitizedMetadata: Record<string, string | number | boolean | null>;
+  processingStatus: ProviderEventProcessingStatus;
+  effect: ProviderEventEffect;
+  duplicate: boolean;
+  errorMessage: string | null;
+};
+
+export type CreateOutreachProviderEventInput = Omit<OutreachProviderEvent, "id">;
+
+export type PublicUnsubscribeTokenVersion = 1;
+
+export type PublicUnsubscribeTokenClaims = {
+  version: PublicUnsubscribeTokenVersion;
+  tenantId: string;
+  campaignId: string;
+  campaignRecipientId: string;
+  leadId: string;
+  emailHash: string;
+  issuedAt: number;
+  expiresAt: number | null;
+};
+
+export type PublicUnsubscribeResult =
+  | "confirmed"
+  | "already_unsubscribed"
+  | "invalid_token"
+  | "durable_store_unavailable";
