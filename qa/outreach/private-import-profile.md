@@ -15,6 +15,26 @@ No email addresses, contact names, or row-level data are recorded here.
 | Total data rows (all sheets) | ~3,500+ |
 | Multi-sheet workbooks | 2 |
 
+## Private acceptance run (2026-07-02)
+
+| Metric | Value |
+|--------|-------|
+| Workbook category | municipalities-cafes-events-combined |
+| Selected sheet | Municipalidades (sheet 1 of 5) |
+| Sheet options listed | 5 |
+| Mapping profile | Municipalities |
+| Mapped fields | 6 |
+| Total rows | 271 |
+| Valid rows | 271 |
+| Invalid rows | 0 |
+| Missing-email rows | 0 |
+| Exact duplicates | 0 |
+| Possible duplicates | 0 |
+| Imported organizations | 271 |
+| Skipped on import | 0 |
+| Persistence after reload | pass (271 stored; 25 visible per page) |
+| Defect found | stale mapping after sheet switch (fixed) |
+
 ## Files (sanitized labels)
 
 | Source label | Format | Sheets | Approx rows | Missing email rows | Possible dup emails |
@@ -66,9 +86,11 @@ Raw machine-readable aggregate: `qa/outreach/private-import-profile.raw.json` (g
 - Some sheets use Spanish header spellings (`Nombre`, `Ciudad`, `Telefono`)
 - Merged/sparse header rows in parish reference sheet (no emails — reference data only)
 - Duplicate emails appear within single sheets (10–40 rows per file in larger sets)
+- **Operator note:** after switching XLSX sheets, re-apply the mapping profile so headers match the active sheet
 
 ## Privacy
 
 - Profiler script: `scripts/data-preparation/profile-lead-files.mjs`
+- Private acceptance runner: `scripts/qa/private-import-acceptance.ts` (aggregate output only)
 - No private files copied into the repository
 - No emails printed in logs or committed reports
