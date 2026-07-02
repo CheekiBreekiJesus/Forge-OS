@@ -1,5 +1,6 @@
 import type {
   ImportFieldMapping,
+  ImportMappingProfile,
   ImportRow,
   ImportRowValues
 } from "@/domain/import-types";
@@ -11,11 +12,16 @@ import {
   type ParsedImportRowInput
 } from "@/features/leadops/import-deduplication";
 import {
-  mapRowsToInput,
+  mapRowsWithOriginal,
   MAX_IMPORT_ROWS,
   parseImportFile,
+  type ParseImportFileOptions,
   validateImportFile
 } from "@/features/leadops/import-file-parser";
+import {
+  applyMappingProfileDefaults,
+  mergeProfileOntoRowDefaults
+} from "@/features/leadops/import-mapping-profiles";
 import {
   normalizePhone,
   normalizeWebsite
@@ -33,6 +39,10 @@ export type ImportPreviewResult = {
   mapping: ImportFieldMapping;
   fileFingerprint: string;
   repeatImportWarning: boolean;
+  availableSheets: string[];
+  selectedSheet: string | null;
+  csvDelimiter: "," | ";" | "\t" | null;
+  encoding: "utf-8" | "windows-1252" | "binary";
   rows: ImportPreviewRow[];
   counts: {
     totalRows: number;
@@ -42,6 +52,11 @@ export type ImportPreviewResult = {
     possibleDuplicateRows: number;
     missingEmailRows: number;
   };
+};
+
+export type BuildImportPreviewOptions = ParseImportFileOptions & {
+  mappingProfileId?: string;
+  importedBy?: string;
 };
 
 export type ImportConfirmOptions = {
@@ -65,27 +80,67 @@ export async function buildImportPreview(
   repos: LocalRepositoryBundle,
   tenantId: string,
   file: File,
-  mappingOverride?: ImportFieldMapping
+  options: BuildImportPreviewOptions = {}
 ): Promise<ImportPreviewResult> {
   const validationError = validateImportFile(file);
   if (validationError) {
     throw new PersistenceError("invalid_transition", validationError);
   }
 
-  const parsed = await parseImportFile(file, mappingOverride);
+  await repos.importMappingProfiles.ensureBuiltins(tenantId);
+
+  let mappingOverride = options.mappingOverride;
+  let mappingProfileLabel: string | null = null;
+  if (options.mappingProfileId) {
+    const profile = await repos.importMappingProfiles.getById(tenantId, options.mappingProfileId);
+    if (profile) {
+      mappingProfileLabel = profile.label;
+      mappingOverride = applyMappingProfileDefaults(mappingOverride ?? {}, profile);
+    }
+  }
+
+  const parsed = await parseImportFile(file, {
+    ...options,
+    mappingOverride
+  });
   if (parsed.rows.length > MAX_IMPORT_ROWS) {
     throw new PersistenceError("invalid_transition", "Import exceeds maximum row count.");
   }
 
-  const mappedRows = mapRowsToInput(parsed.headers, parsed.rows, parsed.detectedMapping);
-  const fingerprint = await computeFileFingerprint(JSON.stringify(mappedRows));
+  const mappedRows = mapRowsWithOriginal(parsed.headers, parsed.rows, parsed.detectedMapping);
+
+  let profileDefaults: Pick<
+    ImportMappingProfile,
+    "defaultCategory" | "defaultCountry" | "defaultSource" | "normalizationOptions"
+  > | null = null;
+  if (options.mappingProfileId) {
+    const profile = await repos.importMappingProfiles.getById(tenantId, options.mappingProfileId);
+    if (profile) {
+      profileDefaults = profile;
+    }
+  }
+
+  const normalizedRows = mappedRows.map(({ original, normalized }) => ({
+    original,
+    normalized: profileDefaults ? mergeProfileOntoRowDefaults(normalized, profileDefaults) : normalized
+  }));
+
+  const fingerprint = await computeFileFingerprint(
+    JSON.stringify({
+      sheet: parsed.selectedSheet,
+      delimiter: parsed.csvDelimiter,
+      mapping: parsed.detectedMapping,
+      rows: normalizedRows.map((row) => row.normalized)
+    })
+  );
   const previousBatch = await repos.importBatches.findCompletedByFingerprint(tenantId, fingerprint);
 
   const [leads, contacts] = await Promise.all([
     repos.leads.list(tenantId),
     repos.leadContacts.list(tenantId)
   ]);
-  const fileDuplicateEmails = findFileDuplicateEmails(mappedRows);
+  const normalizedOnly = normalizedRows.map((row) => row.normalized);
+  const fileDuplicateEmails = findFileDuplicateEmails(normalizedOnly);
   const seenFileEmails = new Set<string>();
 
   const batch = await repos.importBatches.create(tenantId, {
@@ -94,7 +149,12 @@ export async function buildImportPreview(
     source: "lead-import",
     fileFingerprint: fingerprint,
     mapping: parsed.detectedMapping,
-    totalRows: mappedRows.length,
+    mappingProfileId: options.mappingProfileId ?? null,
+    mappingProfileLabel,
+    sheetName: parsed.selectedSheet,
+    csvDelimiter: parsed.csvDelimiter,
+    importedBy: options.importedBy ?? null,
+    totalRows: normalizedRows.length,
     validRows: 0,
     invalidRows: 0,
     duplicateRows: 0,
@@ -105,13 +165,13 @@ export async function buildImportPreview(
     skippedRows: 0
   });
 
-  const previewRows: ImportPreviewRow[] = mappedRows.map((row, index) => {
-    const email = row.email.toLowerCase();
+  const previewRows: ImportPreviewRow[] = normalizedRows.map(({ original, normalized }, index) => {
+    const email = normalized.email.toLowerCase();
     const isRepeatInFile =
       email.length > 0 && seenFileEmails.has(email) && fileDuplicateEmails.has(email);
     if (email) seenFileEmails.add(email);
 
-    let analysis = analyzeImportRow(row, { leads, contacts }, fileDuplicateEmails);
+    let analysis = analyzeImportRow(normalized, { leads, contacts }, fileDuplicateEmails);
     if (isRepeatInFile && analysis.status === "valid") {
       analysis = {
         ...analysis,
@@ -125,8 +185,8 @@ export async function buildImportPreview(
       tenantId,
       importBatchId: batch.id,
       rowIndex: index,
-      originalValues: toRowValues(row),
-      normalizedValues: toRowValues(row),
+      originalValues: toRowValues(original),
+      normalizedValues: toRowValues(normalized),
       validationErrors: analysis.validationErrors,
       warnings: analysis.warnings,
       duplicateMatches: analysis.duplicateMatches,
@@ -163,6 +223,10 @@ export async function buildImportPreview(
     mapping: parsed.detectedMapping,
     fileFingerprint: fingerprint,
     repeatImportWarning: Boolean(previousBatch),
+    availableSheets: parsed.availableSheets,
+    selectedSheet: parsed.selectedSheet,
+    csvDelimiter: parsed.csvDelimiter,
+    encoding: parsed.encoding,
     rows: rowsWithDisplay,
     counts
   };
@@ -187,7 +251,7 @@ export async function confirmLeadImport(
       tenantId,
       batch.fileFingerprint
     );
-    if (previous) {
+    if (previous && previous.id !== batchId) {
       throw new PersistenceError(
         "invalid_transition",
         "This file was previously imported. Confirm re-import to continue."
@@ -203,7 +267,7 @@ export async function confirmLeadImport(
 
   for (const row of rows) {
     try {
-      const result = await persistImportRow(repos, tenantId, batchId, row, options);
+      const result = await persistImportRow(repos, tenantId, batch, row, options);
       if (result.skipped) skippedRows += 1;
       if (result.organizationCreated) importedOrganizations += 1;
       if (result.contactCreated) importedContacts += 1;
@@ -228,24 +292,64 @@ export async function confirmLeadImport(
     entityId: batchId,
     action: "lead_created",
     title: `Import completed: ${batch.filename}`,
-    metadata: {
+      metadata: {
       importedOrganizations,
       importedContacts,
-      skippedRows
+      skippedRows,
+      ...(batch.mappingProfileLabel ? { mappingProfileLabel: batch.mappingProfileLabel } : {})
     }
   });
 
   return { importedOrganizations, importedContacts, skippedRows, errors };
 }
 
+export async function listImportHistory(
+  repos: LocalRepositoryBundle,
+  tenantId: string
+) {
+  const batches = await repos.importBatches.list(tenantId);
+  return batches.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export async function getImportBatchSummary(
+  repos: LocalRepositoryBundle,
+  tenantId: string,
+  batchId: string
+) {
+  const batch = await repos.importBatches.getById(tenantId, batchId);
+  if (!batch) return null;
+  const rows = await repos.importRows.listForBatch(tenantId, batchId);
+  const leads = (await repos.leads.list(tenantId)).filter(
+    (lead) => lead.sourceImportId === batchId
+  );
+  return { batch, rows, importedLeadCount: leads.length };
+}
+
+export async function listDuplicateReviewQueue(repos: LocalRepositoryBundle, tenantId: string) {
+  const batches = await repos.importBatches.list(tenantId);
+  const batchById = new Map(batches.map((batch) => [batch.id, batch]));
+  const rows = await Promise.all(
+    batches.map((batch) => repos.importRows.listForBatch(tenantId, batch.id))
+  );
+  return rows
+    .flat()
+    .filter((row) => row.status === "possible_duplicate" && row.proposedAction === "review")
+    .map((row) => ({
+      row,
+      batch: batchById.get(row.importBatchId)!
+    }))
+    .filter((item) => Boolean(item.batch));
+}
+
 async function persistImportRow(
   repos: LocalRepositoryBundle,
   tenantId: string,
-  batchId: string,
+  batch: import("@/domain/import-types").ImportBatch,
   row: ImportRow,
   options: ImportConfirmOptions
 ): Promise<{ skipped: boolean; organizationCreated: boolean; contactCreated: boolean }> {
   const values = row.normalizedValues;
+  const batchId = batch.id;
 
   if (row.status === "invalid") {
     await repos.importRows.update(tenantId, row.id, {
@@ -262,7 +366,7 @@ async function persistImportRow(
   }
 
   if (row.status === "possible_duplicate" && !options.approvePossibleDuplicates?.has(row.rowIndex)) {
-    await repos.importRows.update(tenantId, row.id, { proposedAction: "review" });
+    await repos.importRows.update(tenantId, row.id, { proposedAction: "review", status: "possible_duplicate" });
     return { skipped: true, organizationCreated: false, contactCreated: false };
   }
 
@@ -292,7 +396,7 @@ async function persistImportRow(
     country: values.country,
     industry: values.industry || "General",
     source: "file-import",
-    sourceDatabase: values.sourceDatabase || batchId,
+    sourceDatabase: values.sourceDatabase || batch.mappingProfileLabel || batch.filename,
     sourceImportId: batchId,
     language: values.language || "pt-PT",
     notes: values.notes
@@ -361,4 +465,4 @@ function summarizeRows(rows: ImportPreviewRow[]) {
   };
 }
 
-export { validateImportFile, parseImportFile, mapRowsToInput };
+export { validateImportFile, parseImportFile, mapRowsToInput, mapRowsWithOriginal } from "@/features/leadops/import-file-parser";
