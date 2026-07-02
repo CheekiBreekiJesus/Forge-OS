@@ -109,13 +109,26 @@ export function LeadOpsImportWizard({ copy, onImportComplete }: LeadOpsImportWiz
   async function handleSheetChange(sheetName: string) {
     setSelectedSheet(sheetName);
     if (!selectedFile) return;
-    await runPreview(selectedFile, { sheetName });
+    const profile = profiles.find((entry) => entry.id === selectedProfileId);
+    const nextMapping = profile ? ({ ...profile.headerMappings } as Record<string, string>) : {};
+    setMapping(nextMapping);
+    await runPreview(selectedFile, {
+      sheetName,
+      mappingProfileId: selectedProfileId || undefined,
+      mappingOverride: nextMapping
+    });
   }
 
   async function handleProfileChange(profileId: string) {
     setSelectedProfileId(profileId);
     if (!selectedFile) return;
-    await runPreview(selectedFile, { mappingProfileId: profileId });
+    const profile = profiles.find((entry) => entry.id === profileId);
+    const nextMapping = profile ? ({ ...profile.headerMappings } as Record<string, string>) : {};
+    setMapping(nextMapping);
+    await runPreview(selectedFile, {
+      mappingProfileId: profileId || undefined,
+      mappingOverride: nextMapping
+    });
   }
 
   async function handleConfirmImport() {

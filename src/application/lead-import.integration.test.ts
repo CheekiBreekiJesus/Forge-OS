@@ -8,6 +8,7 @@ import {
 import { getDatabase } from "@/persistence/db";
 import { destroyDatabaseForTests } from "@/persistence/registry";
 import { createLocalRepositoryBundle, seedDatabase } from "@/persistence/indexeddb/repositories";
+import * as XLSX from "xlsx";
 
 const TEST_DB = "forgeos:test:lead-import";
 
@@ -81,5 +82,49 @@ describe("lead import integration", () => {
     );
     const foreign = await repos.importBatches.getById("tenant_other", preview.batchId);
     expect(foreign).toBeNull();
+  });
+
+  it("uses profile header mappings when switching XLSX sheets with different header spellings", async () => {
+    const repos = createLocalRepositoryBundle(getDatabase(TEST_DB));
+    await repos.importMappingProfiles.ensureBuiltins(DEFAULT_TENANT_ID);
+    const profile = (await repos.importMappingProfiles.list(DEFAULT_TENANT_ID)).find(
+      (entry) => entry.label === "Municipalities"
+    );
+    expect(profile).toBeDefined();
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([
+        ["Nombre", "Email"],
+        ["Cafe One", "cafe@example.invalid"]
+      ]),
+      "Hospitality"
+    );
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([
+        ["Name", "Email"],
+        ["Municipality One", "mun@example.invalid"]
+      ]),
+      "Municipalities"
+    );
+    const buffer = XLSX.write(workbook, { type: "array", bookType: "xlsx" });
+    const file = new File([buffer], "multi-header-spellings.xlsx", {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    });
+
+    const hospitalityPreview = await buildImportPreview(repos, DEFAULT_TENANT_ID, file, {
+      sheetName: "Hospitality"
+    });
+    expect(hospitalityPreview.counts.validRows).toBe(1);
+
+    const municipalitiesPreview = await buildImportPreview(repos, DEFAULT_TENANT_ID, file, {
+      sheetName: "Municipalities",
+      mappingProfileId: profile!.id,
+      mappingOverride: { ...profile!.headerMappings }
+    });
+    expect(municipalitiesPreview.counts.validRows).toBe(1);
+    expect(municipalitiesPreview.counts.invalidRows).toBe(0);
   });
 });
