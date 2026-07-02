@@ -5,6 +5,7 @@ import {
   buildLeadManagementContext,
   previewCampaignSegment
 } from "@/application/campaign-segmentation-service";
+import { getImportBatchSummary, listImportHistory } from "@/application/lead-import-service";
 import { CampaignSegmentBuilderDialog } from "@/components/campaign-segment-builder-dialog";
 import { panelClass } from "@/components/app-frame";
 import { getLocalizedLeadDetailHref } from "@/features/leadops/lookup";
@@ -34,6 +35,7 @@ import {
   EMPTY_LEADOPS_FILTERS,
   type LeadOpsFilters
 } from "@/features/leadops/types";
+import type { ImportBatch } from "@/domain/import-types";
 import type { Lead } from "@/domain/types";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
@@ -69,7 +71,9 @@ export function LeadOpsLeadManagementPanel({
   const [context, setContext] = useState<LeadManagementContext | null>(null);
   const [rows, setRows] = useState<LeadManagementRow[]>([]);
   const [importHistoryOpen, setImportHistoryOpen] = useState(false);
-  const [importBatches, setImportBatches] = useState<Array<{ id: string; filename: string; createdAt: string }>>([]);
+  const [importBatches, setImportBatches] = useState<ImportBatch[]>([]);
+  const [selectedImportBatchId, setSelectedImportBatchId] = useState<string | null>(null);
+  const [importSummary, setImportSummary] = useState<Awaited<ReturnType<typeof getImportBatchSummary>>>(null);
   const [segmentOpen, setSegmentOpen] = useState(false);
   const [segmentMode, setSegmentMode] = useState<"filters" | "selection">("filters");
 
@@ -111,15 +115,18 @@ export function LeadOpsLeadManagementPanel({
 
   async function openImportHistory() {
     if (state.status !== "ready") return;
-    const batches = await state.repos.importBatches.list(tenantId);
-    setImportBatches(
-      batches.map((batch) => ({
-        id: batch.id,
-        filename: batch.filename,
-        createdAt: batch.createdAt
-      }))
-    );
+    const batches = await listImportHistory(state.repos, tenantId);
+    setImportBatches(batches);
+    setSelectedImportBatchId(null);
+    setImportSummary(null);
     setImportHistoryOpen(true);
+  }
+
+  async function openImportSummary(batchId: string) {
+    if (state.status !== "ready") return;
+    setSelectedImportBatchId(batchId);
+    const summary = await getImportBatchSummary(state.repos, tenantId, batchId);
+    setImportSummary(summary);
   }
 
   function openSegmentBuilder(mode: "filters" | "selection") {
@@ -220,6 +227,23 @@ export function LeadOpsLeadManagementPanel({
           options={[{ value: "true", label: copy.management.neverContactedOnly }]}
           value={filters.neverContacted}
         />
+        <FilterSelect
+          allLabel={copy.filters.all}
+          label={copy.filters.language}
+          onChange={(value) => updateFilter("language", value)}
+          options={filterOptions.languages}
+          value={filters.language}
+        />
+        <FilterSelect
+          allLabel={copy.filters.all}
+          label={copy.management.sendability}
+          onChange={(value) => updateFilter("sendability", value as LeadOpsFilters["sendability"])}
+          options={[
+            { value: "sendable", label: copy.management.sendabilityValues.sendable },
+            { value: "blocked", label: copy.management.sendabilityValues.blocked }
+          ]}
+          value={filters.sendability}
+        />
       </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
@@ -276,6 +300,7 @@ export function LeadOpsLeadManagementPanel({
                 <th className="px-3 py-2">{copy.management.suppressionStatus}</th>
                 <th className="px-3 py-2">{copy.management.lastContacted}</th>
                 <th className="px-3 py-2">{copy.management.campaignCount}</th>
+                <th className="px-3 py-2">{copy.management.sendability}</th>
                 <th className="px-3 py-2">{copy.table.status}</th>
                 <th className="px-3 py-2" />
               </tr>
@@ -308,6 +333,11 @@ export function LeadOpsLeadManagementPanel({
                       {row.lastContactedAt ? new Date(row.lastContactedAt).toLocaleDateString(locale) : "—"}
                     </td>
                     <td className="px-3 py-2">{row.campaignCount}</td>
+                    <td className="px-3 py-2 text-xs">
+                      {row.sendability.sendable
+                        ? copy.management.sendabilityValues.sendable
+                        : row.sendability.reasons.join(", ")}
+                    </td>
                     <td className="px-3 py-2">{copy.statuses[row.leadStatus]}</td>
                     <td className="px-3 py-2">{rowActions(row.leadId, isArchived(lead))}</td>
                   </tr>
@@ -332,19 +362,47 @@ export function LeadOpsLeadManagementPanel({
 
       {importHistoryOpen ? (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/80 p-4">
-          <div className="w-full max-w-lg rounded-lg border border-slate-700 bg-slate-900 p-4 text-slate-100">
+          <div className="w-full max-w-3xl rounded-lg border border-slate-700 bg-slate-900 p-4 text-slate-100">
             <h3 className="text-lg font-semibold">{copy.management.importHistory}</h3>
-            <ul className="mt-3 max-h-64 space-y-2 overflow-y-auto text-sm">
-              {importBatches.length === 0 ? (
-                <li className="text-slate-400">{copy.management.noImportHistory}</li>
-              ) : (
-                importBatches.map((batch) => (
-                  <li key={batch.id}>
-                    {batch.filename} — {new Date(batch.createdAt).toLocaleString(locale)}
-                  </li>
-                ))
-              )}
-            </ul>
+            <div className="mt-3 grid gap-4 md:grid-cols-2">
+              <ul className="max-h-80 space-y-2 overflow-y-auto text-sm" data-testid="import-history-list">
+                {importBatches.length === 0 ? (
+                  <li className="text-slate-400">{copy.management.noImportHistory}</li>
+                ) : (
+                  importBatches.map((batch) => (
+                    <li key={batch.id}>
+                      <button
+                        className={`w-full rounded border px-3 py-2 text-left ${selectedImportBatchId === batch.id ? "border-orange-400 bg-slate-950" : "border-slate-700"}`}
+                        onClick={() => void openImportSummary(batch.id)}
+                        type="button"
+                      >
+                        <div className="font-medium">{batch.filename}</div>
+                        <div className="text-xs text-slate-400">
+                          {batch.status} · {new Date(batch.createdAt).toLocaleString(locale)}
+                        </div>
+                      </button>
+                    </li>
+                  ))
+                )}
+              </ul>
+              <div className="rounded border border-slate-800 p-3 text-sm">
+                {importSummary?.batch ? (
+                  <dl className="space-y-2">
+                    <div><dt className="text-slate-400">{copy.management.importSummary.status}</dt><dd>{importSummary.batch.status}</dd></div>
+                    <div><dt className="text-slate-400">{copy.management.importSummary.rows}</dt><dd>{importSummary.batch.totalRows}</dd></div>
+                    <div><dt className="text-slate-400">{copy.management.importSummary.organizations}</dt><dd>{importSummary.batch.importedOrganizations}</dd></div>
+                    <div><dt className="text-slate-400">{copy.management.importSummary.contacts}</dt><dd>{importSummary.batch.importedContacts}</dd></div>
+                    <div><dt className="text-slate-400">{copy.management.importSummary.duplicates}</dt><dd>{importSummary.batch.duplicateRows}</dd></div>
+                    <div><dt className="text-slate-400">{copy.management.importSummary.invalid}</dt><dd>{importSummary.batch.invalidRows}</dd></div>
+                    <div><dt className="text-slate-400">{copy.management.importSummary.profile}</dt><dd>{importSummary.batch.mappingProfileLabel ?? "—"}</dd></div>
+                    <div><dt className="text-slate-400">{copy.management.importSummary.sheet}</dt><dd>{importSummary.batch.sheetName ?? "—"}</dd></div>
+                    <div><dt className="text-slate-400">{copy.management.importSummary.linkedLeads}</dt><dd>{importSummary.importedLeadCount}</dd></div>
+                  </dl>
+                ) : (
+                  <p className="text-slate-400">{copy.management.importSummary.selectBatch}</p>
+                )}
+              </div>
+            </div>
             <button className="mt-4 rounded border border-slate-700 px-3 py-1" onClick={() => setImportHistoryOpen(false)} type="button">
               {shared.form.cancel}
             </button>

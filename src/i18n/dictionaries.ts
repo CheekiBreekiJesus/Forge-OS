@@ -554,6 +554,20 @@ export type Dictionary = {
       campaignCount: string;
       neverContacted: string;
       neverContactedOnly: string;
+      sendability: string;
+      sendabilityValues: Record<"sendable" | "blocked", string>;
+      importSummary: {
+        selectBatch: string;
+        status: string;
+        rows: string;
+        organizations: string;
+        contacts: string;
+        duplicates: string;
+        invalid: string;
+        profile: string;
+        sheet: string;
+        linkedLeads: string;
+      };
       pageLabel: string;
       previousPage: string;
       nextPage: string;
@@ -836,6 +850,16 @@ export type Dictionary = {
       retryMapping: string;
       importAnother: string;
       messages: string;
+      selectSheet: string;
+      mappingProfile: string;
+      saveProfile: string;
+      saveProfilePlaceholder: string;
+      profileSaved: string;
+      deleteProfile: string;
+      deleteProfileConfirm: string;
+      warningsFilter: string;
+      showNormalized: string;
+      downloadErrors: string;
       fields: Record<
         | "companyName"
         | "contactName"

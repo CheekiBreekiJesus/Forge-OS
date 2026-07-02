@@ -102,6 +102,7 @@ export type LeadOpsFilters = {
   neverContacted: "" | "true";
   contactedWithinDays: "" | "7" | "30" | "90";
   notContactedWithinDays: "" | "7" | "30" | "90";
+  sendability: "" | "sendable" | "blocked";
 };
 
 export const EMPTY_LEADOPS_FILTERS: LeadOpsFilters = {
@@ -118,7 +119,8 @@ export const EMPTY_LEADOPS_FILTERS: LeadOpsFilters = {
   campaignAssignment: "",
   neverContacted: "",
   contactedWithinDays: "",
-  notContactedWithinDays: ""
+  notContactedWithinDays: "",
+  sendability: ""
 };
 
 export type LeadOpsKpis = {

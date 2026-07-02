@@ -907,6 +907,23 @@ export const dictionary: Dictionary = {
       campaignCount: "Campanhas",
       neverContacted: "Nunca contactado",
       neverContactedOnly: "Apenas nunca contactados",
+      sendability: "Enviabilidade",
+      sendabilityValues: {
+        sendable: "Pronto para outreach",
+        blocked: "Bloqueado"
+      },
+      importSummary: {
+        selectBatch: "Selecione uma importação para ver o resumo.",
+        status: "Estado",
+        rows: "Total de linhas",
+        organizations: "Organizações importadas",
+        contacts: "Contactos importados",
+        duplicates: "Duplicados ignorados",
+        invalid: "Linhas inválidas",
+        profile: "Perfil de mapeamento",
+        sheet: "Folha",
+        linkedLeads: "Organizações ligadas"
+      },
       pageLabel: "Página {page} de {pages}",
       previousPage: "Anterior",
       nextPage: "Seguinte"
@@ -1198,6 +1215,16 @@ export const dictionary: Dictionary = {
       retryMapping: "Aplicar alterações de mapeamento",
       importAnother: "Importar outro ficheiro",
       messages: "Mensagens",
+      selectSheet: "Folha de cálculo",
+      mappingProfile: "Perfil de mapeamento",
+      saveProfile: "Guardar perfil",
+      saveProfilePlaceholder: "Nome do perfil",
+      profileSaved: "Perfil de mapeamento guardado.",
+      deleteProfile: "Eliminar",
+      deleteProfileConfirm: "Eliminar perfil de mapeamento \"{label}\"?",
+      warningsFilter: "Avisos",
+      showNormalized: "Mostrar valores normalizados",
+      downloadErrors: "Transferir relatório de erros",
       fields: {
         companyName: "Nome da empresa",
         contactName: "Pessoa de contacto",

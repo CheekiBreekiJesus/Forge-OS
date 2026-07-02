@@ -47,6 +47,7 @@ export type LeadManagementContext = {
   contacts: LeadContact[];
   recipients: CampaignRecipient[];
   outreachSentAtByLeadId: Map<string, string>;
+  suppressedEmails: Set<string>;
 };
 
 export function buildLeadManagementRows(context: LeadManagementContext): LeadManagementRow[] {
@@ -74,7 +75,8 @@ export function buildLeadManagementRows(context: LeadManagementContext): LeadMan
       tenantId: lead.tenantId,
       lead,
       contact,
-      duplicateEmails
+      duplicateEmails,
+      suppressedEmails: context.suppressedEmails
     });
 
     return {
@@ -160,6 +162,8 @@ export function matchesLeadManagementFilters(
   if (filters.quality && row.quality !== filters.quality) return false;
   if (filters.language && row.language !== filters.language) return false;
   if (filters.neverContacted === "true" && row.lastContactedAt) return false;
+  if (filters.sendability === "sendable" && !row.sendability.sendable) return false;
+  if (filters.sendability === "blocked" && row.sendability.sendable) return false;
   if (filters.contactedWithinDays) {
     const days = Number(filters.contactedWithinDays);
     if (!row.lastContactedAt || !isWithinDays(row.lastContactedAt, days)) return false;
