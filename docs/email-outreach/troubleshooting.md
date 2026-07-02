@@ -1,44 +1,51 @@
-# Troubleshooting
+# Lead import troubleshooting
 
-## Import
+## File rejected
 
-| Symptom | Check |
-|---------|-------|
-| Zero rows imported | Mapping, required company/contact columns, file encoding |
-| Duplicates skipped | Expected; review duplicate panel |
-| Repeat import blocked | Enable allow re-import for same fingerprint |
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| "Only CSV and XLSX" | `.xls` or wrong MIME | Save as `.xlsx` or export CSV |
+| "Exceeds 5 MB" | File too large | Split by sheet or category |
+| "Exceeds maximum row count" | >5000 rows | Split file or use data-prep pipeline |
 
-## Drafts / approval
+## Wrong columns mapped
 
-| Symptom | Check |
-|---------|-------|
-| Cannot approve | Blockers panel: email, opt-out, sender identity, unresolved `{{vars}}`, suppression |
-| Approval disappeared after edit | Expected invalidation; re-approve |
-| Bulk approve skipped recipients | Review skipped count and reasons |
+1. Open mapping section in import wizard.
+2. Select correct mapping profile (Municipalities, Hospitality, etc.).
+3. Adjust manual overrides → **Apply mapping changes**.
+4. Save profile for next time.
 
-## Gmail / Outlook
+## Semicolon CSV misread (legacy)
 
-| Symptom | Check |
-|---------|-------|
-| Gmail opens sign-in page | Normal when logged out; compose URL is in `continue` param |
-| Body truncated in URL | Use copy controls for full plain/formatted body |
-| Cannot open compose after sent | Expected; duplicate protection active |
+Fixed in this branch: delimiter auto-detection. Re-export as UTF-8 CSV if issues persist.
 
-## Suppression
+## XLSX empty preview
 
-| Symptom | Check |
-|---------|-------|
-| Recipient blocked unexpectedly | Suppression list; remove only with proper reason |
-| Cannot remove unsubscribe | Elevated confirmation required |
+- Choose the populated worksheet (e.g. `Municipalidades`, `Lisboa`).
+- Empty placeholder sheets are skipped by default auto-select.
 
-## Backup / restore
+## Duplicate warnings on first import
 
-| Symptom | Check |
-|---------|-------|
-| Invalid backup | Version 4 or 5 JSON from Settings → Backup |
-| Warnings after restore | Review orphaned recipient/suppression report in activity |
+Expected when:
 
-## Demo reset vs clear data
+- Same email appears twice in file
+- Email already exists from prior import
+- Strong org match (name + domain/phone)
 
-- **Reset Demo Data** removes seed demo records only; preserves imported outreach data.
-- **Clear All Local Data** wipes IndexedDB; requires strong confirmation; separate action.
+Use checkboxes: attach strong matches, approve possible duplicates.
+
+## Repeat import blocked
+
+Same file fingerprint as a completed batch. Check **Allow re-import anyway** or change file content.
+
+## Sendability differs from segment count
+
+Ensure suppression list is current. Lead table and segments now share suppression-table evaluation.
+
+## Backup missing profiles
+
+Upgrade to backup v8+. Restore via Settings → Import JSON backup.
+
+## Privacy reminder
+
+Do not commit real lead files. Use `scripts/data-preparation/profile-lead-files.mjs` for aggregate inspection only.
