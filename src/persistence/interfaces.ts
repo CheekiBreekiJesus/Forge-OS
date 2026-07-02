@@ -60,6 +60,7 @@ import type {
   ImportRowRepository,
   LeadContactRepository
 } from "@/persistence/indexeddb/import-repositories";
+import type { ImportMappingProfileRepository } from "@/persistence/indexeddb/import-mapping-profile-repositories";
 
 export type { ListOptions, ArchiveInput };
 
@@ -318,6 +319,7 @@ export interface LocalRepositoryBundle {
   customizerSimulations: CustomizerSimulationRepository;
   importBatches: ImportBatchRepository;
   importRows: ImportRowRepository;
+  importMappingProfiles: ImportMappingProfileRepository;
   leadContacts: LeadContactRepository;
   emailSuppressions: EmailSuppressionRepository;
   outreachSendAttempts: OutreachSendAttemptRepository;

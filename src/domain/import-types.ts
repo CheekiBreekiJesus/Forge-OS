@@ -18,6 +18,33 @@ export type ImportFieldKey =
 
 export type ImportFieldMapping = Partial<Record<ImportFieldKey, string>>;
 
+export type ImportNormalizationOptions = {
+  preserveLeadingZeros: boolean;
+  defaultCountry: string;
+  defaultLanguage: string;
+  appendAdditionalEmailsToNotes: boolean;
+};
+
+export type ImportMappingProfile = {
+  id: string;
+  tenantId: string;
+  label: string;
+  sourceLabel: string;
+  headerMappings: ImportFieldMapping;
+  ignoredColumns: string[];
+  defaultCategory: string;
+  defaultCountry: string;
+  defaultSource: string;
+  normalizationOptions: ImportNormalizationOptions;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreateImportMappingProfileInput = Omit<
+  ImportMappingProfile,
+  "id" | "tenantId" | "createdAt" | "updatedAt"
+>;
+
 export type ImportBatch = {
   id: string;
   tenantId: string;
@@ -26,6 +53,11 @@ export type ImportBatch = {
   source: string;
   fileFingerprint: string;
   mapping: ImportFieldMapping;
+  mappingProfileId: string | null;
+  mappingProfileLabel: string | null;
+  sheetName: string | null;
+  csvDelimiter: "," | ";" | "\t" | null;
+  importedBy: string | null;
   status: ImportBatchStatus;
   totalRows: number;
   validRows: number;

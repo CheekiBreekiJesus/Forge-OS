@@ -18,7 +18,7 @@ import type {
 import type { CampaignRecipient } from "@/domain/campaign-types";
 import type { OutreachProviderEvent, OutreachSendAttempt } from "@/domain/email-delivery-types";
 import type { EmailSuppression } from "@/domain/suppression-types";
-import type { ImportBatch, ImportRow, LeadContact } from "@/domain/import-types";
+import type { ImportBatch, ImportRow, LeadContact, ImportMappingProfile } from "@/domain/import-types";
 import type { LocalRepositoryBundle } from "@/persistence/interfaces";
 import {
   normalizeBackupTables,
@@ -26,8 +26,8 @@ import {
   type BackupRestoreReport
 } from "@/features/backup/restore-validation";
 
-export const BACKUP_VERSION = 7 as const;
-export const SUPPORTED_BACKUP_VERSIONS = [4, 5, 6, 7] as const;
+export const BACKUP_VERSION = 8 as const;
+export const SUPPORTED_BACKUP_VERSIONS = [4, 5, 6, 7, 8] as const;
 
 export type ForgeOSBackup = {
   version: typeof BACKUP_VERSION;
@@ -48,6 +48,7 @@ export type ForgeOSBackup = {
     products: Product[];
     importBatches: ImportBatch[];
     importRows: ImportRow[];
+    importMappingProfiles: ImportMappingProfile[];
     leadContacts: LeadContact[];
     campaignRecipients: CampaignRecipient[];
     emailSuppressions: EmailSuppression[];
@@ -77,6 +78,7 @@ export async function exportBackup(
     products,
     importBatches,
     importRows,
+    importMappingProfiles,
     leadContacts,
     campaignRecipients,
     emailSuppressions,
@@ -104,6 +106,7 @@ export async function exportBackup(
       );
       return rows.flat();
     }),
+    repos.importMappingProfiles.list(tenantId),
     repos.leadContacts.list(tenantId),
     repos.campaignRecipients.listForTenant(tenantId),
     repos.emailSuppressions.list(tenantId),
@@ -129,6 +132,7 @@ export async function exportBackup(
       userProfiles,
       importBatches,
       importRows,
+      importMappingProfiles,
       leadContacts,
       campaignRecipients,
       emailSuppressions,
@@ -161,7 +165,7 @@ export async function exportBackup(
 export function validateBackup(data: unknown): data is ForgeOSBackup {
   if (!data || typeof data !== "object") return false;
   const record = data as Record<string, unknown>;
-  if (!SUPPORTED_BACKUP_VERSIONS.includes(record.version as 4 | 5 | 6 | 7)) return false;
+  if (!SUPPORTED_BACKUP_VERSIONS.includes(record.version as 4 | 5 | 6 | 7 | 8)) return false;
   if (typeof record.tenantId !== "string") return false;
   if (!record.tables || typeof record.tables !== "object") return false;
   const tables = record.tables as Record<string, unknown>;

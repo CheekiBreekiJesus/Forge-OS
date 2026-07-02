@@ -49,6 +49,11 @@ export function createImportBatchRepository(db: ForgeOSDatabase): ImportBatchRep
         tenantId,
         ...input,
         status: input.status ?? "preview",
+        mappingProfileId: input.mappingProfileId ?? null,
+        mappingProfileLabel: input.mappingProfileLabel ?? null,
+        sheetName: input.sheetName ?? null,
+        csvDelimiter: input.csvDelimiter ?? null,
+        importedBy: input.importedBy ?? null,
         createdAt: timestamp,
         completedAt: null
       };
