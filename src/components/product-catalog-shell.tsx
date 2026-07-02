@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useMemo, useState } from "react";
+import { ProductImportPanel } from "@/components/product-import-panel";
 import { AppFrame } from "@/components/app-frame";
 import {
   ArchiveConfirmationDialog,
@@ -196,6 +197,8 @@ export function ProductCatalogShell({ dictionary, locale }: ProductCatalogShellP
         eyebrow={copy.eyebrow}
         title={copy.title}
       />
+
+      <ProductImportPanel dictionary={dictionary} />
 
       <SearchAndFilterBar
         onSearchChange={setSearch}

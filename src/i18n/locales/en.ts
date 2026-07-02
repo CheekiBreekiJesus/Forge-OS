@@ -579,6 +579,39 @@ export const dictionary: Dictionary = {
       emailTitle: "Email title",
       emailPromotable: "Promotable in outreach emails",
       required: "Name and SKU are required."
+    },
+    import: {
+      eyebrow: "Staging import",
+      title: "Product import preview",
+      description:
+        "Profile artigos exports for codes, barcodes, units, packaging hints, and ex-VAT prices. Inventory quantities and ledger writes are intentionally excluded.",
+      stagingOnlyNotice:
+        "Staging preview only. This workflow does not persist products or modify the immutable inventory ledger.",
+      supportedFormats: "Accepted formats: CSV, TSV, XLSX, and HTML table exports. Legacy .xls uses the Python pipeline.",
+      chooseFile: "Choose source file",
+      loading: "Parsing source…",
+      genericError: "Could not parse the selected file.",
+      noPersistNotice: "Confirm-and-import is disabled until JH Gomes approves the field mapping and open questions.",
+      excludedInventoryFields: "Excluded inventory headers detected",
+      metrics: {
+        validRows: "Valid rows",
+        reviewRows: "Review rows",
+        invalidRows: "Invalid rows",
+        duplicateCodes: "Duplicate codes",
+        missingBarcode: "Missing barcode",
+        zeroPurchasePrice: "Zero purchase price",
+        zeroSalePrice: "Zero sale price",
+        packagingHints: "Packaging hints"
+      },
+      preview: {
+        row: "Row",
+        code: "Code",
+        designation: "Designation",
+        salePrice: "Sale ex-VAT",
+        status: "Status",
+        validationTitle: "Row validation",
+        noValidationIssues: "No validation issues detected."
+      }
     }
   },
   demoWorkflow: {

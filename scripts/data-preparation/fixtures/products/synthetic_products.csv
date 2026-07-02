@@ -1,0 +1,6 @@
+Referência;Descrição;Nome curto 1;Família;Tipo de Artigo;Cód. Barras;Taxa;Preço de Compra s/Imposto;Preço de Compra c/Imposto;Preço s/Imposto;Preço c/Imposto;Unidade de Venda;Unidade de Capacidade;Descrição Extra;Stock Atual
+SYN-001;COPO DEMO PP 330 ml (1000 UN);COPO DEMO PP;Plástico;Normal;;Normal;10,500 €;12,915 €;15,000 €;18,450 €;Unidade;Unidade;;0,00
+SYN-001;COPO DEMO PP 330 ml (1000 UN);COPO DEMO PP;Plástico;Normal;;Normal;10,500 €;12,915 €;15,000 €;18,450 €;Unidade;Unidade;;0,00
+SYN-003;PALHINHA DEMO (10 x 1000 UN);PALHINHA DEMO;Plástico;Normal;5601460000001;Normal;0,000 €;0,000 €;42,500 €;52,280 €;Unidade;Unidade;;0,00
+SYN-004;ARTIGO SEM PREÇO;ARTIGO SEM PREÇO;Papel;Normal;;;Normal;0,000 €;0,000 €;0,000 €;0,000 €;Unidade;Unidade;;0,00
+SHIP-01;PORTES DE ENVIO;PORTES;Serviços;Portes de envio;;;Normal;0,000 €;0,000 €;5,000 €;6,150 €;Unidade;Unidade;;0,00

@@ -258,6 +258,37 @@ export type Dictionary = {
       emailPromotable: string;
       required: string;
     };
+    import: {
+      eyebrow: string;
+      title: string;
+      description: string;
+      stagingOnlyNotice: string;
+      supportedFormats: string;
+      chooseFile: string;
+      loading: string;
+      genericError: string;
+      noPersistNotice: string;
+      excludedInventoryFields: string;
+      metrics: {
+        validRows: string;
+        reviewRows: string;
+        invalidRows: string;
+        duplicateCodes: string;
+        missingBarcode: string;
+        zeroPurchasePrice: string;
+        zeroSalePrice: string;
+        packagingHints: string;
+      };
+      preview: {
+        row: string;
+        code: string;
+        designation: string;
+        salePrice: string;
+        status: string;
+        validationTitle: string;
+        noValidationIssues: string;
+      };
+    };
   };
   demoWorkflow: {
     eyebrow: string;

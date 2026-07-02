@@ -282,14 +282,12 @@ describe("JH Gomes demo workflow", () => {
         {
           code: "JHG-DEMO",
           designation: "Demo item",
-          minimum_stock: "10",
-          process_type: "direct-sale"
+          sale_price_ex_vat: "10"
         },
         {
           code: "",
           designation: "Missing code",
-          minimum_stock: "5",
-          process_type: "direct-sale"
+          sale_price_ex_vat: "5"
         }
       ],
       template: importTemplates[0]

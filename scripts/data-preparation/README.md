@@ -17,6 +17,8 @@ python scripts\data-preparation\standardize_leads.py `
 
 ## Scripts
 
+### Leads
+
 - `inspect_sources.py`: inspects Excel, CSV, and TSV files and writes inspection reports.
 - `standardize_leads.py`: runs the complete workflow and builds the standardized workbook.
 - `deduplicate_leads.py`: writes a duplicate report.
@@ -24,6 +26,16 @@ python scripts\data-preparation\standardize_leads.py `
 - `validate_output.py`: reopens and validates a generated workbook.
 - `lead_pipeline.py`: shared implementation.
 - `lead_schema.py`: standard schema, field definitions, aliases, and lookup values.
+
+### Products (staging-only)
+
+- `inspect_product_sources.py`: inspects CSV, TSV, XLSX, and HTML product exports.
+- `standardize_products.py`: builds `Product_Database_Standardized.xlsx` for review.
+- `product_pipeline.py`: shared implementation (no inventory quantities, no ledger writes).
+- `product_schema.py`: canonical field mapping, precedence rules, and exclusions.
+- `product_locale.py`: Portuguese decimal/date normalization helpers.
+
+Product profile docs: `docs/data-import/products-import-profile.md`
 
 ## Output Workbook
 

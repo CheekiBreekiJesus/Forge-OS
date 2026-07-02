@@ -47,3 +47,5 @@ scripts/data-preparation/customer-config*.yaml
 scripts/data-preparation/customer-config*.yml
 *_Lead_Database_Standardized.xlsx
 *lead*_standardized*.xlsx
+*Product_Database_Standardized.xlsx
+*product*_standardized*.xlsx

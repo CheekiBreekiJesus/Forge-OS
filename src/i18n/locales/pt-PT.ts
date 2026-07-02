@@ -579,6 +579,41 @@ export const dictionary: Dictionary = {
       emailTitle: "Título do email",
       emailPromotable: "Promovível em emails de outreach",
       required: "Nome e SKU são obrigatórios."
+    },
+    import: {
+      eyebrow: "Importação em staging",
+      title: "Pré-visualização de importação de produtos",
+      description:
+        "Perfil para exportações de artigos com códigos, códigos de barras, unidades, sugestões de embalagem e preços s/IVA. Quantidades de inventário e escriturações no ledger estão excluídas.",
+      stagingOnlyNotice:
+        "Apenas pré-visualização em staging. Este fluxo não persiste produtos nem altera o ledger imutável de inventário.",
+      supportedFormats:
+        "Formatos aceites: CSV, TSV, XLSX e exportações HTML em tabela. Ficheiros .xls antigos usam o pipeline Python.",
+      chooseFile: "Escolher ficheiro fonte",
+      loading: "A analisar ficheiro…",
+      genericError: "Não foi possível analisar o ficheiro selecionado.",
+      noPersistNotice:
+        "A confirmação de importação está desativada até a JH Gomes aprovar o mapeamento de campos e as questões em aberto.",
+      excludedInventoryFields: "Cabeçalhos de inventário excluídos detetados",
+      metrics: {
+        validRows: "Linhas válidas",
+        reviewRows: "Linhas para revisão",
+        invalidRows: "Linhas inválidas",
+        duplicateCodes: "Códigos duplicados",
+        missingBarcode: "Sem código de barras",
+        zeroPurchasePrice: "Preço de compra zero",
+        zeroSalePrice: "Preço de venda zero",
+        packagingHints: "Sugestões de embalagem"
+      },
+      preview: {
+        row: "Linha",
+        code: "Código",
+        designation: "Designação",
+        salePrice: "Venda s/IVA",
+        status: "Estado",
+        validationTitle: "Validação da linha",
+        noValidationIssues: "Sem problemas de validação detetados."
+      }
     }
   },
   demoWorkflow: {

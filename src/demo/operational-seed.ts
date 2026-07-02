@@ -368,8 +368,14 @@ export const importTemplates: ImportTemplate[] = [
     columns: [
       { key: "code", required: true, example: "JHG-CUP-PP-330", validation: "Unique per tenant" },
       { key: "designation", required: true, example: "Personalized PP Cup 330 ml", validation: "Text" },
-      { key: "process_type", required: true, example: "internal-production", validation: "Known process type" },
-      { key: "minimum_stock", required: true, example: "10000", validation: "Number >= 0" }
+      { key: "family", required: false, example: "Plástico", validation: "Controlled vocabulary" },
+      { key: "barcode", required: false, example: "5601460006370", validation: "8/12/13/14 digits" },
+      { key: "purchase_price_ex_vat", required: false, example: "10.5", validation: "Portuguese decimal" },
+      { key: "sale_price_ex_vat", required: true, example: "15", validation: "Portuguese decimal" },
+      { key: "sales_unit", required: false, example: "Unidade", validation: "Unit synonym map" },
+      { key: "packaging_quantity_hint", required: false, example: "1000", validation: "Extracted from designation" },
+      { key: "supplier_reference", required: false, example: "SUP-ACME-01", validation: "Resolve to supplier master" },
+      { key: "process_type", required: false, example: "direct-sale", validation: "Known process type" }
     ]
   },
   {
