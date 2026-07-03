@@ -28,6 +28,16 @@ Supabase durable IDs are UUIDs. Current local MVP entity IDs are stored as text 
 
 The helper uses `SUPABASE_URL` and server-only `SUPABASE_SERVICE_ROLE_KEY`. It must not be imported by client components.
 
+## Hosted Runtime Projection
+
+Migration `202607030001_outreach_hosted_runtime_projection.sql` adds the minimal approved campaign projection required by the server mutation service:
+
+- `outreach_hosted_campaigns`
+- `outreach_hosted_campaign_recipients`
+- `outreach_hosted_activity_events`
+
+`src/features/email-delivery/hosted-send-job-repositories.ts` maps those projection tables and the durable send-job tables into the existing service interfaces. The adapter is server-only and uses service-role credentials after route-level Supabase Auth and tenant-membership checks.
+
 ## Local Projection
 
 IndexedDB mirrors the typed model:
@@ -48,6 +58,6 @@ Local projection data is included in backup export/import. It is suitable for de
 
 ## Remaining Tasks
 
-1. Add trusted server routes or worker entrypoints for queue/process/pause/resume/cancel.
-2. Derive tenant from authenticated context before calling the store.
-3. Add integration tests against a real Postgres/Supabase project before applying the migration.
+1. Add an explicit local-to-hosted campaign preparation route and UI action.
+2. Add integration tests against a real Postgres/Supabase project before applying the migration.
+3. Add a trusted multi-tenant selector for users with more than one active membership.

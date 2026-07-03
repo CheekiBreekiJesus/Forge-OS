@@ -53,7 +53,10 @@ export function hasSendJobPermission(
   actor: TrustedSendJobActorContext,
   permission: SendJobPermission
 ): boolean {
-  return actor.roles.some((role) => ROLE_PERMISSIONS[role]?.includes(permission));
+  return (
+    actor.permissions.includes(permission) ||
+    actor.roles.some((role) => ROLE_PERMISSIONS[role]?.includes(permission))
+  );
 }
 
 export function requireSendJobPermission(

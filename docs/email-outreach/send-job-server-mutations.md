@@ -1,7 +1,7 @@
 # Send Job Server Mutations
 
 Date: 2026-07-03
-Status: Step 7C server boundaries added; production auth and hosted repository adapter still pending
+Status: Step 7D1 production auth adapter and hosted repository bundle added; staging DB validation pending
 
 ## Routes
 
@@ -14,6 +14,7 @@ The following Next.js route handlers exist under `/api/outreach/send-jobs`:
 - `POST /cancel`
 - `POST /retry`
 - `POST /status`
+- `POST /prepare-campaign`
 
 Each route uses the shared server wrapper in `src/app/api/outreach/send-jobs/_shared.ts` and the mutation service in `src/application/send-job-server-mutations.ts`.
 
@@ -26,7 +27,7 @@ Routes derive actor and tenant from `resolveTrustedSendJobActorContext`. In deve
 - `x-forgeos-roles`
 - `x-forgeos-correlation-id`
 
-In production, route execution remains blocked until a real auth/session adapter maps authenticated users to tenant memberships. Request bodies must not supply tenant, actor, role, permissions, recipient lists, or approved email content.
+In production, routes require a Supabase Auth bearer token. The server validates the token, loads active tenant membership, and derives tenant, roles, and permissions from hosted persistence. Request bodies must not supply tenant, actor, role, permissions, recipient lists, or approved email content.
 
 ## Validation
 
@@ -61,6 +62,10 @@ The status route returns sanitized operational fields only:
 
 It does not return API keys, authorization headers, raw provider payloads, private email bodies, or service-role data.
 
-## Current Limitation
+## Hosted Runtime
 
-The default runtime dependency provider intentionally returns `503 server_persistence_unavailable` until hosted server persistence is wired. Unit tests inject a synthetic repository bundle and simulation provider to validate the server boundary without live Supabase or Brevo calls.
+The default runtime dependency provider now uses the hosted send-job repository bundle when `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are configured. Without those values, it still returns `503 server_persistence_unavailable`.
+
+Hosted execution remains simulation-only. Brevo campaign batch delivery is still rejected by request parsing and provider configuration.
+
+`/prepare-campaign` is a preparation boundary only. It accepts an approved campaign snapshot, rechecks tenant ownership and approval hashes server-side, and writes the hosted projection. It does not queue, process, or send email.

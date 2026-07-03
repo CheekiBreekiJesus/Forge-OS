@@ -22,11 +22,12 @@ Before hosted send-job processing:
 - configure `SUPABASE_URL`;
 - configure server-only `SUPABASE_SERVICE_ROLE_KEY`;
 - keep the service-role key out of all client bundles and logs;
-- wire the production auth/session adapter for send-job actor context;
-- wire hosted server repositories for campaign and send-job data;
+- verify the production auth/session adapter can validate Supabase access tokens;
+- verify active tenant memberships contain role and permission data;
+- prepare approved campaigns into the hosted campaign projection;
 - run Supabase/Postgres integration tests for lock acquisition and daily usage increments.
 
-Step 7C route boundaries exist for queue/process/pause/resume/cancel/retry/status, but default hosted execution remains blocked until the prerequisites above are complete.
+Step 7D1 route boundaries can use hosted repositories when Supabase server credentials are configured. Hosted execution remains simulation-only and should not be considered production-ready until the migration is validated against a non-production database.
 
 ## Hosted Brevo Prerequisites
 
@@ -43,3 +44,14 @@ Before Step 9 or any real email:
 ## Recovery
 
 Completed attempts are preserved, stale locks expire, cancelled jobs keep sent history, and restart does not automatically resume a job. Operators must explicitly process the next eligible batch.
+
+## Staging Migration Validation
+
+The Supabase CLI is not installed in the current local environment and no staging credentials are stored in Git. Before production use, run the migrations against a local or dedicated non-production Supabase/Postgres database and verify:
+
+```bash
+supabase migration up
+npm run test -- src/features/email-delivery/outreach-migration-static.test.ts
+```
+
+Do not apply the migrations to production until the lock RPC, lock release, idempotency constraints, daily usage increment, grants, and RLS assumptions are verified.
