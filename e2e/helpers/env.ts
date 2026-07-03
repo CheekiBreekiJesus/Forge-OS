@@ -1,4 +1,7 @@
-/** Isolated IndexedDB name for acceptance runs (must match webServer env). */
+/**
+ * IndexedDB name for the active Playwright config.
+ * Each config sets FORGEOS_LOCAL_DB_NAME before tests import helpers.
+ */
 export const ACCEPTANCE_DB_NAME =
   process.env.FORGEOS_LOCAL_DB_NAME ??
   process.env.NEXT_PUBLIC_FORGEOS_LOCAL_DB_NAME ??

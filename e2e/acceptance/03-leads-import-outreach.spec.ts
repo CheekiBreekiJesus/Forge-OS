@@ -6,7 +6,8 @@ import {
   drawer,
   gotoAndWait,
   resetAcceptanceState,
-  waitForCreateDrawer
+  waitForCreateDrawer,
+  waitForLeadOutreachReady
 } from "../helpers";
 
 test.describe("Leads, import and outreach", () => {
@@ -54,6 +55,7 @@ test.describe("Leads, import and outreach", () => {
 
   test("generates deterministic outreach with copy and mail client actions", async ({ page }) => {
     await gotoAndWait(page, "/pt-PT/leadops/leadops_001");
+    await waitForLeadOutreachReady(page);
 
     await assertGenerateUsesDeterministicProvider(page, async () => {
       await page.getByRole("button", { name: /gerar email/i }).click();
@@ -71,6 +73,7 @@ test.describe("Leads, import and outreach", () => {
 
   test("invalidates approval after edit and blocks unsubscribed queue", async ({ page }) => {
     await gotoAndWait(page, "/pt-PT/leadops/leadops_001");
+    await waitForLeadOutreachReady(page);
     await page.getByRole("button", { name: /gerar email/i }).click();
     await expect(page.getByRole("textbox", { name: /assunto/i })).not.toHaveValue("", {
       timeout: 15000
@@ -87,6 +90,7 @@ test.describe("Leads, import and outreach", () => {
 
   test("simulates send without claiming live delivery", async ({ page }) => {
     await gotoAndWait(page, "/pt-PT/leadops/leadops_001");
+    await waitForLeadOutreachReady(page);
     await page.getByRole("button", { name: /gerar email/i }).click();
     await expect(page.getByRole("textbox", { name: /assunto/i })).not.toHaveValue("", {
       timeout: 15000

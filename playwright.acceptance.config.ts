@@ -5,6 +5,10 @@ const acceptanceDbName =
   process.env.NEXT_PUBLIC_FORGEOS_LOCAL_DB_NAME ??
   "forgeos:e2e:acceptance";
 
+// Keep Playwright helpers and webServer on the same isolated IndexedDB name.
+process.env.FORGEOS_LOCAL_DB_NAME = acceptanceDbName;
+process.env.NEXT_PUBLIC_FORGEOS_LOCAL_DB_NAME = acceptanceDbName;
+
 export default defineConfig({
   testDir: "./e2e/acceptance",
   fullyParallel: false,
