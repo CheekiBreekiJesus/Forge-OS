@@ -1,0 +1,5 @@
+Referencia;Descricao;Nome curto 1;Familia;Tipo de Artigo;Cod. Barras;Taxa;Preco s/Imposto;Preco c/Imposto;Unidade de Venda;Unidade de Capacidade;Stock Atual
+SYN-CUP-001;COPO SYNTHETIC ALPHA (1000 UN);COPO SYN ALPHA;Plastico;Normal;;Normal;12,500 €;15,38 €;Unidade;Unidade;0
+SYN-CUP-002;COPO SYNTHETIC BETA (1000 UN);COPO SYN BETA;Plastico;Normal;;Normal;15,000 €;18,45 €;Unidade;Unidade;0
+SYN-NEW-005;COPO SYNTHETIC DELTA (500 UN);COPO SYN DELTA;Plastico;Normal;5609999888777;Normal;9,500 €;11,69 €;Unidade;Unidade;0
+SYN-CUP-001;COPO SYNTHETIC ALPHA REVISED;COPO SYN ALPHA;Plastico;Normal;5601234567890;Normal;12,800 €;15,74 €;Unidade;Unidade;0

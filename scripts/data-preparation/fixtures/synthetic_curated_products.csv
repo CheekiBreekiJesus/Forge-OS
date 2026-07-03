@@ -1,0 +1,6 @@
+reference,description,category,sale_price,barcode,base_unit,status
+SYN-CUP-001,Synthetic Cup Alpha 330ml,personalized-cups,12.50,5601234567890,unit,active
+SYN-CUP-002,Synthetic Cup Beta 400ml,plastic-cups,15.00,,unit,active
+SYN-ACC-003,Synthetic Lid Pack,accessories,3.25,5601234567891,unit,active
+SYN-CUP-004,Synthetic Cup Gamma 330ml,personalized-cups,11.00,,unit,inactive
+SYN-OVR-001,Synthetic Cup Alpha 330ml,personalized-cups,13.00,5601234567890,unit,active
