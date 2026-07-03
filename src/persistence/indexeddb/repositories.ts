@@ -41,6 +41,7 @@ import {
   createUserProfileRepository
 } from "./profile-repositories";
 import { createProductRepository, demoProductToCreateInput } from "./product-repositories";
+import { createProductImportRepositoryBundle } from "./product-import-repositories";
 import { createCustomizerSimulationRepository } from "./customizer-repositories";
 import {
   createCustomerContactRepository,
@@ -1237,7 +1238,11 @@ export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
       db.inventoryItems,
       db.stockMovements,
       db.customerContacts,
-      db.customizerSimulations
+      db.customizerSimulations,
+      db.productImportBatches,
+      db.productImportRows,
+      db.productMappingProfiles,
+      db.productSourceReferences
     ],
     async () => {
       await db.meta.clear();
@@ -1259,6 +1264,10 @@ export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
       await db.stockMovements.clear();
       await db.customerContacts.clear();
       await db.customizerSimulations.clear();
+      await db.productImportBatches.clear();
+      await db.productImportRows.clear();
+      await db.productMappingProfiles.clear();
+      await db.productSourceReferences.clear();
     }
   );
 }
@@ -1285,7 +1294,11 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
       db.machines,
       db.inventoryItems,
       db.stockMovements,
-      db.customizerSimulations
+      db.customizerSimulations,
+      db.productImportBatches,
+      db.productImportRows,
+      db.productMappingProfiles,
+      db.productSourceReferences
     ],
     async () => {
       await db.leads.bulkPut(tables.leads);
@@ -1300,6 +1313,18 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
       await db.userProfiles.bulkPut(tables.userProfiles);
       await db.senderIdentities.bulkPut(tables.senderIdentities);
       await db.products.bulkPut(tables.products);
+      if (tables.productImportBatches?.length) {
+        await db.productImportBatches.bulkPut(tables.productImportBatches);
+      }
+      if (tables.productImportRows?.length) {
+        await db.productImportRows.bulkPut(tables.productImportRows);
+      }
+      if (tables.productMappingProfiles?.length) {
+        await db.productMappingProfiles.bulkPut(tables.productMappingProfiles);
+      }
+      if (tables.productSourceReferences?.length) {
+        await db.productSourceReferences.bulkPut(tables.productSourceReferences);
+      }
       if (localAssets) {
         for (const asset of localAssets) {
           const binary = atob(asset.blobBase64);
@@ -1347,6 +1372,7 @@ export function createLocalRepositoryBundle(db: ForgeOSDatabase) {
   const localAssets = createLocalAssetRepository(db);
   const products = createProductRepository(db, activities);
   const customizerSimulations = createCustomizerSimulationRepository(db, activities);
+  const productImport = createProductImportRepositoryBundle(db);
 
   return {
     meta,
@@ -1367,6 +1393,7 @@ export function createLocalRepositoryBundle(db: ForgeOSDatabase) {
     localAssets,
     products,
     customizerSimulations,
+    productImport,
     async reset() {
       await resetDatabase(db);
     },

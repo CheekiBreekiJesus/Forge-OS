@@ -6,6 +6,12 @@ import type {
 } from "@/domain/profile-types";
 import type { Product } from "@/domain/product-types";
 import type {
+  ProductImportBatch,
+  ProductImportRow,
+  ProductMappingProfile,
+  ProductSourceReference
+} from "@/domain/product-import-types";
+import type {
   ActivityEvent,
   Campaign,
   Customer,
@@ -17,10 +23,11 @@ import type {
 } from "@/domain/types";
 import type { LocalRepositoryBundle } from "@/persistence/interfaces";
 
-export const BACKUP_VERSION = 2 as const;
+export const BACKUP_VERSION = 3 as const;
+export const LEGACY_BACKUP_VERSION = 2 as const;
 
 export type ForgeOSBackup = {
-  version: typeof BACKUP_VERSION;
+  version: typeof BACKUP_VERSION | typeof LEGACY_BACKUP_VERSION;
   exportedAt: string;
   tenantId: string;
   tables: {
@@ -36,6 +43,10 @@ export type ForgeOSBackup = {
     userProfiles: UserProfile[];
     senderIdentities: SenderIdentity[];
     products: Product[];
+    productImportBatches?: ProductImportBatch[];
+    productImportRows?: ProductImportRow[];
+    productMappingProfiles?: ProductMappingProfile[];
+    productSourceReferences?: ProductSourceReference[];
   };
   localAssets?: Array<Omit<LocalAsset, "blob"> & { blobBase64: string }>;
 };
@@ -58,7 +69,9 @@ export async function exportBackup(
     userProfiles,
     senderIdentities,
     products,
-    assets
+    assets,
+    importBatches,
+    mappingProfiles
   ] = await Promise.all([
     repos.leads.list(tenantId),
     repos.customers.list(tenantId),
@@ -72,8 +85,19 @@ export async function exportBackup(
     repos.userProfiles.list(tenantId),
     repos.senderIdentities.listAll(tenantId),
     repos.products.list(tenantId),
-    includeAssets ? repos.localAssets.list(tenantId) : Promise.resolve([])
+    includeAssets ? repos.localAssets.list(tenantId) : Promise.resolve([]),
+    repos.productImport.batches.list(tenantId),
+    repos.productImport.mappingProfiles.list(tenantId)
   ]);
+
+  const importRows: ProductImportRow[] = [];
+  const sourceReferences: ProductSourceReference[] = [];
+  for (const batch of importBatches) {
+    const rows = await repos.productImport.rows.listByBatch(tenantId, batch.id);
+    importRows.push(...rows);
+    const refs = await repos.productImport.sourceReferences.listByBatch(tenantId, batch.id);
+    sourceReferences.push(...refs);
+  }
 
   const backup: ForgeOSBackup = {
     exportedAt: new Date().toISOString(),
@@ -86,6 +110,10 @@ export async function exportBackup(
       opportunities,
       outreachMessages,
       productionOrders,
+      productImportBatches: importBatches,
+      productImportRows: importRows,
+      productMappingProfiles: mappingProfiles,
+      productSourceReferences: sourceReferences,
       products,
       quotes,
       senderIdentities,
@@ -117,7 +145,7 @@ export async function exportBackup(
 export function validateBackup(data: unknown): data is ForgeOSBackup {
   if (!data || typeof data !== "object") return false;
   const record = data as Record<string, unknown>;
-  if (record.version !== BACKUP_VERSION) return false;
+  if (record.version !== BACKUP_VERSION && record.version !== LEGACY_BACKUP_VERSION) return false;
   if (typeof record.tenantId !== "string") return false;
   if (!record.tables || typeof record.tables !== "object") return false;
   const tables = record.tables as Record<string, unknown>;

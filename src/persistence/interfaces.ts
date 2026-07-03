@@ -28,6 +28,7 @@ import type {
   UpdateCustomizerSimulationInput
 } from "@/domain/customizer-types";
 import type { CreateProductInput, Product, UpdateProductInput } from "@/domain/product-types";
+import type { ProductImportRepositoryBundle } from "@/persistence/indexeddb/product-import-repositories";
 import type {
   ActivityEvent,
   Campaign,
@@ -305,6 +306,7 @@ export interface LocalRepositoryBundle {
   localAssets: LocalAssetRepository;
   products: ProductRepository;
   customizerSimulations: CustomizerSimulationRepository;
+  productImport: ProductImportRepositoryBundle;
   reset(): Promise<void>;
   resetDemoData(tenantId: string): Promise<void>;
   seed(tenantId: string): Promise<void>;
