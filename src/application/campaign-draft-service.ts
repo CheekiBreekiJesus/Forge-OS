@@ -2,11 +2,11 @@ import type {
   CampaignDraftGenerationMethod,
   CampaignDraftStatus,
   CampaignRecipient,
-  OutreachCampaign
+  OutreachCampaign,
+  UpdateCampaignRecipientDraftInput
 } from "@/domain/campaign-types";
 import { loadSenderContext, type SenderContext } from "@/application/campaign-sender-context";
-
-export { loadSenderContext, type SenderContext };
+import type { ContactSalutation } from "@/features/leadops/salutation-resolver";
 import { plainTextToHtml, sanitizeEmailHtml } from "@/features/email-composition/sanitize";
 import { buildDefaultCampaignTemplate } from "@/features/leadops/default-templates";
 import {
@@ -21,6 +21,8 @@ import {
   invalidateCampaignApprovals,
   invalidateRecipientApproval
 } from "@/application/campaign-approval-service";
+
+export { loadSenderContext, type SenderContext };
 
 export type CampaignDraftPreview = {
   counts: {
@@ -313,4 +315,83 @@ export async function previewTemplateSample(
     throw new PersistenceError("not_found", "No included recipient available for preview.");
   }
   return renderRecipientDraft(campaign, recipient, senderContext);
+}
+
+export async function refreshCampaignSenderData(
+  repos: LocalRepositoryBundle,
+  tenantId: string,
+  campaignId: string
+): Promise<{ campaign: OutreachCampaign; regenerated: number }> {
+  const existing = await repos.campaigns.getById(tenantId, campaignId);
+  if (!existing) throw new PersistenceError("not_found", "Campaign not found.");
+  if (existing.status !== "draft" && existing.status !== "ready_for_review") {
+    throw new PersistenceError(
+      "invalid_transition",
+      "Sender data can only be refreshed for draft campaigns."
+    );
+  }
+
+  const defaultSender = await repos.senderIdentities.getDefault(tenantId);
+  const updatedCampaign = await repos.campaigns.update(tenantId, campaignId, {
+    senderProfileId: defaultSender?.id ?? null,
+    fromName: defaultSender?.displayName ?? "",
+    replyTo: defaultSender?.replyToEmail || defaultSender?.fromEmail || ""
+  });
+
+  const recipients = await repos.campaignRecipients.listForCampaign(tenantId, campaignId);
+  let regenerated = 0;
+  for (const recipient of recipients) {
+    if (recipient.status !== "included") continue;
+    if (recipient.draftStatus === "APPROVED" || recipient.draftStatus === "OPENED_EXTERNALLY") {
+      continue;
+    }
+    if (recipient.draftStatus === "SENT_MANUALLY") continue;
+    if (recipient.userEdited) continue;
+    await regenerateRecipientDraft(repos, tenantId, campaignId, recipient.id, true);
+    regenerated += 1;
+  }
+
+  await repos.activities.append(tenantId, {
+    entityType: "campaign",
+    entityId: campaignId,
+    action: "campaign_sender_refreshed",
+    title: `Sender data refreshed: ${existing.name}`,
+    metadata: { regenerated }
+  });
+
+  return { campaign: updatedCampaign, regenerated };
+}
+
+export async function updateRecipientPersonalizationOverrides(
+  repos: LocalRepositoryBundle,
+  tenantId: string,
+  recipientId: string,
+  input: {
+    greetingOverride?: string;
+    organizationDisplayNameOverride?: string;
+    contactSalutation?: ContactSalutation | null;
+    personalizedSubject?: string;
+  }
+): Promise<CampaignRecipient> {
+  const existing = await repos.campaignRecipients.getById(tenantId, recipientId);
+  if (!existing) throw new PersistenceError("not_found", "Recipient not found.");
+
+  const patch: UpdateCampaignRecipientDraftInput = {
+    greetingOverride: input.greetingOverride ?? existing.greetingOverride,
+    organizationDisplayNameOverride:
+      input.organizationDisplayNameOverride ?? existing.organizationDisplayNameOverride,
+    contactSalutation:
+      input.contactSalutation === undefined ? existing.contactSalutation : input.contactSalutation
+  };
+
+  if (input.personalizedSubject !== undefined) {
+    patch.personalizedSubject = input.personalizedSubject.trim();
+  }
+
+  if (existing.draftStatus === "APPROVED" || existing.draftStatus === "OPENED_EXTERNALLY") {
+    await invalidateRecipientApproval(repos, tenantId, recipientId, "personalization_override");
+  }
+
+  const updated = await repos.campaignRecipients.updateDraft(tenantId, recipientId, patch);
+  return regenerateRecipientDraft(repos, tenantId, existing.campaignId, recipientId, true);
 }

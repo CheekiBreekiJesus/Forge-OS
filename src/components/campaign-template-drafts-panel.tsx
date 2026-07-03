@@ -5,11 +5,14 @@ import {
   generateCampaignDrafts,
   previewCampaignDrafts,
   previewTemplateSample,
+  refreshCampaignSenderData,
   regenerateRecipientDraft,
   saveCampaignTemplate,
   updateRecipientDraftContent,
+  updateRecipientPersonalizationOverrides,
   type CampaignDraftPreview
 } from "@/application/campaign-draft-service";
+import type { TemplateRenderResult } from "@/features/leadops/template-rendering";
 import { panelClass } from "@/components/app-frame";
 import {
   CampaignBulkApprovalBar,
@@ -61,6 +64,10 @@ export function CampaignTemplateDraftsPanel({
   const [preview, setPreview] = useState<CampaignDraftPreview | null>(null);
   const [sampleSubject, setSampleSubject] = useState("");
   const [sampleBody, setSampleBody] = useState("");
+  const [samplePreview, setSamplePreview] = useState<TemplateRenderResult["preview"] | null>(null);
+  const [greetingOverride, setGreetingOverride] = useState("");
+  const [organizationDisplayOverride, setOrganizationDisplayOverride] = useState("");
+  const [refreshingSender, setRefreshingSender] = useState(false);
   const [selectedRecipientId, setSelectedRecipientId] = useState<string | null>(null);
   const [editSubject, setEditSubject] = useState("");
   const [editBody, setEditBody] = useState("");
@@ -101,6 +108,8 @@ export function CampaignTemplateDraftsPanel({
     setSelectedRecipientId(recipient.id);
     setEditSubject(recipient.personalizedSubject);
     setEditBody(recipient.personalizedPlainText);
+    setGreetingOverride(recipient.greetingOverride);
+    setOrganizationDisplayOverride(recipient.organizationDisplayNameOverride);
     setConfirmRegenerate(false);
   }
 
@@ -141,6 +150,44 @@ export function CampaignTemplateDraftsPanel({
     const sample = await previewTemplateSample(repos, tenantId, campaignId, selectedRecipientId ?? undefined);
     setSampleSubject(sample.subject);
     setSampleBody(sample.plainText);
+    setSamplePreview(sample.preview);
+  }
+
+  async function handleRefreshSender() {
+    setRefreshingSender(true);
+    setFeedback(null);
+    try {
+      const result = await refreshCampaignSenderData(repos, tenantId, campaignId);
+      onCampaignUpdated(result.campaign);
+      onNotify();
+      await reloadRecipients();
+      await reloadPreview();
+      setFeedback(copy.senderRefreshed.replace("{count}", String(result.regenerated)));
+    } finally {
+      setRefreshingSender(false);
+    }
+  }
+
+  async function handleApplyPersonalizationOverrides() {
+    if (!selectedRecipient) return;
+    setSavingDraft(true);
+    try {
+      const updated = await updateRecipientPersonalizationOverrides(
+        repos,
+        tenantId,
+        selectedRecipient.id,
+        {
+          greetingOverride,
+          organizationDisplayNameOverride: organizationDisplayOverride
+        }
+      );
+      onNotify();
+      await reloadRecipients();
+      selectRecipient(updated);
+      setFeedback(draftCopy.draftSaved);
+    } finally {
+      setSavingDraft(false);
+    }
   }
 
   async function handleGenerateDrafts() {
@@ -282,6 +329,15 @@ export function CampaignTemplateDraftsPanel({
           >
             {copy.previewSample}
           </button>
+          <button
+            className="rounded border border-slate-700 px-4 py-2 text-sm"
+            data-testid="refresh-campaign-sender"
+            disabled={refreshingSender}
+            onClick={() => void handleRefreshSender()}
+            type="button"
+          >
+            {refreshingSender ? copy.refreshingSender : copy.refreshSender}
+          </button>
         </div>
 
         {preview ? (
@@ -296,6 +352,26 @@ export function CampaignTemplateDraftsPanel({
         {sampleSubject || sampleBody ? (
           <div className="mt-4 rounded-lg border border-slate-800 bg-slate-950 p-4" data-testid="campaign-template-preview">
             <p className="text-xs uppercase tracking-wide text-slate-500">{copy.previewTitle}</p>
+            {samplePreview ? (
+              <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2" data-testid="campaign-draft-preview-fields">
+                <p><span className="text-slate-500">{copy.previewGreeting}</span> {samplePreview.greeting}</p>
+                <p><span className="text-slate-500">{copy.previewContact}</span> {samplePreview.contactName || "—"}</p>
+                <p><span className="text-slate-500">{copy.previewOrganization}</span> {samplePreview.organizationName}</p>
+                <p><span className="text-slate-500">{copy.previewOrganizationDisplay}</span> {samplePreview.organizationDisplayName}</p>
+                <p><span className="text-slate-500">{copy.previewCategory}</span> {samplePreview.localizedCategory}</p>
+                <p><span className="text-slate-500">{copy.previewSender}</span> {samplePreview.senderName} · {samplePreview.senderEmail}</p>
+                <p className="sm:col-span-2"><span className="text-slate-500">{copy.previewSubject}</span> {sampleSubject}</p>
+                {samplePreview.usedDemoFallback ? (
+                  <p className="text-amber-300 sm:col-span-2">{copy.previewDemoWarning}</p>
+                ) : null}
+                {samplePreview.organizationUsedAsContact ? (
+                  <p className="text-amber-300 sm:col-span-2">{copy.previewOrgAsContact}</p>
+                ) : null}
+                {samplePreview.untreatedEnglishCategory ? (
+                  <p className="text-amber-300 sm:col-span-2">{copy.previewUntranslatedCategory}</p>
+                ) : null}
+              </div>
+            ) : null}
             <p className="mt-2 text-sm font-semibold">{sampleSubject}</p>
             <pre className="mt-3 whitespace-pre-wrap text-sm text-slate-300">{sampleBody}</pre>
           </div>
@@ -408,6 +484,25 @@ export function CampaignTemplateDraftsPanel({
             </p>
           ) : null}
           <label className="mt-4 block text-sm">
+            <span className="text-slate-400">{copy.greetingOverride}</span>
+            <input
+              className="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2"
+              data-testid="campaign-draft-greeting-override"
+              onChange={(event) => setGreetingOverride(event.target.value)}
+              placeholder="Exmos. Senhores,"
+              value={greetingOverride}
+            />
+          </label>
+          <label className="mt-4 block text-sm">
+            <span className="text-slate-400">{copy.organizationDisplayOverride}</span>
+            <input
+              className="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2"
+              data-testid="campaign-draft-organization-display-override"
+              onChange={(event) => setOrganizationDisplayOverride(event.target.value)}
+              value={organizationDisplayOverride}
+            />
+          </label>
+          <label className="mt-4 block text-sm">
             <span className="text-slate-400">{copy.subjectLabel}</span>
             <input
               className="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2"
@@ -434,6 +529,15 @@ export function CampaignTemplateDraftsPanel({
               type="button"
             >
               {savingDraft ? draftCopy.saving : draftCopy.saveDraft}
+            </button>
+            <button
+              className="rounded border border-slate-700 px-4 py-2 text-sm"
+              data-testid="apply-personalization-overrides"
+              disabled={savingDraft}
+              onClick={() => void handleApplyPersonalizationOverrides()}
+              type="button"
+            >
+              {copy.applyPersonalization}
             </button>
             {confirmRegenerate ? (
               <>

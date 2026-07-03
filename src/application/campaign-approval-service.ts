@@ -1,3 +1,4 @@
+import { containsDemoSenderValues } from "@/features/leadops/demo-sender-values";
 import { loadSenderContext, type SenderContext } from "@/application/campaign-sender-context";
 import { buildActiveSuppressedEmailSet } from "@/application/suppression-service";
 import type {
@@ -27,6 +28,7 @@ export type ApprovalBlockReason =
   | "missing_body"
   | "unresolved_variables"
   | "sender_incomplete"
+  | "demo_sender_values"
   | "missing_opt_out"
   | "campaign_locked"
   | "already_sent"
@@ -158,6 +160,16 @@ export async function evaluateRecipientApproval(
   }
 
   if (!sender.ready) reasons.push("sender_incomplete");
+  if (
+    containsDemoSenderValues([
+      sender.sender.displayName,
+      sender.sender.fromEmail,
+      sender.sender.replyToEmail,
+      sender.sender.phone
+    ])
+  ) {
+    reasons.push("demo_sender_values");
+  }
   if (!hasOptOutInstruction(recipient.personalizedPlainText)) reasons.push("missing_opt_out");
 
   const suppressedEmails = await buildActiveSuppressedEmailSet(repos, tenantId);

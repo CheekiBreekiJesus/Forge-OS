@@ -313,6 +313,7 @@ export type ActivityAction =
   | "campaign_recipients_refreshed"
   | "campaign_template_updated"
   | "campaign_drafts_generated"
+  | "campaign_sender_refreshed"
   | "campaign_draft_approved"
   | "campaign_draft_approval_invalidated"
   | "campaign_draft_opened_external"

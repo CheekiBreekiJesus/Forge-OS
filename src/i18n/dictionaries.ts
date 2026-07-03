@@ -387,7 +387,9 @@ export type Dictionary = {
     description: string;
     loading: string;
     save: string;
+    saving: string;
     saved: string;
+    saveFailed: string;
     sections: {
       company: string;
       profile: string;
@@ -430,6 +432,7 @@ export type Dictionary = {
     senders: {
       add: string;
       created: string;
+      saved: string;
       defaultBadge: string;
       inactive: string;
       preview: string;
@@ -437,6 +440,11 @@ export type Dictionary = {
       archive: string;
       archived: string;
       signaturePreview: string;
+      displayName: string;
+      fromEmail: string;
+      replyToEmail: string;
+      phone: string;
+      jobTitle: string;
     };
     team: {
       notice: string;
@@ -634,6 +642,23 @@ export type Dictionary = {
         previewTitle: string;
         templateVersion: string;
         senderIncomplete: string;
+        refreshSender: string;
+        refreshingSender: string;
+        senderRefreshed: string;
+        previewFieldsTitle: string;
+        previewGreeting: string;
+        previewContact: string;
+        previewOrganization: string;
+        previewOrganizationDisplay: string;
+        previewCategory: string;
+        previewSender: string;
+        previewSubject: string;
+        previewDemoWarning: string;
+        previewOrgAsContact: string;
+        previewUntranslatedCategory: string;
+        greetingOverride: string;
+        organizationDisplayOverride: string;
+        applyPersonalization: string;
         includedRecipients: string;
         unresolvedCount: string;
       };
