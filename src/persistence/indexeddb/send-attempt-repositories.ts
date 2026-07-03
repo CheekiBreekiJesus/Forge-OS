@@ -4,12 +4,35 @@ import type {
   OutreachSendAttempt
 } from "@/domain/email-delivery-types";
 import type { ForgeOSDatabase } from "@/persistence/db";
+import type { DeliveryClaimResult } from "@/persistence/supabase/outreach-repositories";
 
 export interface OutreachSendAttemptRepository {
   listForTenant(tenantId: string): Promise<OutreachSendAttempt[]>;
   listForRecipient(tenantId: string, campaignRecipientId: string): Promise<OutreachSendAttempt[]>;
   getByIdempotencyKey(tenantId: string, idempotencyKey: string): Promise<OutreachSendAttempt | null>;
   create(input: CreateOutreachSendAttemptInput): Promise<OutreachSendAttempt>;
+  claim?(input: {
+    tenantId: string;
+    campaignId: string;
+    recipientId: string;
+    leadId: string;
+    messageVersion: string;
+    idempotencyKey: string;
+    requestFingerprint: string;
+    initiatedBy: string;
+    destinationEmail: string;
+  }): Promise<DeliveryClaimResult>;
+  complete?(input: {
+    tenantId: string;
+    attemptId: string;
+    status: OutreachSendAttempt["status"];
+    providerMessageId: string | null;
+    errorCode: string | null;
+    errorMessage: string | null;
+    recipientId: string;
+    sentBy: string;
+    idempotencyKey: string;
+  }): Promise<void>;
 }
 
 export function createOutreachSendAttemptRepository(

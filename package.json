@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest run src",
+    "test:supabase:integration": "vitest run src/persistence/supabase/outreach-vertical.integration.test.ts",
     "pretest:e2e": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/qa/prepare-playwright-tests.ps1 -TestPort 3012",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
@@ -31,6 +32,7 @@
     "agent:canary": "tsx scripts/agent-orchestrator/canary.ts"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.110.0",
     "dexie": "^4.4.4",
     "next": "^16.2.9",
@@ -42,12 +44,14 @@
   "devDependencies": {
     "@playwright/test": "1.53.1",
     "@types/node": "22.15.32",
+    "@types/pg": "^8.20.0",
     "@types/react": "19.0.12",
     "@types/react-dom": "19.0.4",
     "autoprefixer": "10.4.21",
     "eslint": "9.29.0",
     "eslint-config-next": "^16.2.9",
     "fake-indexeddb": "^6.2.5",
+    "pg": "^8.22.0",
     "postcss": "8.5.10",
     "tailwindcss": "3.4.17",
     "tsx": "4.20.3",
