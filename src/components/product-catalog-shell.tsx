@@ -269,6 +269,7 @@ export function ProductCatalogShell({ dictionary, locale }: ProductCatalogShellP
             archivedRowClass={isArchivedRecord}
             columns={columns}
             rowKey={(p) => p.id}
+            locale={locale}
             rows={filtered}
           />
           <EntityCardList
@@ -288,6 +289,7 @@ export function ProductCatalogShell({ dictionary, locale }: ProductCatalogShellP
             archivedRowClass={isArchivedRecord}
             meta={(p) => p.sku}
             rowKey={(p) => p.id}
+            locale={locale}
             rows={filtered}
             title={(p) => p.name}
           />

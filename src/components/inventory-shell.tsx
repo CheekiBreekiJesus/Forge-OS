@@ -235,6 +235,7 @@ export function InventoryShell({ dictionary, locale }: InventoryShellProps) {
             archivedRowClass={isArchivedRecord}
             columns={columns}
             rowKey={(i) => i.id}
+            locale={locale}
             rows={filtered}
           />
           <EntityCardList
@@ -254,6 +255,7 @@ export function InventoryShell({ dictionary, locale }: InventoryShellProps) {
             archivedRowClass={isArchivedRecord}
             meta={(i) => `${i.currentQuantity} ${i.unit}`}
             rowKey={(i) => i.id}
+            locale={locale}
             rows={filtered}
             subtitle={(i) => i.sku}
             title={(i) => i.name}
