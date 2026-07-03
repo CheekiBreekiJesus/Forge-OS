@@ -24,11 +24,14 @@
     "agent:maintain": "tsx scripts/agent-orchestrator/maintain.ts",
     "agent:health": "tsx scripts/agent-orchestrator/health.ts",
     "agent:test": "vitest run scripts/agent-orchestrator",
-    "agent:canary": "tsx scripts/agent-orchestrator/canary.ts"
+    "agent:canary": "tsx scripts/agent-orchestrator/canary.ts",
+    "jh-gomes-mail:connection-test": "tsx scripts/jh-gomes-mail/connection-test.ts"
   },
   "dependencies": {
     "dexie": "^4.4.4",
+    "imapflow": "^1.4.3",
     "next": "^16.2.9",
+    "nodemailer": "^9.0.3",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "xlsx": "^0.18.5"
@@ -36,6 +39,7 @@
   "devDependencies": {
     "@playwright/test": "1.53.1",
     "@types/node": "22.15.32",
+    "@types/nodemailer": "^8.0.1",
     "@types/react": "19.0.12",
     "@types/react-dom": "19.0.4",
     "autoprefixer": "10.4.21",
