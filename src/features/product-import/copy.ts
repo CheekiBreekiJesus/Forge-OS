@@ -1,0 +1,109 @@
+import type { Locale } from "@/i18n/config";
+
+const copy = {
+  en: {
+    title: "Product import",
+    subtitle: "Stage supplier and catalogue files, review conflicts, then commit safe records to Product Master.",
+    steps: {
+      file: "Select file",
+      worksheet: "Worksheet",
+      mapping: "Field mapping",
+      preview: "Preview",
+      review: "Review",
+      stage: "Stage",
+      commit: "Commit",
+      history: "History"
+    },
+    selectFile: "Select XLS, XLSX, or CSV file",
+    selectWorksheet: "Select worksheet",
+    applyProfile: "Apply mapping profile",
+    saveProfile: "Save mapping profile",
+    runStaging: "Run validation and stage",
+    commitSelected: "Commit selected to Product Master",
+    filterAll: "All rows",
+    filterValid: "Valid",
+    filterWarnings: "Warnings",
+    filterInvalid: "Invalid",
+    filterDuplicates: "Duplicates",
+    filterConflicts: "Conflicts",
+    filterMissingReference: "Missing reference",
+    filterMissingPrice: "Missing price",
+    filterMissingBarcode: "Missing barcode",
+    formulaWarning: "Formula-derived values were read as displayed text only.",
+    noInventory: "Inventory quantities are never imported.",
+    doubleSubmit: "Please wait — operation in progress.",
+    commitSuccess: "Committed products to Product Master.",
+    sourcePrecedence: "Source precedence",
+    precedenceHelp:
+      "ForgeOS approved values win unless you explicitly choose incoming values per field.",
+    backToCatalog: "Back to product catalog",
+    row: "Row",
+    reference: "Reference",
+    description: "Description",
+    status: "Status",
+    action: "Proposed action",
+    selected: "Selected",
+    page: "Page",
+    of: "of",
+    importHistory: "Import history",
+    rows: "rows",
+    committed: "committed",
+    staged: "staged"
+  },
+  "pt-PT": {
+    title: "Importação de produtos",
+    subtitle:
+      "Prepare ficheiros de fornecedor e catálogo, reveja conflitos e confirme registos seguros no Product Master.",
+    steps: {
+      file: "Selecionar ficheiro",
+      worksheet: "Folha",
+      mapping: "Mapeamento",
+      preview: "Pré-visualização",
+      review: "Revisão",
+      stage: "Preparar",
+      commit: "Confirmar",
+      history: "Histórico"
+    },
+    selectFile: "Selecionar ficheiro XLS, XLSX ou CSV",
+    selectWorksheet: "Selecionar folha",
+    applyProfile: "Aplicar perfil de mapeamento",
+    saveProfile: "Guardar perfil de mapeamento",
+    runStaging: "Validar e preparar",
+    commitSelected: "Confirmar selecionados no Product Master",
+    filterAll: "Todas as linhas",
+    filterValid: "Válidas",
+    filterWarnings: "Avisos",
+    filterInvalid: "Inválidas",
+    filterDuplicates: "Duplicados",
+    filterConflicts: "Conflitos",
+    filterMissingReference: "Referência em falta",
+    filterMissingPrice: "Preço em falta",
+    filterMissingBarcode: "Código de barras em falta",
+    formulaWarning: "Valores de fórmulas foram lidos apenas como texto apresentado.",
+    noInventory: "Quantidades de inventário nunca são importadas.",
+    doubleSubmit: "Aguarde — operação em curso.",
+    commitSuccess: "Produtos confirmados no Product Master.",
+    sourcePrecedence: "Precedência de fontes",
+    precedenceHelp:
+      "Valores aprovados no ForgeOS prevalecem salvo escolha explícita dos valores recebidos.",
+    backToCatalog: "Voltar ao catálogo",
+    row: "Linha",
+    reference: "Referência",
+    description: "Descrição",
+    status: "Estado",
+    action: "Ação proposta",
+    selected: "Selecionados",
+    page: "Página",
+    of: "de",
+    importHistory: "Histórico de importações",
+    rows: "linhas",
+    committed: "confirmados",
+    staged: "preparados"
+  }
+} as const;
+
+export function getProductImportCopy(locale: Locale) {
+  return copy[locale];
+}
+
+export type ProductImportCopy = ReturnType<typeof getProductImportCopy>;
