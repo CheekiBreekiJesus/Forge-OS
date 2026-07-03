@@ -1,43 +1,31 @@
-# Outreach Latest Summary
+# Email Outreach Integration — QA Summary
 
-Date: 2026-07-03
-Branch: `feat/email-outreach-send-jobs`
+Updated after MVP integration merge (2026-07-03).
 
-## Step 7C Result
+## Operational import (from import-ops)
 
-Trusted send-job server mutation boundaries now exist for durable simulation workflows:
+- Semicolon CSV + XLSX multi-sheet import
+- Reusable mapping profiles with sheet-switch fix
+- Duplicate review queue and import history
+- Lead sendability filter aligned with suppression table
+- Private acceptance runner (local, gitignored)
 
-- queue campaign;
-- process next batch;
-- pause;
-- resume;
-- cancel unsent recipients;
-- retry eligible failures;
-- retrieve sanitized status.
+## Send-job foundation (preserved from send-jobs)
 
-## Security Notes
+- Local simulation queue with bounded batches
+- Pause, resume, cancel, retry limits
+- Suppression blocks post-queue recipients
+- Trusted server routes compile; production auth not wired
+- Brevo campaign batches remain disabled
 
-- Tenant and actor are derived from trusted server context.
-- Request bodies cannot provide tenant, actor, roles, permissions, recipients, or approved content.
-- Explicit send-job permissions are enforced server-side.
-- Cross-tenant access and unauthorized roles are covered by tests.
-- Brevo campaign batch sending remains disabled.
+## Combined integration test
 
-## Validation
+`src/application/outreach-import-send-job.integration.test.ts` — synthetic multi-sheet import through campaign approval to simulation send job with suppression check.
 
-- `npm run lint`: passed with 7 pre-existing warnings.
-- `npm run typecheck`: passed.
-- `npm test`: passed, 48 files and 227 tests.
-- `npm run test:e2e`: passed, 93 passed and 1 optional live-AI skip.
-- `npm run test:acceptance`: passed, 50 passed and 1 optional live-AI skip.
-- `npm run build`: passed.
-- `npm run validate`: passed.
-- `npm run ai:doctor -- --provider abacus`: passed; Abacus key is not present locally and no live call was made.
+## Latest validation counts
 
-## Remaining Step 7D Work
+- Unit/integration: 235 passed
+- E2E: 93 passed, 1 skipped (live AI)
+- Acceptance: 50 passed, 1 skipped (live AI)
 
-- Wire production auth/session provider.
-- Map users to tenant memberships.
-- Configure hosted server repositories.
-- Validate Supabase migration/RPCs against Postgres/Supabase.
-- Keep real Brevo campaign sends disabled until explicit approval.
+See `qa/outreach/integration-summary.md` for merge details.
