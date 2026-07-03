@@ -2,7 +2,11 @@ import * as XLSX from "xlsx";
 import type { ImportFieldMapping } from "@/domain/import-types";
 import { applyFieldMapping, detectFieldMapping } from "@/features/leadops/import-mapping";
 import {
+  appendAdditionalEmailsToNotes,
   collapseWhitespace,
+  decodeTextBuffer,
+  extractPrimaryEmail,
+  isPlaceholderValue,
   normalizeEmail,
   normalizePhone,
   normalizeWebsite,
@@ -26,6 +30,16 @@ export type ParsedSpreadsheet = {
   rows: string[][];
   fileType: SupportedImportFileType;
   detectedMapping: ImportFieldMapping;
+  availableSheets: string[];
+  selectedSheet: string | null;
+  csvDelimiter: "," | ";" | "\t" | null;
+  encoding: "utf-8" | "windows-1252" | "binary";
+};
+
+export type ParseImportFileOptions = {
+  mappingOverride?: ImportFieldMapping;
+  sheetName?: string;
+  delimiter?: "," | ";" | "\t";
 };
 
 export function validateImportFile(file: File): string | null {
@@ -47,18 +61,54 @@ export function detectFileType(file: File): SupportedImportFileType {
   return "csv";
 }
 
+export function listXlsxSheetNames(buffer: ArrayBuffer): string[] {
+  const workbook = XLSX.read(buffer, { type: "array", cellFormula: false, cellHTML: false });
+  return workbook.SheetNames;
+}
+
 export async function parseImportFile(
   file: File,
-  mappingOverride?: ImportFieldMapping
+  options: ParseImportFileOptions = {}
 ): Promise<ParsedSpreadsheet> {
   const fileType = detectFileType(file);
   const buffer = await file.arrayBuffer();
-  const spreadsheet =
-    fileType === "xlsx" ? parseXlsxBuffer(buffer) : parseCsvText(new TextDecoder().decode(buffer));
-  const detectedMapping = mappingOverride
-    ? { ...detectFieldMapping(spreadsheet.headers), ...mappingOverride }
+
+  if (fileType === "xlsx") {
+    const availableSheets = listXlsxSheetNames(buffer);
+    const selectedSheet =
+      options.sheetName && availableSheets.includes(options.sheetName)
+        ? options.sheetName
+        : pickDefaultSheet(buffer, availableSheets);
+    const spreadsheet = parseXlsxBuffer(buffer, selectedSheet);
+    const detectedMapping = options.mappingOverride
+      ? { ...detectFieldMapping(spreadsheet.headers), ...options.mappingOverride }
+      : detectFieldMapping(spreadsheet.headers);
+    return {
+      ...spreadsheet,
+      fileType,
+      detectedMapping,
+      availableSheets,
+      selectedSheet,
+      csvDelimiter: null,
+      encoding: "binary"
+    };
+  }
+
+  const { text, encoding } = decodeTextBuffer(buffer);
+  const delimiter = options.delimiter ?? detectCsvDelimiter(text);
+  const spreadsheet = parseCsvText(text, delimiter);
+  const detectedMapping = options.mappingOverride
+    ? { ...detectFieldMapping(spreadsheet.headers), ...options.mappingOverride }
     : detectFieldMapping(spreadsheet.headers);
-  return { ...spreadsheet, fileType, detectedMapping };
+  return {
+    ...spreadsheet,
+    fileType,
+    detectedMapping,
+    availableSheets: [],
+    selectedSheet: null,
+    csvDelimiter: delimiter,
+    encoding
+  };
 }
 
 export function mapRowsToInput(
@@ -85,36 +135,135 @@ export function mapRowsToInput(
   });
 }
 
+export function mapRowsWithOriginal(
+  headers: string[],
+  rows: string[][],
+  mapping: ImportFieldMapping
+): Array<{ original: ParsedImportRowInput; normalized: ParsedImportRowInput }> {
+  return rows.map((row) => {
+    const mapped = applyFieldMapping(headers, row, mapping);
+    const original = toRowSnapshot(mapped);
+    const normalized = normalizeRowInput({
+      ...mapped,
+      country: mapped.country || "Portugal",
+      language: mapped.language || "pt-PT"
+    });
+    return { original, normalized };
+  });
+}
+
+function toRowSnapshot(mapped: Record<string, string>): ParsedImportRowInput {
+  return {
+    companyName: trimValue(mapped.companyName),
+    contactName: trimValue(mapped.contactName),
+    email: trimValue(mapped.email),
+    phone: trimValue(mapped.phone),
+    website: trimValue(mapped.website),
+    region: trimValue(mapped.region),
+    country: trimValue(mapped.country),
+    industry: trimValue(mapped.industry),
+    notes: trimValue(mapped.notes),
+    sourceDatabase: trimValue(mapped.sourceDatabase),
+    status: trimValue(mapped.status),
+    language: trimValue(mapped.language)
+  };
+}
+
 export function normalizeRowInput(row: ParsedImportRowInput): ParsedImportRowInput {
+  const { primary, additional } = extractPrimaryEmail(row.email);
   const phone = normalizePhone(row.phone);
   const website = normalizeWebsite(row.website);
+  const notes = appendAdditionalEmailsToNotes(trimValue(row.notes), additional);
+
   return {
     companyName: collapseWhitespace(row.companyName),
     contactName: collapseWhitespace(row.contactName),
-    email: normalizeEmail(row.email),
+    email: normalizeEmail(primary),
     phone: phone.display,
     website: website.display ?? "",
     region: collapseWhitespace(row.region),
-    country: collapseWhitespace(row.country) || "Portugal",
+    country: isPlaceholderValue(row.country) ? "Portugal" : collapseWhitespace(row.country),
     industry: collapseWhitespace(row.industry),
-    notes: trimValue(row.notes),
+    notes,
     sourceDatabase: collapseWhitespace(row.sourceDatabase),
     status: collapseWhitespace(row.status),
     language: collapseWhitespace(row.language) || "pt-PT"
   };
 }
 
-function parseCsvText(csv: string): { headers: string[]; rows: string[][] } {
-  const parsed = parseCsv(csv);
-  const headers = parsed[0]?.map((cell) => trimValue(cell)) ?? [];
+export function detectCsvDelimiter(text: string): "," | ";" | "\t" {
+  const sampleLines = text.split(/\r?\n/).filter((line) => line.trim().length > 0).slice(0, 5);
+  if (sampleLines.length === 0) return ",";
+
+  let commaScore = 0;
+  let semicolonScore = 0;
+  let tabScore = 0;
+
+  for (const line of sampleLines) {
+    commaScore += countDelimiterOutsideQuotes(line, ",");
+    semicolonScore += countDelimiterOutsideQuotes(line, ";");
+    tabScore += countDelimiterOutsideQuotes(line, "\t");
+  }
+
+  if (semicolonScore > commaScore && semicolonScore >= tabScore) return ";";
+  if (tabScore > commaScore && tabScore > semicolonScore) return "\t";
+  return ",";
+}
+
+function countDelimiterOutsideQuotes(line: string, delimiter: string): number {
+  let count = 0;
+  let inQuotes = false;
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    if (char === "\"") {
+      inQuotes = !inQuotes;
+      continue;
+    }
+    if (!inQuotes && char === delimiter) count += 1;
+  }
+  return count;
+}
+
+function parseCsvText(
+  csv: string,
+  delimiter: "," | ";" | "\t" = ","
+): { headers: string[]; rows: string[][] } {
+  const parsed = parseCsv(csv, delimiter);
+  const headerRowIndex = findHeaderRowIndex(parsed);
+  const headers = dedupeHeaders(parsed[headerRowIndex]?.map((cell) => trimValue(cell)) ?? []);
   const rows = parsed
-    .slice(1)
+    .slice(headerRowIndex + 1)
     .filter((row) => row.some((cell) => trimValue(cell).length > 0))
-    .map((row) => row.map((cell) => trimValue(cell)));
+    .map((row) => padRow(row, headers.length).map((cell) => trimValue(cell)));
   return { headers, rows };
 }
 
-function parseCsv(csv: string): string[][] {
+function findHeaderRowIndex(rows: string[][]): number {
+  for (let index = 0; index < Math.min(rows.length, 5); index += 1) {
+    const row = rows[index] ?? [];
+    const nonEmpty = row.filter((cell) => trimValue(cell).length > 0).length;
+    if (nonEmpty >= 2) return index;
+  }
+  return 0;
+}
+
+function dedupeHeaders(headers: string[]): string[] {
+  const seen = new Map<string, number>();
+  return headers.map((header, index) => {
+    const base = header || `Column ${index + 1}`;
+    const count = seen.get(base) ?? 0;
+    seen.set(base, count + 1);
+    return count === 0 ? base : `${base} (${count + 1})`;
+  });
+}
+
+function padRow(row: string[], length: number): string[] {
+  const padded = [...row];
+  while (padded.length < length) padded.push("");
+  return padded.slice(0, length);
+}
+
+function parseCsv(csv: string, delimiter: "," | ";" | "\t" = ","): string[][] {
   const rows: string[][] = [];
   let currentRow: string[] = [];
   let currentCell = "";
@@ -135,7 +284,7 @@ function parseCsv(csv: string): string[][] {
       continue;
     }
 
-    if (char === "," && !inQuotes) {
+    if (char === delimiter && !inQuotes) {
       currentRow.push(currentCell);
       currentCell = "";
       continue;
@@ -158,21 +307,50 @@ function parseCsv(csv: string): string[][] {
   return rows;
 }
 
-
-function parseXlsxBuffer(buffer: ArrayBuffer): { headers: string[]; rows: string[][] } {
+function pickDefaultSheet(buffer: ArrayBuffer, sheetNames: string[]): string {
   const workbook = XLSX.read(buffer, { type: "array", cellFormula: false, cellHTML: false });
-  const sheetName = workbook.SheetNames[0];
-  if (!sheetName) return { headers: [], rows: [] };
-  const sheet = workbook.Sheets[sheetName];
+  let bestName = sheetNames[0] ?? "";
+  let bestRows = -1;
+  for (const name of sheetNames) {
+    const sheet = workbook.Sheets[name];
+    const matrix = XLSX.utils.sheet_to_json<(string | number | boolean | null)[]>(sheet, {
+      header: 1,
+      raw: false,
+      defval: ""
+    });
+    const rowCount = matrix.slice(1).filter((row) => row.some((cell) => trimValue(String(cell ?? "")).length > 0)).length;
+    if (rowCount > bestRows) {
+      bestRows = rowCount;
+      bestName = name;
+    }
+  }
+  return bestName;
+}
+
+function parseXlsxBuffer(
+  buffer: ArrayBuffer,
+  sheetName: string
+): { headers: string[]; rows: string[][] } {
+  const workbook = XLSX.read(buffer, { type: "array", cellFormula: false, cellHTML: false });
+  const resolvedSheet = workbook.SheetNames.includes(sheetName)
+    ? sheetName
+    : workbook.SheetNames[0];
+  if (!resolvedSheet) return { headers: [], rows: [] };
+  const sheet = workbook.Sheets[resolvedSheet];
   const matrix = XLSX.utils.sheet_to_json<(string | number | boolean | null)[]>(sheet, {
     header: 1,
     raw: false,
     defval: ""
   });
   if (matrix.length === 0) return { headers: [], rows: [] };
-  const headers = (matrix[0] ?? []).map((cell) => trimValue(String(cell ?? "")));
+
+  const headerRowIndex = findHeaderRowIndex(
+    matrix.map((row) => (row ?? []).map((cell) => trimValue(String(cell ?? ""))))
+  );
+  const rawHeaders = (matrix[headerRowIndex] ?? []).map((cell) => trimValue(String(cell ?? "")));
+  const headers = dedupeHeaders(rawHeaders);
   const rows = matrix
-    .slice(1)
+    .slice(headerRowIndex + 1)
     .filter((row) => row.some((cell) => trimValue(String(cell ?? "")).length > 0))
     .map((row) => headers.map((_, index) => trimValue(String(row[index] ?? ""))));
   return { headers, rows };

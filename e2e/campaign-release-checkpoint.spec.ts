@@ -31,10 +31,6 @@ test.describe("Outreach release checkpoint", () => {
     await page.getByTestId("lead-import-confirm").click();
     await expect(page.getByTestId("lead-import-result")).toBeVisible({ timeout: 30000 });
 
-    await page.getByTestId("suppression-email-input").fill("acceptance.mixed.valid@example.invalid");
-    await page.getByTestId("suppression-add-button").click();
-    await expect(page.getByTestId("suppression-feedback")).toBeVisible();
-
     await page.getByTestId("lead-search-input").fill("Acceptance");
     await page.getByTestId("create-campaign-from-filters").click();
     await page.getByTestId("segment-campaign-name").fill("Release Suppression Campaign");
@@ -42,6 +38,13 @@ test.describe("Outreach release checkpoint", () => {
     await page.getByTestId("generate-campaign-drafts").click();
     await expect(page.getByTestId("campaign-drafts-panel")).toBeVisible();
 
+    const campaignUrl = page.url();
+    await gotoAndWait(page, "/pt-PT/leadops");
+    await page.getByTestId("suppression-email-input").fill("acceptance.mixed.valid@example.invalid");
+    await page.getByTestId("suppression-add-button").click();
+    await expect(page.getByTestId("suppression-feedback")).toBeVisible();
+
+    await gotoAndWait(page, campaignUrl);
     const firstRow = page.locator('[data-testid^="campaign-draft-row-"]').first();
     await firstRow.click();
     await expect(page.getByTestId("campaign-approval-blockers")).toBeVisible();

@@ -20,6 +20,7 @@ import {
   deriveCampaignStatus,
   invalidateCampaignApprovals
 } from "@/application/campaign-approval-service";
+import { buildActiveSuppressedEmailSet } from "@/application/suppression-service";
 
 export type CreateCampaignFromSegmentInput = {
   name: string;
@@ -33,11 +34,12 @@ export async function buildLeadManagementContext(
   repos: LocalRepositoryBundle,
   tenantId: string
 ): Promise<LeadManagementContext> {
-  const [leads, contacts, recipients, messages] = await Promise.all([
+  const [leads, contacts, recipients, messages, suppressedEmails] = await Promise.all([
     repos.leads.list(tenantId),
     repos.leadContacts.list(tenantId),
     repos.campaignRecipients.listForTenant(tenantId),
-    repos.outreachMessages.listAll?.(tenantId) ?? Promise.resolve([])
+    repos.outreachMessages.listAll?.(tenantId) ?? Promise.resolve([]),
+    buildActiveSuppressedEmailSet(repos, tenantId)
   ]);
 
   const outreachSentAtByLeadId = new Map<string, string>();
@@ -49,7 +51,13 @@ export async function buildLeadManagementContext(
     }
   }
 
-  return { leads, contacts, recipients, outreachSentAtByLeadId };
+  return {
+    leads,
+    contacts,
+    recipients,
+    outreachSentAtByLeadId,
+    suppressedEmails
+  };
 }
 
 export function previewCampaignSegment(

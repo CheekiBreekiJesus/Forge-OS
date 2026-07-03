@@ -57,6 +57,7 @@ import {
   createImportRowRepository,
   createLeadContactRepository
 } from "./import-repositories";
+import { createImportMappingProfileRepository } from "./import-mapping-profile-repositories";
 import { createEmailSuppressionRepository } from "./suppression-repositories";
 import { createOutreachProviderEventRepository } from "./provider-event-repositories";
 import { createOutreachSendAttemptRepository } from "./send-attempt-repositories";
@@ -1265,6 +1266,7 @@ export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
       db.customizerSimulations,
       db.importBatches,
       db.importRows,
+      db.importMappingProfiles,
       db.leadContacts,
       db.campaignRecipients,
       db.emailSuppressions,
@@ -1297,6 +1299,7 @@ export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
       await db.customizerSimulations.clear();
       await db.importBatches.clear();
       await db.importRows.clear();
+      await db.importMappingProfiles.clear();
       await db.leadContacts.clear();
       await db.campaignRecipients.clear();
       await db.emailSuppressions.clear();
@@ -1335,6 +1338,7 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
       db.customizerSimulations,
       db.importBatches,
       db.importRows,
+      db.importMappingProfiles,
       db.leadContacts,
       db.campaignRecipients,
       db.emailSuppressions,
@@ -1360,6 +1364,7 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
       await db.products.bulkPut(tables.products);
       await db.importBatches.bulkPut(tables.importBatches ?? []);
       await db.importRows.bulkPut(tables.importRows ?? []);
+      await db.importMappingProfiles.bulkPut(tables.importMappingProfiles ?? []);
       await db.leadContacts.bulkPut(tables.leadContacts ?? []);
       await db.campaignRecipients.bulkPut(tables.campaignRecipients ?? []);
       await db.emailSuppressions.bulkPut(tables.emailSuppressions ?? []);
@@ -1418,6 +1423,7 @@ export function createLocalRepositoryBundle(db: ForgeOSDatabase) {
   const customizerSimulations = createCustomizerSimulationRepository(db, activities);
   const importBatches = createImportBatchRepository(db);
   const importRows = createImportRowRepository(db);
+  const importMappingProfiles = createImportMappingProfileRepository(db);
   const leadContacts = createLeadContactRepository(db);
   const emailSuppressions = createEmailSuppressionRepository(db);
   const campaignRecipients = createCampaignRecipientRepository(db);
@@ -1450,6 +1456,7 @@ export function createLocalRepositoryBundle(db: ForgeOSDatabase) {
     customizerSimulations,
     importBatches,
     importRows,
+    importMappingProfiles,
     leadContacts,
     emailSuppressions,
     outreachSendAttempts,

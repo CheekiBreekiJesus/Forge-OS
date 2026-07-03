@@ -48,4 +48,6 @@ scripts/data-preparation/customer-config*.yml
 *_Lead_Database_Standardized.xlsx
 # Private lead import/export working folders (local only)
 data/imports/
+qa/outreach/private-import-profile.raw.json
+qa/outreach/.private-acceptance-metrics.json
 data/exports/

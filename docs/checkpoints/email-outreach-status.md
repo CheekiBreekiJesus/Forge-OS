@@ -1,47 +1,57 @@
-# Email Outreach Status - Step 7 Recovery Checkpoint
+# Email Outreach Status — MVP Integration Checkpoint
 
-Date: 2026-07-03
-Branch: `feat/email-outreach-send-jobs`
-Base: `9cf9936`
+Date: 2026-07-03  
+Branch: `feat/email-outreach-mvp-integration`  
+Sources: `fb82211` (send-job foundation) + `60fa927` (import-ops hardening)
 
-## Step 7 Checkpoint Status
+## Integrated and working
 
-Local simulation send jobs are working and tested. Step 7C adds trusted server mutation boundaries and explicit authorization policy for send-job operations, but production sending is not enabled.
+### LeadOps import / operator
 
-## Working
+- [x] Hardened CSV/XLSX import with worksheet selection
+- [x] Reusable mapping profiles (built-ins + save/delete)
+- [x] Normalization, duplicate review, import history
+- [x] Lead filters and sendability evaluation
+- [x] Real workbook sheet-switch fix
+- [x] Private acceptance runner (local, gitignored output)
+- [x] IndexedDB v12: `importMappingProfiles` + extended import batch metadata
+- [x] JSON backup v8 includes mapping profiles
 
-- [x] Send-job domain model.
-- [x] Local IndexedDB projection persistence.
-- [x] Queue eligibility and idempotent job creation.
-- [x] Bounded batch processing with local locks.
-- [x] Pause, resume, cancel, retry limits.
-- [x] Simulation UI on campaign detail.
-- [x] Step 8 provider-event compatibility.
-- [x] Supabase migration for send jobs, recipients, attempts, daily usage, lock RPC, and usage increment RPC.
-- [x] Server-only Supabase REST helper for durable send-job writes and RPC calls.
-- [x] Focused unit and Playwright tests.
+### Email provider / send-job foundation
 
-## Not Enabled
+- [x] Brevo provider foundation (test-email only, no campaign delivery)
+- [x] Durable unsubscribe and provider webhooks
+- [x] Supabase public suppression/events schema (migration present, not applied)
+- [x] Local simulation send jobs with bounded batch processing
+- [x] Durable Supabase send-job store helpers
+- [x] Locks, daily usage, trusted actor abstraction, authorization
+- [x] Queue/process/pause/resume/cancel/retry/status routes (production-disabled)
+- [x] IndexedDB v11+ send-job projection tables preserved in v12
 
-- [x] Trusted server mutation routes.
-- [x] Development/test trusted tenant context abstraction for send mutations.
-- [x] Server-side send-job permission policy.
-- [ ] Hosted Supabase migration application.
-- [ ] Production auth adapter and tenant membership lookup.
-- [ ] Hosted server repository adapter.
-- [ ] Postgres/Supabase integration tests.
-- [ ] Brevo campaign batch sending.
-- [ ] Real campaign email sends.
+## Combined operator workflow
+
+Import lead file → review and persist → filter sendable contacts → create campaign → generate deterministic drafts → review and approve → Gmail/Outlook manual handoff → local simulation send job (optional) → durable server architecture available but production-disabled.
+
+## Not enabled (Step 7D1 and beyond)
+
+- [ ] Hosted Supabase migration application
+- [ ] Production auth adapter and tenant membership lookup
+- [ ] Hosted server repository adapter wired to live runtime
+- [ ] Postgres/Supabase integration tests against hosted project
+- [ ] Brevo campaign batch sending
+- [ ] Real campaign email sends
 
 ## Schema
 
-IndexedDB is extended with send-job tables in `src/persistence/db.ts`.
+- **IndexedDB v12:** import batches/rows, mapping profiles, send jobs/recipients/attempts/daily usage, suppressions, provider events
+- **JSON backup v8:** all operational tables above
+- **Supabase:** `202607020002_outreach_send_jobs.sql` present, not applied
 
-Supabase migration `202607020002_outreach_send_jobs.sql` is present but not applied by this work.
+## Next steps (Step 7D1)
 
-## Next Steps
+1. Wire production auth/session into `resolveTrustedSendJobActorContext`
+2. Wire hosted server repositories for campaign, recipient, and send-job data
+3. Run migration/RPC validation against Supabase/Postgres
+4. Keep Brevo real-send campaign processing blocked until Step 9 approval
 
-1. Wire production auth/session state into `resolveTrustedSendJobActorContext`.
-2. Wire hosted server repositories for campaign, recipient, and send-job data.
-3. Run migration/RPC validation against Supabase/Postgres.
-4. Keep Brevo real-send campaign processing blocked until Step 9 approval.
+No email sent by this integration branch.

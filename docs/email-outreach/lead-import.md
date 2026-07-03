@@ -1,30 +1,51 @@
-# Lead Import
+# Lead Import (operations)
 
-## Private file handling
+## Supported formats
 
-- Import files stay in the browser; they are **not** committed to Git.
-- Place real customer CSV/XLSX files under ignored local paths only (see `scripts/data-preparation/local/`).
-- Fixtures in `e2e/fixtures/` use synthetic `.example.invalid` addresses only.
+| Format | Notes |
+|--------|-------|
+| CSV | Comma or semicolon delimiter (auto-detected); UTF-8 with Windows-1252 fallback |
+| XLSX | Sheet selection when multiple worksheets exist; formulas/macros not executed |
 
-## Steps
+Max file size: 5 MB. Max rows: 5,000.
 
-1. Open `/pt-PT/leadops` or `/en/leadops`.
-2. Upload CSV or XLSX (max 5 MB).
-3. Review header mapping and validation counts.
-4. Confirm import; verify organizations appear in the lead list.
-5. Use import history to audit batches.
+## Workflow
 
-## Validation
+1. Open `/{locale}/leadops`.
+2. Choose CSV or XLSX.
+3. Select worksheet (XLSX multi-sheet books).
+4. Apply or save a **mapping profile** (see `import-mapping-profiles.md`).
+5. Review validation counts and row filters (valid, invalid, duplicate, missing email, warnings).
+6. Toggle normalized vs original values; download a formula-safe error report if needed.
+7. Confirm import; verify persistence after reload.
+8. Audit via **Import history** on the lead management panel.
 
-- Valid, review, invalid, duplicate, and missing-email rows are classified.
-- Duplicate emails are flagged; strong organization matches can attach to existing records.
-- Repeat imports of the same file fingerprint warn unless explicitly allowed.
+## Validation classes
 
-## Backup
+| Status | Meaning |
+|--------|---------|
+| `valid` | Ready to create organization + contact |
+| `missing_email` | Organization only |
+| `duplicate` | Exact email or strong org match |
+| `possible_duplicate` | Similar name / domain / phone — review queue |
+| `invalid` | Missing organization or invalid email syntax |
 
-Import batches, rows, leads, and contacts are included in JSON backup v5 (`emailSuppressions` included).
+## Duplicate handling
 
-## Limitations
+- Exact normalized email → skip (or block on re-import)
+- Same org name + domain or phone → attach after confirmation
+- Possible duplicates → review queue (`importRows` with `proposedAction: review`)
+- Repeat file fingerprint → warning unless operator confirms re-import
 
-- No automatic provider bounce handling on import.
-- Enrichment and external website lookups are not performed.
+## Privacy
+
+- Files never leave the browser except explicit error-report download initiated by the operator.
+- Real databases stay outside Git (`scripts/data-preparation/local/`, `JH Gomes/Databases/...`).
+
+## Backup / reset
+
+- Backup v8 includes `importBatches`, `importRows`, `importMappingProfiles`, leads, contacts.
+- **Reset Demo Data** preserves operational imports.
+- **Clear All Local Data** wipes everything (separate confirmation).
+
+See also: `import-mapping-profiles.md`, `lead-operations.md`, `troubleshooting.md`.

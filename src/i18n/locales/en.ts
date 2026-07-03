@@ -907,6 +907,23 @@ export const dictionary: Dictionary = {
       campaignCount: "Campaigns",
       neverContacted: "Never contacted",
       neverContactedOnly: "Never contacted only",
+      sendability: "Sendability",
+      sendabilityValues: {
+        sendable: "Ready for outreach",
+        blocked: "Blocked"
+      },
+      importSummary: {
+        selectBatch: "Select an import batch to view its summary.",
+        status: "Status",
+        rows: "Total rows",
+        organizations: "Organizations imported",
+        contacts: "Contacts imported",
+        duplicates: "Duplicates skipped",
+        invalid: "Invalid rows",
+        profile: "Mapping profile",
+        sheet: "Worksheet",
+        linkedLeads: "Linked organizations"
+      },
       pageLabel: "Page {page} of {pages}",
       previousPage: "Previous",
       nextPage: "Next"
@@ -1239,6 +1256,16 @@ export const dictionary: Dictionary = {
       retryMapping: "Apply mapping changes",
       importAnother: "Import another file",
       messages: "Messages",
+      selectSheet: "Worksheet",
+      mappingProfile: "Mapping profile",
+      saveProfile: "Save profile",
+      saveProfilePlaceholder: "Profile name",
+      profileSaved: "Mapping profile saved.",
+      deleteProfile: "Delete",
+      deleteProfileConfirm: "Delete mapping profile \"{label}\"?",
+      warningsFilter: "Warnings",
+      showNormalized: "Show normalized values",
+      downloadErrors: "Download error report",
       fields: {
         companyName: "Organization name",
         contactName: "Contact person",

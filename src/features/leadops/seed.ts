@@ -352,7 +352,14 @@ export function getFilterOptions(
           .filter(Boolean) as string[]
       )
     ].sort(),
-    languages: [...new Set(leads.map((lead) => lead.language))].sort(),
+    languages: [
+      ...new Set(
+        regionSource
+          .map((row) => ("language" in row ? row.language : leads.find(() => false)?.language))
+          .concat(leads.map((lead) => lead.language))
+          .filter(Boolean) as string[]
+      )
+    ].sort(),
     regions: [...new Set(regionSource.map((row) => row.region).filter(Boolean))].sort(),
     countries: [...new Set(regionSource.map((row) => row.country).filter(Boolean))].sort(),
     sourceImports: [...new Set(regionSource.map((row) => row.sourceImport).filter(Boolean))].sort()

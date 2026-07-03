@@ -24,7 +24,7 @@ import type {
   OutreachSendJobRecipient
 } from "@/domain/send-job-types";
 import type { EmailSuppression } from "@/domain/suppression-types";
-import type { ImportBatch, ImportRow, LeadContact } from "@/domain/import-types";
+import type { ImportBatch, ImportRow, LeadContact, ImportMappingProfile } from "@/domain/import-types";
 import type { LocalRepositoryBundle } from "@/persistence/interfaces";
 import {
   normalizeBackupTables,
@@ -54,6 +54,7 @@ export type ForgeOSBackup = {
     products: Product[];
     importBatches: ImportBatch[];
     importRows: ImportRow[];
+    importMappingProfiles: ImportMappingProfile[];
     leadContacts: LeadContact[];
     campaignRecipients: CampaignRecipient[];
     emailSuppressions: EmailSuppression[];
@@ -87,6 +88,7 @@ export async function exportBackup(
     products,
     importBatches,
     importRows,
+    importMappingProfiles,
     leadContacts,
     campaignRecipients,
     emailSuppressions,
@@ -118,6 +120,7 @@ export async function exportBackup(
       );
       return rows.flat();
     }),
+    repos.importMappingProfiles.list(tenantId),
     repos.leadContacts.list(tenantId),
     repos.campaignRecipients.listForTenant(tenantId),
     repos.emailSuppressions.list(tenantId),
@@ -168,6 +171,7 @@ export async function exportBackup(
       userProfiles,
       importBatches,
       importRows,
+      importMappingProfiles,
       leadContacts,
       campaignRecipients,
       emailSuppressions,
