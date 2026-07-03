@@ -1,39 +1,42 @@
 import { NextResponse } from "next/server";
 import {
-  createOrganicSendSession,
-  getOrganicSendSessionSnapshot,
-  pauseOrganicSendSession,
-  processOrganicSendSessionTick,
-  resumeOrganicSendSession
+  getOrganicSendSessionSnapshot
 } from "@/features/outlook-graph/organic-send-session";
-import { createOutlookGraphEmailProvider } from "@/features/outlook-graph/outlook-graph-provider";
-import type { OutlookApprovedSendPayload } from "@/features/outlook-graph/types";
+import { guardOutlookMutationRequest } from "@/features/outlook-graph/route-guard";
+import { getOutlookSendServerDependencies } from "@/features/outlook-graph/server-dependencies";
+import {
+  handleOutlookOrganicSessionPost,
+  mapOutlookRouteError
+} from "@/app/api/integrations/outlook/_shared";
+import { OutlookSendServiceError } from "@/application/outlook-send-service";
 
 export async function GET() {
   return NextResponse.json({ session: getOrganicSendSessionSnapshot() });
 }
 
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as {
-    action?: string;
-    enabled?: boolean;
-    items?: OutlookApprovedSendPayload[];
-  };
-
-  if (body.action === "pause") {
-    return NextResponse.json({ session: pauseOrganicSendSession() });
+  try {
+    const actor = await guardOutlookMutationRequest(request, "send_job:queue");
+    const deps = getOutlookSendServerDependencies();
+    if (!deps) {
+      throw new OutlookSendServiceError(
+        "server_persistence_unavailable",
+        "Outlook server persistence is not configured.",
+        503
+      );
+    }
+    const body = (await request.json().catch(() => ({}))) as {
+      action?: string;
+      campaignId?: string;
+      requestedMaximum?: number;
+      enabled?: boolean;
+      confirmation?: string;
+      items?: unknown;
+    };
+    const result = await handleOutlookOrganicSessionPost(deps, actor, body);
+    const status = body.action ? 200 : 201;
+    return NextResponse.json(result, { status });
+  } catch (error) {
+    return mapOutlookRouteError(error);
   }
-  if (body.action === "resume") {
-    return NextResponse.json({ session: resumeOrganicSendSession() });
-  }
-  if (body.action === "tick") {
-    const provider = createOutlookGraphEmailProvider();
-    const session = await processOrganicSendSessionTick(provider);
-    return NextResponse.json({ session });
-  }
-
-  const session = createOrganicSendSession(body.items ?? [], {
-    enabled: body.enabled ?? false
-  });
-  return NextResponse.json({ session }, { status: 201 });
 }

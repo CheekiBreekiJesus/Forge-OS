@@ -357,7 +357,19 @@ export type ActivityAction =
   | "lead_record_corrected"
   | "lead_record_anonymized"
   | "lead_record_deleted"
-  | "backup_restored";
+  | "backup_restored"
+  | "outlook_connection_completed"
+  | "outlook_disconnected"
+  | "outlook_mailbox_validated"
+  | "outlook_send_attempt_created"
+  | "outlook_send_attempt_accepted"
+  | "outlook_send_attempt_failed"
+  | "outlook_send_attempt_throttled"
+  | "outlook_send_attempt_uncertain"
+  | "outlook_organic_session_created"
+  | "outlook_organic_session_paused"
+  | "outlook_organic_session_resumed"
+  | "outlook_organic_session_completed";
 
 export type ActivityEntityType =
   | "lead"
