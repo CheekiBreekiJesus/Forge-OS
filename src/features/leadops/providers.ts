@@ -1,12 +1,19 @@
+import type {
+  OutreachApprovedDeliveryRequest,
+  OutreachApprovedDeliveryResult
+} from "@/domain/outreach-approved-delivery";
 import {
-  generatePtPtEmail,
-  validateQueue
-} from "./workflow";
+  buildOutreachDeliveryIdempotencyKey,
+  mapWorkflowStateToApprovedDelivery
+} from "@/domain/outreach-approved-delivery";
+import { generatePtPtEmail } from "./workflow";
 import { generateOutreachEmailWithAI } from "@/lib/ai/capabilities/outreach-email";
 import { composeEmail } from "@/features/email-composition/renderer";
 import { parseLegacyBodyOutput } from "@/lib/ai/capabilities/outreach-email-schema";
 import type { CompanyProfileSnapshot, SenderIdentitySnapshot } from "@/domain/profile-types";
 import type { ProductEmailSnapshot } from "@/domain/product-types";
+import { readEmailDeliveryConfig } from "@/features/email-delivery/config";
+import { SimulationEmailDeliveryProvider } from "@/features/email-delivery/simulation-provider";
 import type {
   LeadOpsCampaign,
   LeadOpsCompanyContext,
@@ -16,6 +23,7 @@ import type {
   LeadOpsTone,
   LeadOpsWorkflowState
 } from "./types";
+import { validateOutreachDelivery } from "./delivery-validation";
 
 export type OutreachGenerationRequest = {
   campaign: LeadOpsCampaign;
@@ -43,12 +51,8 @@ export type OutreachGenerationResult = {
   warnings?: string[];
 };
 
-export type OutreachDeliveryResult = {
-  mode: "simulation" | "smartlead" | "brevo" | "configuration-missing" | "provider-error";
-  providerMessageId?: string;
-  providerStatus: "queued" | "sent" | "blocked" | "failed";
-  error?: string;
-};
+/** @deprecated Use OutreachApprovedDeliveryResult */
+export type OutreachDeliveryResult = OutreachApprovedDeliveryResult;
 
 export function generateDeterministicOutreachEmail(
   request: OutreachGenerationRequest
@@ -136,41 +140,150 @@ function generateFallbackMessage(request: OutreachGenerationRequest): OutreachGe
   };
 }
 
-export async function deliverOutreachMessage(
-  state: LeadOpsWorkflowState
-): Promise<OutreachDeliveryResult> {
-  const validation = validateQueue(state);
+export type OutreachDeliveryInvocation = {  invoked: boolean;
+  provider: string;
+};
 
-  if (!validation.ok && validation.reason !== "already-sent") {
-    return {
-      error: validation.message,
-      mode: "simulation",
-      providerStatus: "blocked"
-    };
-  }
+/** Tracks whether a provider adapter was called — for tests only. */
+let lastDeliveryInvocation: OutreachDeliveryInvocation | null = null;
 
+export function readLastDeliveryInvocation(): OutreachDeliveryInvocation | null {
+  return lastDeliveryInvocation;
+}
+
+export function resetDeliveryInvocationForTests(): void {
+  lastDeliveryInvocation = null;
+}
+
+function blockDelivery(
+  error: string,
+  mode: OutreachApprovedDeliveryResult["mode"]
+): OutreachApprovedDeliveryResult {
+  lastDeliveryInvocation = { invoked: false, provider: mode };
+  return {
+    error,
+    mode,
+    providerStatus: "blocked"
+  };
+}
+
+export async function deliverApprovedOutreachMessage(
+  request: OutreachApprovedDeliveryRequest
+): Promise<OutreachApprovedDeliveryResult> {
   const provider =
-    process.env.EMAIL_DELIVERY_PROVIDER ?? process.env.OUTREACH_DELIVERY_PROVIDER ?? "simulation";
+    process.env.EMAIL_DELIVERY_PROVIDER?.trim().toLowerCase() ??
+    process.env.OUTREACH_DELIVERY_PROVIDER?.trim().toLowerCase() ??
+    "simulation";
 
   if (provider === "brevo") {
-    return {
-      error: "Brevo delivery is available only through the protected test-email workflow.",
-      mode: "brevo",
-      providerStatus: "blocked"
-    };
+    return blockDelivery(
+      "Brevo delivery is available only through the protected test-email workflow.",
+      "brevo"
+    );
   }
 
   if (provider === "smartlead") {
+    return deliverViaSmartlead(request);
+  }
+
+  return deliverViaSimulation(request);
+}
+
+async function deliverViaSimulation(
+  request: OutreachApprovedDeliveryRequest
+): Promise<OutreachApprovedDeliveryResult> {
+  const config = readEmailDeliveryConfig();
+  const simulation = new SimulationEmailDeliveryProvider(config);
+
+  lastDeliveryInvocation = { invoked: true, provider: "simulation" };
+
+  const response = await simulation.send({
+    tenantId: request.tenantId,
+    campaignId: request.campaignId,
+    campaignRecipientId: request.messageId,
+    leadId: request.leadId,
+    approvedContentHash: request.messageVersion,
+    idempotencyKey: request.idempotencyKey,
+    toEmail: request.recipientEmail,
+    toName: request.recipientName,
+    subject: request.approvedSubject,
+    plainText: request.approvedPlainText,
+    html: request.approvedHtml,
+    initiatedBy: "outreach-delivery",
+    mode: "simulation"
+  });
+
+  if (response.status === "accepted") {
     return {
-      error: "Smartlead delivery is deprecated. Use EMAIL_DELIVERY_PROVIDER=simulation or the protected Brevo test workflow.",
-      mode: "configuration-missing",
-      providerStatus: "blocked"
+      deliveredHtml: request.approvedHtml,
+      deliveredPlainText: request.approvedPlainText,
+      deliveredSubject: request.approvedSubject,
+      mode: "simulation",
+      providerMessageId: response.providerMessageId ?? `simulation-${request.idempotencyKey}`,
+      providerStatus: "sent"
     };
   }
 
   return {
+    error: response.errorMessage ?? "Simulation delivery blocked.",
     mode: "simulation",
-    providerMessageId: `simulation-${state.lead.id}`,
-    providerStatus: "sent"
+    providerStatus: "blocked"
   };
+}
+
+async function deliverViaSmartlead(
+  request: OutreachApprovedDeliveryRequest
+): Promise<OutreachApprovedDeliveryResult> {
+  const apiKey = process.env.SMARTLEAD_API_KEY?.trim();
+  const campaignId = process.env.SMARTLEAD_DEFAULT_CAMPAIGN_ID?.trim();
+
+  if (!apiKey || !campaignId) {
+    return blockDelivery(
+      "Smartlead is not configured. Set SMARTLEAD_API_KEY and SMARTLEAD_DEFAULT_CAMPAIGN_ID or use simulation.",
+      "configuration-missing"
+    );
+  }
+
+  // Repository documents Smartlead via campaign templates — exact ForgeOS body mapping
+  // requires documented custom-field names. Without them, block live delivery.
+  const subjectField = process.env.SMARTLEAD_SUBJECT_FIELD?.trim();
+  const bodyField = process.env.SMARTLEAD_BODY_FIELD?.trim();
+
+  if (!subjectField || !bodyField) {
+    return blockDelivery(
+      "Smartlead exact-content delivery requires SMARTLEAD_SUBJECT_FIELD and SMARTLEAD_BODY_FIELD. Without documented mapping, live send is blocked.",
+      "unsupported-exact-content"
+    );
+  }
+
+  lastDeliveryInvocation = { invoked: true, provider: "smartlead" };
+
+  // Adapter boundary only — no undocumented API calls in this release slice.
+  return blockDelivery(
+    "Smartlead live adapter is not enabled in this release. Configure simulation delivery instead.",
+    "unsupported-exact-content"
+  );
+}
+
+export async function deliverOutreachMessage(
+  state: LeadOpsWorkflowState,
+  options?: { messageId?: string; messageVersion?: string }
+): Promise<OutreachApprovedDeliveryResult> {
+  const validation = validateOutreachDelivery(state);
+
+  if (!validation.ok) {
+    return blockDelivery(validation.message, "simulation");
+  }
+
+  const messageId = options?.messageId ?? `msg_${state.lead.id}`;
+  const messageVersion =
+    options?.messageVersion ??
+    `${state.message!.subject.trim().length}:${state.message!.body.trim().length}`;
+
+  const request = mapWorkflowStateToApprovedDelivery(state, messageId, messageVersion);
+  if (!request) {
+    return blockDelivery("Invalid outreach delivery request.", "simulation");
+  }
+
+  return deliverApprovedOutreachMessage(request);
 }
