@@ -20,16 +20,20 @@ try {
     }
 
     Write-ForgeOSLog -RepoRoot $repoRoot -Message "IndexedDB name: $($dbNames.Server)"
+    Write-ForgeOSLog -RepoRoot $repoRoot -Message "Configured update branch: $(Get-ForgeOSConfiguredUpdateBranch -RepoRoot $repoRoot)"
     Write-ForgeOSLog -RepoRoot $repoRoot -Message 'Installing dependencies with npm ci...'
     Push-Location $repoRoot
-  try {
-    & npm ci
-    if ($LASTEXITCODE -ne 0) {
-      throw 'npm ci failed.'
+    try {
+        & npm ci
+        if ($LASTEXITCODE -ne 0) {
+            throw 'npm ci failed.'
+        }
+    } finally {
+        Pop-Location
     }
-  } finally {
-    Pop-Location
-  }
+
+    Write-ForgeOSLog -RepoRoot $repoRoot -Message 'Running initial production build for daily startup reuse...'
+    Invoke-ForgeOSProductionBuild -RepoRoot $repoRoot
 
     Write-ForgeOSLog -RepoRoot $repoRoot -Message 'Setup complete. Use Start-ForgeOS-Local.ps1 for normal use or Start-ForgeOS-Dev.ps1 for development testing.'
     exit 0

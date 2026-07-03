@@ -1,4 +1,9 @@
 #Requires -Version 5.1
+
+param(
+    [switch] $Rebuild
+)
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
@@ -17,7 +22,7 @@ try {
         throw 'Dependencies are not installed. Run Setup-ForgeOS.ps1 first.'
     }
 
-    $process = Start-ForgeOSServerProcess -RepoRoot $repoRoot -Mode $mode
+    $process = Start-ForgeOSServerProcess -RepoRoot $repoRoot -Mode $mode -Rebuild:$Rebuild
     Wait-ForgeOSHealth -RepoRoot $repoRoot | Out-Null
     Open-ForgeOSBrowser -RepoRoot $repoRoot
 
