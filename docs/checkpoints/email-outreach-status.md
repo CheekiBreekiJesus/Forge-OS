@@ -6,7 +6,7 @@ Base: `9cf9936`
 
 ## Step 7 Checkpoint Status
 
-Local simulation send jobs are working and tested. A server-only Supabase durable store is prepared for hosted send-job persistence, but production sending is not enabled.
+Local simulation send jobs are working and tested. Step 7C adds trusted server mutation boundaries and explicit authorization policy for send-job operations, but production sending is not enabled.
 
 ## Working
 
@@ -23,9 +23,12 @@ Local simulation send jobs are working and tested. A server-only Supabase durabl
 
 ## Not Enabled
 
-- [ ] Trusted server mutation routes.
-- [ ] Auth-derived tenant context for send mutations.
+- [x] Trusted server mutation routes.
+- [x] Development/test trusted tenant context abstraction for send mutations.
+- [x] Server-side send-job permission policy.
 - [ ] Hosted Supabase migration application.
+- [ ] Production auth adapter and tenant membership lookup.
+- [ ] Hosted server repository adapter.
 - [ ] Postgres/Supabase integration tests.
 - [ ] Brevo campaign batch sending.
 - [ ] Real campaign email sends.
@@ -38,7 +41,7 @@ Supabase migration `202607020002_outreach_send_jobs.sql` is present but not appl
 
 ## Next Steps
 
-1. Add authenticated server routes or worker entrypoints for queue/process/pause/resume/cancel.
-2. Derive tenant and actor from trusted auth/session state.
+1. Wire production auth/session state into `resolveTrustedSendJobActorContext`.
+2. Wire hosted server repositories for campaign, recipient, and send-job data.
 3. Run migration/RPC validation against Supabase/Postgres.
 4. Keep Brevo real-send campaign processing blocked until Step 9 approval.

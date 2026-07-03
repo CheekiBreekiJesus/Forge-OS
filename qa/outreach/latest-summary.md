@@ -1,37 +1,43 @@
-# Outreach Latest Summary - Step 7 Recovery
+# Outreach Latest Summary
 
 Date: 2026-07-03
 Branch: `feat/email-outreach-send-jobs`
-Base: `9cf9936`
 
-## Scope
+## Step 7C Result
 
-Step 7 recovery adds durable, resumable campaign send-job foundations without enabling real campaign email. Simulation remains the only UI-exposed send mode.
+Trusted send-job server mutation boundaries now exist for durable simulation workflows:
 
-## Working
+- queue campaign;
+- process next batch;
+- pause;
+- resume;
+- cancel unsent recipients;
+- retry eligible failures;
+- retrieve sanitized status.
 
-- Local simulation job creation with explicit `QUEUE SIMULATION` confirmation.
-- Bounded local simulation batches and counters.
-- Local idempotency through active-job checks and attempt dedupe.
-- Pause, resume, and cancel unsent with sent-history preservation.
-- Suppression recheck immediately before send.
-- Retryable and permanent failure handling.
-- Step 8 provider-event reconciliation compatibility.
-- Campaign detail UI labeled as local simulation only.
-- Playwright simulation coverage in `e2e/campaign-send-job-simulation.spec.ts`.
-- Server-only Supabase REST helper for durable send-job tables and lock/usage RPCs.
-- Mocked REST tests for durable store payloads and service-role headers.
+## Security Notes
 
-## Still Deferred
-
-- Trusted server mutation routes.
-- Auth-derived tenant context for send mutations.
-- Hosted Supabase migration deployment.
-- Postgres/Supabase integration tests.
-- Durable-to-local projection sync in hosted UI.
-- Brevo campaign batch processing.
-- Real campaign email sends.
+- Tenant and actor are derived from trusted server context.
+- Request bodies cannot provide tenant, actor, roles, permissions, recipients, or approved content.
+- Explicit send-job permissions are enforced server-side.
+- Cross-tenant access and unauthorized roles are covered by tests.
+- Brevo campaign batch sending remains disabled.
 
 ## Validation
 
-Current validation results are recorded in the final task response and should be refreshed after each follow-up commit. Previous full validation from the stabilization checkpoint is in `qa/outreach/composer-step-7-stabilization.md`.
+- `npm run lint`: passed with 7 pre-existing warnings.
+- `npm run typecheck`: passed.
+- `npm test`: passed, 48 files and 227 tests.
+- `npm run test:e2e`: passed, 93 passed and 1 optional live-AI skip.
+- `npm run test:acceptance`: passed, 50 passed and 1 optional live-AI skip.
+- `npm run build`: passed.
+- `npm run validate`: passed.
+- `npm run ai:doctor -- --provider abacus`: passed; Abacus key is not present locally and no live call was made.
+
+## Remaining Step 7D Work
+
+- Wire production auth/session provider.
+- Map users to tenant memberships.
+- Configure hosted server repositories.
+- Validate Supabase migration/RPCs against Postgres/Supabase.
+- Keep real Brevo campaign sends disabled until explicit approval.

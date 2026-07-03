@@ -22,9 +22,11 @@ Before hosted send-job processing:
 - configure `SUPABASE_URL`;
 - configure server-only `SUPABASE_SERVICE_ROLE_KEY`;
 - keep the service-role key out of all client bundles and logs;
-- add trusted server routes or worker entrypoints for queue/process/pause/resume/cancel;
-- derive tenant and actor from authenticated session context;
+- wire the production auth/session adapter for send-job actor context;
+- wire hosted server repositories for campaign and send-job data;
 - run Supabase/Postgres integration tests for lock acquisition and daily usage increments.
+
+Step 7C route boundaries exist for queue/process/pause/resume/cancel/retry/status, but default hosted execution remains blocked until the prerequisites above are complete.
 
 ## Hosted Brevo Prerequisites
 
