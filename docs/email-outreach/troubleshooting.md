@@ -38,6 +38,20 @@ Use checkboxes: attach strong matches, approve possible duplicates.
 
 Same file fingerprint as a completed batch. Check **Allow re-import anyway** or change file content.
 
+## Draft shows demo sender after Settings edit
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `João Gomes` / `joao.gomes@demo.local` in draft | Sender identity not updated | Open **Settings → Identidades de remetente**, edit default sender, save |
+| Profile saved but draft unchanged | User profile ≠ sender profile | Edit sender identity, not only **O meu perfil** |
+| Approved draft unchanged after sender edit | Expected snapshot behaviour | Regenerate only unapproved drafts or use **Atualizar dados do remetente** on draft campaigns |
+
+## Wrong greeting for municipality
+
+- Empty or org-as-contact → `Exmos. Senhores,`
+- Override in draft editor **Saudação manual** if needed
+- See `docs/email-outreach/draft-personalization.md`
+
 ## Sendability differs from segment count
 
 Ensure suppression list is current. Lead table and segments now share suppression-table evaluation.

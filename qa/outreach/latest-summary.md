@@ -1,31 +1,28 @@
-# Email Outreach Integration — QA Summary
+# Outreach latest summary — draft personalization
 
-Updated after MVP integration merge (2026-07-03).
+**Date:** 2026-07-03  
+**Branch:** `feat/email-outreach-mvp-integration`
 
-## Operational import (from import-ops)
+## Change
 
-- Semicolon CSV + XLSX multi-sheet import
-- Reusable mapping profiles with sheet-switch fix
-- Duplicate review queue and import history
-- Lead sendability filter aligned with suppression table
-- Private acceptance runner (local, gitignored)
+Fixed manual email MVP draft personalization and sender-profile persistence.
 
-## Send-job foundation (preserved from send-jobs)
+## Validation
 
-- Local simulation queue with bounded batches
-- Pause, resume, cancel, retry limits
-- Suppression blocks post-queue recipients
-- Trusted server routes compile; production auth not wired
-- Brevo campaign batches remain disabled
+| Check | Result |
+|-------|--------|
+| `npm run typecheck` | Pass |
+| `npm test` | 244 passed |
+| `npm run lint` | Pass (warnings only) |
 
-## Combined integration test
+## Acceptance example
 
-`src/application/outreach-import-send-job.integration.test.ts` — synthetic multi-sheet import through campaign approval to simulation send job with suppression check.
+`Tábua` / `Municipality` / `geral@example.invalid` → `Exmos. Senhores,`, `Município de Tábua`, persisted synthetic sender, no `Municipality`, no recipient website line.
 
-## Latest validation counts
+## Docs
 
-- Unit/integration: 235 passed
-- E2E: 93 passed, 1 skipped (live AI)
-- Acceptance: 50 passed, 1 skipped (live AI)
-
-See `qa/outreach/integration-summary.md` for merge details.
+- `docs/email-outreach/sender-profiles.md`
+- `docs/email-outreach/draft-personalization.md`
+- `docs/email-outreach/manual-send.md`
+- `qa/outreach/draft-personalization-baseline.md`
+- `qa/outreach/draft-personalization-summary.md`

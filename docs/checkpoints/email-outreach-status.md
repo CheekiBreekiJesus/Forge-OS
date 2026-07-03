@@ -55,3 +55,12 @@ Import lead file → review and persist → filter sendable contacts → create 
 4. Keep Brevo real-send campaign processing blocked until Step 9 approval
 
 No email sent by this integration branch.
+
+## Draft personalization (2026-07-03)
+
+- [x] Sender identity edit + persistence in Settings
+- [x] Salutation resolver and municipality display names
+- [x] Category PT localization and body lines
+- [x] Campaign `senderProfileId` binding and refresh
+- [x] Demo sender approval guard
+- [x] IndexedDB v13 recipient override fields
