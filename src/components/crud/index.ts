@@ -17,6 +17,8 @@ export { PageHeader } from "./page-header";
 export { PrimaryActionButton } from "./primary-action-button";
 export type { RelatedRecord } from "./related-records-panel";
 export { RelatedRecordsPanel } from "./related-records-panel";
+export { DataTableActionMenu } from "./data-table-action-menu";
+export type { DataTableActionMenuItem } from "./data-table-action-menu";
 export { RowActionMenu } from "./row-action-menu";
 export type { RowAction } from "./row-action-menu";
 export { SearchAndFilterBar } from "./search-and-filter-bar";
