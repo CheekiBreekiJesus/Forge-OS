@@ -5,6 +5,7 @@ import type { OutreachSendAttemptStatus } from "@/domain/email-delivery-types";
 import { deliverApprovedOutreachMessage } from "@/features/leadops/providers";
 import type { LocalRepositoryBundle } from "@/persistence/interfaces";
 import { PersistenceError } from "@/persistence/interfaces";
+import { buildOutreachRequestFingerprint } from "@/persistence/supabase/mappers";
 
 export type MessageSendInput = {
   tenantId: string;
@@ -28,6 +29,20 @@ function mapAttemptStatus(
 ): OutreachSendAttemptStatus {
   if (providerStatus === "sent") return "TEST_SENT";
   return "TEST_BLOCKED";
+}
+
+function hasAtomicClaim(
+  repos: LocalRepositoryBundle
+): repos is LocalRepositoryBundle & {
+  outreachSendAttempts: LocalRepositoryBundle["outreachSendAttempts"] & {
+    claim: NonNullable<LocalRepositoryBundle["outreachSendAttempts"]["claim"]>;
+    complete: NonNullable<LocalRepositoryBundle["outreachSendAttempts"]["complete"]>;
+  };
+} {
+  return (
+    typeof repos.outreachSendAttempts.claim === "function" &&
+    typeof repos.outreachSendAttempts.complete === "function"
+  );
 }
 
 export async function sendApprovedOutreachMessage(
@@ -79,6 +94,140 @@ export async function sendApprovedOutreachMessage(
     messageVersion
   });
 
+  const requestFingerprint = buildOutreachRequestFingerprint({
+    tenantId: input.tenantId,
+    messageVersion,
+    recipientEmail: recipient.snapshotEmail,
+    approvedSubject: recipient.personalizedSubject,
+    approvedPlainText: recipient.personalizedPlainText,
+    approvedHtml: recipient.personalizedHtml || undefined,
+    provider: "simulation"
+  });
+
+  if (hasAtomicClaim(repos)) {
+    return sendWithAtomicClaim(repos, input, recipient, campaign.id, messageVersion, idempotencyKey, requestFingerprint);
+  }
+
+  return sendWithLegacyClaim(repos, input, recipient, campaign, messageVersion, idempotencyKey);
+}
+
+async function sendWithAtomicClaim(
+  repos: LocalRepositoryBundle & {
+    outreachSendAttempts: {
+      claim: NonNullable<LocalRepositoryBundle["outreachSendAttempts"]["claim"]>;
+      complete: NonNullable<LocalRepositoryBundle["outreachSendAttempts"]["complete"]>;
+    };
+  },
+  input: MessageSendInput,
+  recipient: Awaited<ReturnType<LocalRepositoryBundle["campaignRecipients"]["getById"]>> & object,
+  campaignId: string,
+  messageVersion: string,
+  idempotencyKey: string,
+  requestFingerprint: string
+): Promise<MessageSendResult> {
+  const claim = await repos.outreachSendAttempts.claim({
+    tenantId: input.tenantId,
+    campaignId,
+    recipientId: recipient.id,
+    leadId: recipient.leadId,
+    messageVersion,
+    idempotencyKey,
+    requestFingerprint,
+    initiatedBy: input.actorId,
+    destinationEmail: recipient.snapshotEmail
+  });
+
+  if (claim.result === "blocked" || claim.result === "conflict" || claim.result === "forbidden") {
+    throw new PersistenceError("invalid_transition", claim.reason);
+  }
+
+  if (claim.result === "not_found") {
+    throw new PersistenceError("not_found", claim.reason);
+  }
+
+  if (claim.result === "already_processed") {
+    return {
+      alreadyProcessed: true,
+      delivery: {
+        mode: "simulation",
+        providerMessageId: claim.providerMessageId ?? undefined,
+        providerStatus: "sent"
+      },
+      idempotencyKey: claim.idempotencyKey
+    };
+  }
+
+  if (claim.result !== "claimed") {
+    throw new PersistenceError("invalid_transition", claim.reason);
+  }
+
+  const deliveryRequest = {
+    tenantId: input.tenantId,
+    messageId: recipient.id,
+    leadId: recipient.leadId,
+    campaignId,
+    recipientEmail: recipient.snapshotEmail,
+    recipientName: recipient.snapshotContactName,
+    companyName: recipient.snapshotCompanyName,
+    approvedSubject: recipient.personalizedSubject,
+    approvedPlainText: recipient.personalizedPlainText,
+    approvedHtml: recipient.personalizedHtml || undefined,
+    messageVersion,
+    idempotencyKey
+  };
+
+  const delivery = await deliverApprovedOutreachMessage(deliveryRequest);
+
+  if (delivery.providerStatus !== "sent") {
+    await repos.outreachSendAttempts.complete({
+      tenantId: input.tenantId,
+      attemptId: claim.attemptId,
+      status: "TEST_BLOCKED",
+      providerMessageId: null,
+      errorCode: "provider_rejected",
+      errorMessage: delivery.error ?? "Delivery blocked.",
+      recipientId: recipient.id,
+      sentBy: input.actorId,
+      idempotencyKey
+    });
+    throw new PersistenceError("invalid_transition", delivery.error ?? "Delivery blocked.");
+  }
+
+  await repos.outreachSendAttempts.complete({
+    tenantId: input.tenantId,
+    attemptId: claim.attemptId,
+    status: "TEST_SENT",
+    providerMessageId: delivery.providerMessageId ?? null,
+    errorCode: null,
+    errorMessage: null,
+    recipientId: recipient.id,
+    sentBy: input.actorId,
+    idempotencyKey
+  });
+
+  await repos.activities.append(input.tenantId, {
+    action: "campaign_draft_sent_simulated",
+    entityId: campaignId,
+    entityType: "campaign",
+    metadata: {
+      campaignRecipientId: recipient.id,
+      idempotencyKey,
+      mode: delivery.mode
+    },
+    title: `Simulated delivery: ${recipient.snapshotCompanyName}`
+  });
+
+  return { alreadyProcessed: false, delivery, idempotencyKey };
+}
+
+async function sendWithLegacyClaim(
+  repos: LocalRepositoryBundle,
+  input: MessageSendInput,
+  recipient: NonNullable<Awaited<ReturnType<LocalRepositoryBundle["campaignRecipients"]["getById"]>>>,
+  campaign: NonNullable<Awaited<ReturnType<LocalRepositoryBundle["campaigns"]["getById"]>>>,
+  messageVersion: string,
+  idempotencyKey: string
+): Promise<MessageSendResult> {
   const existing = await repos.outreachSendAttempts.getByIdempotencyKey(input.tenantId, idempotencyKey);
   if (existing?.status === "TEST_SENT" || existing?.status === "TEST_ALREADY_PROCESSED") {
     return {
