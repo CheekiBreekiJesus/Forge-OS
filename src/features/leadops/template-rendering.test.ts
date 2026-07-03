@@ -54,7 +54,11 @@ const recipient = {
   snapshotContactName: "Pedro Costa",
   snapshotCategory: "Hospitality",
   snapshotRegion: "Lisboa",
-  snapshotWebsite: "https://hotel.example"
+  snapshotWebsite: "https://hotel.example",
+  snapshotEmail: "pedro@hotel.example",
+  greetingOverride: "",
+  organizationDisplayNameOverride: "",
+  contactSalutation: null
 };
 
 describe("template rendering", () => {
@@ -81,15 +85,22 @@ describe("template rendering", () => {
 
   it("uses a neutral greeting when contact name is missing", () => {
     const result = renderCampaignTemplate({
-      subjectTemplate: "Olá {{contactName}}",
-      plainTextTemplate: "Exmo(a). Sr(a). {{contactName}},",
+      subjectTemplate: "Olá {{organizationDisplayName}}",
+      plainTextTemplate: "{{greeting}}",
       language: "pt-PT",
-      recipient: { ...recipient, snapshotContactName: "" },
+      recipient: {
+        ...recipient,
+        snapshotContactName: "",
+        snapshotEmail: "geral@example.invalid",
+        greetingOverride: "",
+        organizationDisplayNameOverride: "",
+        contactSalutation: null
+      },
       sender,
       company
     });
 
-    expect(result.plainText).toContain("Senhor(a)");
+    expect(result.plainText).toContain("Exmos. Senhores,");
     expect(result.fallbackVariables).toContain("contactName");
     expect(result.plainText).not.toContain("{{contactName}}");
   });

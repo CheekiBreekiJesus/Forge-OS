@@ -30,7 +30,15 @@ test.describe("Profile and email branding", () => {
     await expect(page.getByText(/definições guardadas/i)).toBeVisible();
 
     await page.getByRole("button", { name: /identidades de remetente/i }).click();
-    await expect(page.getByText(/joao\.gomes@demo\.local|joão gomes/i).first()).toBeVisible();
+    await expect(page.getByText(/operador@forgeos\.preview/i).first()).toBeVisible();
+    await page.getByRole("button", { name: /guardar alterações/i }).first().click();
+    await page.getByLabel(/email de envio/i).fill("branding@synthetic.example");
+    await page.getByRole("button", { name: /guardar alterações/i }).click();
+    await expect(page.getByText(/definições guardadas|identidade de remetente guardada/i)).toBeVisible();
+    await page.reload();
+    await expect(page.getByText(/a carregar definições/i)).toBeHidden({ timeout: 30000 });
+    await page.getByRole("button", { name: /identidades de remetente/i }).click();
+    await expect(page.getByText("branding@synthetic.example")).toBeVisible();
   });
 
   test("shows PT language label", async ({ page }) => {
