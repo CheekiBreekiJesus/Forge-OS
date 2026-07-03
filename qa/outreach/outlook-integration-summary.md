@@ -12,10 +12,12 @@ Base: `83209dd` on `feat/email-outreach-mvp-integration`
 | AES-256-GCM token cache | Done |
 | `EmailDeliveryProvider` outlook adapter | Done |
 | Integration UI `/settings/integrations/outlook` | Done |
-| Test send API with allowlist | Done |
-| Organic send session controller | Done |
+| Server-authoritative test send API | Done |
+| Durable send attempts + restart recovery | Done |
+| Organic send session (server-selected recipients) | Done |
+| Mutation route protection + audit events | Done |
 | Unit + integration tests (mocked Graph) | Done |
-| Documentation | Done |
+| Hardening documentation | Done |
 
 ## Defaults
 
@@ -29,10 +31,14 @@ Base: `83209dd` on `feat/email-outreach-mvp-integration`
 - Real email sends in CI
 - Production Supabase mutations
 - Background worker while browser closed
+- Shared-mailbox / alias sending
 
 ## Manual validation
 
 1. Register Entra public client (see `docs/email-outreach/outlook-graph-setup.md`).
 2. Set env vars in `.env.local`.
 3. Connect mailbox via Settings → Outlook integration.
-4. Enable live send only for controlled test with allowlisted recipient.
+4. Inject server repository bundle for API sends (or use unit tests with fake-indexeddb).
+5. Enable live send only for controlled test with allowlisted recipient matching sender mailbox.
+
+See `qa/outreach/outlook-hardening-summary.md` for outcome semantics and remaining limitations.

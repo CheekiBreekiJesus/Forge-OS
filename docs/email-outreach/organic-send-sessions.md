@@ -20,20 +20,48 @@ Conservative local controller for paced outreach after human approval.
 
 ## API
 
-- `POST /api/integrations/outlook/organic-session` — create session (`enabled: false` by default)
-- `POST` `{ "action": "pause" }` / `{ "action": "resume" }`
-- `POST` `{ "action": "tick" }` — process next eligible item (local worker / manual tick)
+Mutation routes require trusted operator headers, JSON body, and matching `Origin`.
+
+### Create session
+
+`POST /api/integrations/outlook/organic-session`
+
+```json
+{
+  "campaignId": "cmp_…",
+  "requestedMaximum": 5,
+  "enabled": false,
+  "confirmation": "START OUTLOOK ORGANIC SESSION"
+}
+```
+
+The server selects eligible recipients from canonical storage. **Client `items[]` payloads are rejected.**
+
+### Control
+
+- `POST` `{ "action": "pause" }`
+- `POST` `{ "action": "resume" }`
+- `POST` `{ "action": "tick" }` — process next eligible item
 - `GET` — snapshot
+
+## Eligibility (server-side)
+
+- Approved draft with valid `approvalContentHash`
+- Not suppressed, not already sent
+- No blocking durable attempt (`accepted`, `uncertain`, `submitting`)
+- Sender snapshot complete, no demo values
+- Connected mailbox matches approved sender
+- Within session limit (max 5)
 
 ## Uncertain results
 
-If Graph accepts the HTTP request but the client loses the connection before reading the response, the attempt is **`uncertain`**. ForgeOS does **not** auto-resend. Operator review is required.
+If Graph accepts the HTTP request but the client loses the connection before reading the response, the durable attempt is **`uncertain`**. ForgeOS does **not** auto-resend. Operator review is required.
 
 ## Idempotency
 
-Key format: `organic:{campaignId}:{recipientId}:{approvedDraftVersion}`
+Key format: `outlook:{campaignId}:{recipientId}:{approvalContentHash}:outlook`
 
-Duplicate keys are skipped within a session and across restarts when attempt records exist.
+Duplicates are blocked by the durable attempt store across restarts. An in-memory Set may still optimize within a single process but is not authoritative.
 
 ## Not included
 
@@ -41,3 +69,4 @@ Duplicate keys are skipped within a session and across restarts when attempt rec
 - Link rewriting
 - Fake reply simulation
 - Delivery/open tracking claims
+- Shared-mailbox / alias sending

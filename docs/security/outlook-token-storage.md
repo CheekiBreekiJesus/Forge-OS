@@ -27,7 +27,11 @@ PKCE verifier and OAuth `state` live in a **server memory map** (10-minute TTL).
 
 ## Disconnect
 
-`POST /api/integrations/outlook/disconnect` deletes the encrypted cache file and clears memory fallback.
+`POST /api/integrations/outlook/disconnect` deletes the encrypted cache file and clears memory fallback. Requires trusted operator headers and same-origin boundary.
+
+## Send attempt logs
+
+Durable send attempts store sanitized provider metadata only — never OAuth tokens or full message bodies.
 
 ## Audit exclusions
 
