@@ -157,6 +157,40 @@ $$;
 revoke all on function public.acquire_outreach_send_job_lock(text, uuid, text, timestamptz) from public;
 grant execute on function public.acquire_outreach_send_job_lock(text, uuid, text, timestamptz) to service_role;
 
+create or replace function public.increment_outreach_send_job_daily_usage(
+  p_tenant_id text,
+  p_provider text,
+  p_usage_date date,
+  p_count integer
+)
+returns setof public.outreach_send_job_daily_usage
+language sql
+security invoker
+as $$
+  insert into public.outreach_send_job_daily_usage (
+    tenant_id,
+    provider,
+    usage_date,
+    real_send_count,
+    updated_at
+  )
+  values (
+    p_tenant_id,
+    p_provider,
+    p_usage_date,
+    greatest(p_count, 0),
+    now()
+  )
+  on conflict (tenant_id, provider, usage_date)
+  do update set
+    real_send_count = public.outreach_send_job_daily_usage.real_send_count + greatest(excluded.real_send_count, 0),
+    updated_at = now()
+  returning *;
+$$;
+
+revoke all on function public.increment_outreach_send_job_daily_usage(text, text, date, integer) from public;
+grant execute on function public.increment_outreach_send_job_daily_usage(text, text, date, integer) to service_role;
+
 -- Tenant-member policies are intentionally deferred until hosted auth maps the local
 -- string tenant identifiers used by the outreach MVP to authenticated membership rows.
 -- Service-role-only mutations preserve the pilot safety boundary for this milestone.

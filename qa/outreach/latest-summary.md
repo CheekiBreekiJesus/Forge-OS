@@ -1,33 +1,37 @@
-# Outreach Latest Summary - Step 7 Recovery Checkpoint
+# Outreach Latest Summary - Step 7 Recovery
 
-Date: 2026-07-02
+Date: 2026-07-03
 Branch: `feat/email-outreach-send-jobs`
 Base: `9cf9936`
 
 ## Scope
 
-Composer stabilization checkpoint for interrupted Codex Step 7 send-job recovery. Local simulation is working; production durable sending is explicitly incomplete.
+Step 7 recovery adds durable, resumable campaign send-job foundations without enabling real campaign email. Simulation remains the only UI-exposed send mode.
 
-## Fully Working
+## Working
 
 - Local simulation job creation with explicit `QUEUE SIMULATION` confirmation.
 - Bounded local simulation batches and counters.
-- Local idempotency (active job guard, attempt dedupe).
-- Local pause, resume, cancel unsent.
-- Mocked provider unit tests and Step 8 regression tests.
+- Local idempotency through active-job checks and attempt dedupe.
+- Pause, resume, and cancel unsent with sent-history preservation.
+- Suppression recheck immediately before send.
+- Retryable and permanent failure handling.
+- Step 8 provider-event reconciliation compatibility.
 - Campaign detail UI labeled as local simulation only.
-- Playwright simulation coverage (`e2e/campaign-send-job-simulation.spec.ts`).
+- Playwright simulation coverage in `e2e/campaign-send-job-simulation.spec.ts`.
+- Server-only Supabase REST helper for durable send-job tables and lock/usage RPCs.
+- Mocked REST tests for durable store payloads and service-role headers.
 
-## Draft Or Incomplete
+## Still Deferred
 
-- Final ID model (UUID migration vs ForgeOS string IDs).
-- Production Supabase send-job repository.
-- Production lock RPC hardening and tenant checks.
 - Trusted server mutation routes.
-- Durable Brevo campaign jobs.
-- Production migration application.
-- Deployment and real campaign sending.
+- Auth-derived tenant context for send mutations.
+- Hosted Supabase migration deployment.
+- Postgres/Supabase integration tests.
+- Durable-to-local projection sync in hosted UI.
+- Brevo campaign batch processing.
+- Real campaign email sends.
 
 ## Validation
 
-See `qa/outreach/composer-step-7-stabilization.md` for final command results after Composer validation pass.
+Current validation results are recorded in the final task response and should be refreshed after each follow-up commit. Previous full validation from the stabilization checkpoint is in `qa/outreach/composer-step-7-stabilization.md`.

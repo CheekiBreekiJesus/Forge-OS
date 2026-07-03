@@ -1,45 +1,55 @@
 # Outreach Sending Engine
 
-Date: 2026-07-02
-Status: Local simulation working; production incomplete
+Date: 2026-07-03
+Status: Local simulation working; server-only durable store prepared; production sending disabled
 
 ## Flow
 
 ```text
 approved campaign
 -> eligibility evaluation
--> explicit queue confirmation (QUEUE SIMULATION | QUEUE BREVO)
+-> explicit queue confirmation
 -> send job + recipient snapshots
--> process one bounded batch (local lock)
--> attempts persisted immediately
+-> process one bounded batch
+-> persist attempts immediately
 -> pause | resume | cancel | complete
 ```
 
-## Fully Working (Local Simulation)
+## Working In Local Simulation
 
 - Only approved campaign recipients can be queued.
-- Deterministic idempotency keys per recipient/content version.
+- Deterministic idempotency keys are generated per recipient/content version.
 - One processing call handles at most `batchSize` recipients.
-- Suppression rechecked immediately before each send.
+- Suppression is rechecked immediately before each send.
 - Accepted attempts are not sent again on repeated processor calls.
 - Retryable failures move to `RETRY_PENDING` with deferred `nextAttemptAt`.
 - Permanent failures move to `FAILED`.
 - Paused and cancelled jobs do not process new recipients.
 - Simulation does not consume Brevo daily allowance.
 
-## Draft Or Incomplete (Production)
+## Durable Store Prepared
 
-- Durable Supabase job store as authority.
-- Server-side batch invocation (cron/worker/route).
-- Brevo real-send batch mode.
-- Trusted tenant enforcement on mutations.
+The Supabase migration and server-only REST helper cover:
 
-## UI Boundary
+- jobs;
+- job recipients;
+- attempts;
+- real-send daily usage;
+- lock acquisition through RPC;
+- lock release with owner matching;
+- atomic daily usage increments.
 
-Campaign detail exposes **simulation only**. Controls are labeled local simulation; production durable store is marked incomplete; Brevo campaign buttons are absent.
+## Still Disabled
+
+- Browser UI does not expose Brevo campaign batch controls.
+- No trusted server route processes real campaign batches.
+- No hosted migration was applied in this task.
+- No real email was sent.
 
 ## Key Files
 
 - `src/application/campaign-send-job-service.ts`
+- `src/features/email-delivery/durable-outreach-store.ts`
 - `src/components/leadops-campaign-detail-shell.tsx`
 - `src/persistence/indexeddb/send-job-repositories.ts`
+- `supabase/migrations/202607020002_outreach_send_jobs.sql`
