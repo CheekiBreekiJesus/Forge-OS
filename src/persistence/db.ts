@@ -541,7 +541,15 @@ export class ForgeOSDatabase extends Dexie {
         outreachSendAttempts:
           "id, tenantId, provider, deliveryMode, campaignId, campaignRecipientId, leadId, idempotencyKey, status, startedAt, providerMessageId, [tenantId+campaignId], [tenantId+campaignRecipientId], [tenantId+idempotencyKey], [tenantId+status]",
         outreachProviderEvents:
-          "id, tenantId, provider, eventFingerprint, providerMessageId, eventType, receivedAt, campaignRecipientId, sendAttemptId, processingStatus, [tenantId+eventFingerprint], [tenantId+eventType], [tenantId+processingStatus], [tenantId+campaignRecipientId]"
+          "id, tenantId, provider, eventFingerprint, providerMessageId, eventType, receivedAt, campaignRecipientId, sendAttemptId, processingStatus, [tenantId+eventFingerprint], [tenantId+eventType], [tenantId+processingStatus], [tenantId+campaignRecipientId]",
+        outreachSendJobs:
+          "id, tenantId, campaignId, provider, deliveryMode, status, lockExpiresAt, [tenantId+campaignId], [tenantId+status]",
+        outreachSendJobRecipients:
+          "id, tenantId, sendJobId, campaignId, campaignRecipientId, leadId, normalizedEmail, status, idempotencyKey, nextAttemptAt, [tenantId+sendJobId], [tenantId+campaignRecipientId], [tenantId+idempotencyKey], [tenantId+status]",
+        outreachSendJobAttempts:
+          "id, tenantId, sendJobId, sendJobRecipientId, campaignId, campaignRecipientId, idempotencyKey, status, providerMessageId, [tenantId+sendJobId], [tenantId+idempotencyKey], [tenantId+campaignRecipientId]",
+        outreachSendJobDailyUsage:
+          "id, tenantId, provider, usageDate, [tenantId+provider+usageDate]"
       })
       .upgrade(async (tx) => {
         await tx.table("importBatches").toCollection().modify((row: Record<string, unknown>) => {
