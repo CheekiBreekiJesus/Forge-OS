@@ -1,111 +1,79 @@
 # ForgeOS — Current State
 
 Authoritative snapshot for the JH Gomes outreach release path.  
-Branch baseline: `integration/jh-gomes-outreach-runtime` @ `bf5f3fe`.
+Branch baseline: `release/jh-gomes-outreach-supabase` (from `de654e2`).
 
 ## Canonical architecture
 
 - **Single root Next.js application** (`package.json`, `src/app/`, `src/features/`).
-- **Not** a Turborepo or multi-app workspace.
-- Domain boundaries live under `src/features/*`, application services under `src/application/`, persistence under `src/persistence/`.
-- **JH Gomes** is the first tenant (`tenant_jh_gomes`); code must stay tenant-scoped and customer-neutral at the platform level.
+- Domain boundaries under `src/features/*`, application services under `src/application/`, persistence under `src/persistence/`.
+- **JH Gomes** resolves via `tenants.tenant_key = tenant_jh_gomes` → UUID; platform code stays tenant-scoped and customer-neutral.
 - Internal naming: English. UI: `pt-PT` and `en` via `src/i18n/`.
 
-## What is implemented
+## Outreach production persistence slice (implemented)
 
 | Area | Status |
 |------|--------|
-| Lead CSV/XLSX import | IndexedDB + UI |
-| Campaign segmentation and drafts | IndexedDB |
-| Deterministic + AI email generation | API + client |
-| Version-aware approval | `campaign-approval-service` |
-| Campaign send jobs (simulation) | IndexedDB client path active |
-| Send-job server routes | Wired; default deps return 503 until Supabase adapter configured |
-| Brevo test-send (protected) | API with allowlist + confirmation |
-| Public unsubscribe + suppression | Token + durable store when Supabase configured |
-| Brevo webhook ingestion | Supabase durable events |
-| Customer PC local runtime | Windows scripts, `http://localhost:3000` |
-| Local health endpoint | `GET /api/health/local` |
-
-## What is simulated
-
-| Area | Mode |
-|------|------|
-| Email batch delivery (default) | `OUTREACH_DELIVERY_PROVIDER=simulation` |
-| AI generation in CI/tests | `AI_*_PROVIDER=deterministic` |
-| Smartlead | Deprecated; blocked at provider boundary |
-| Production auth | Dev/test header adapter only; production fails closed |
-| Hosted Supabase in browser | Not connected; IndexedDB is runtime default |
-
-## What is production-connected (when configured)
-
-| Area | Requirement |
-|------|-------------|
-| Supabase PostgreSQL | `NEXT_PUBLIC_SUPABASE_URL`, service role for server writes |
-| Brevo live/test send | `BREVO_*`, `OUTREACH_REAL_SEND_ENABLED`, allowlist |
-| Abacus AI | `ABACUS_API_KEY` (optional; falls back to deterministic) |
+| Stable tenant key (`tenants.tenant_key`) | Migration + lookup helpers |
+| Supabase cookie session + membership | `src/lib/auth/session.ts` |
+| Server-owned send route | `POST /api/outreach/messages/{messageId}/send` |
+| Supabase repository bundle (outreach path) | `createSupabaseRepositoryBundle()` |
+| Atomic delivery claim RPC | `claim_outreach_send_attempt` |
+| Delivery attempt persistence | `outreach_send_attempts` |
+| Campaign recipients (PostgreSQL) | `outreach_campaign_recipients` |
+| RLS read policies + blocked direct send-attempt writes | Migration `202607031600` |
+| UI supabase send path | `campaign-recipient-review-panel` → server endpoint |
+| Brevo provider events (durable) | Existing `outreach_provider_events` + webhook |
+| SQL integration tests | `npm run test:supabase:integration` (requires `FORGEOS_TEST_DATABASE_URL`) |
 
 ## Persistence modes
 
 | Mode | Env | Storage |
 |------|-----|---------|
-| `local` (default) | unset / `FORGEOS_PERSISTENCE_MODE=local` | IndexedDB (Dexie), name from `FORGEOS_LOCAL_DB_NAME` |
-| `supabase` | `FORGEOS_PERSISTENCE_MODE=supabase` + Supabase URL/keys | PostgreSQL via migrations in `supabase/migrations/` |
+| `local` (default) | unset / `FORGEOS_PERSISTENCE_MODE=local` | IndexedDB (Dexie) |
+| `supabase` | `FORGEOS_PERSISTENCE_MODE=supabase` + Supabase URL/keys | PostgreSQL via `supabase/migrations/` |
 
-IndexedDB schema version: **13**. Seed version: **4**.  
-Customer PC template DB name: `forgeos:jhgomes:local`. Dev default: `forgeos:jhgomes:development`.
+Browser IndexedDB behavior is unchanged in `local` mode.  
+When `NEXT_PUBLIC_FORGEOS_PERSISTENCE_MODE=supabase`, campaign simulate-send uses the server-owned endpoint.
 
 ## Authentication status
 
-- **Client:** static `DEFAULT_TENANT_ID` in persistence provider (no session).
-- **Server send-jobs:** `resolveTrustedSendJobActorContext` — header-based in dev/test; **throws in production** until Supabase session adapter is configured.
-- **Supabase RLS:** migrations expect `auth.uid()` via `tenant_memberships`; not wired to Next.js middleware yet.
-- **Test identity:** enabled only when `FORGEOS_TEST_AUTH_ENABLED=true` (CI/E2E).
+- **Production:** Supabase cookie session → `tenant_memberships` → tenant UUID (never trusts client tenant headers).
+- **Test/E2E:** `FORGEOS_TEST_AUTH_ENABLED=true` or `FORGEOS_E2E=true` only.
+- **Development headers:** `FORGEOS_ALLOW_DEV_AUTH_HEADERS=true` and non-production only.
+- **Test tenant key resolution:** `tenant_jh_gomes` → UUID when Supabase configured.
 
 ## Email delivery status
 
-- Default: **simulation** — accepts exact approved subject/body, no external send.
-- Brevo: test-send and webhooks only; batch `brevo` mode gated.
-- Smartlead: **not supported** for exact-content delivery; returns `unsupported-exact-content` / `configuration-missing`.
-- Duplicate send: blocked at validation, idempotency key, and delivery-attempt uniqueness.
+- Default: **simulation** with exact approved subject/body.
+- Duplicate send: blocked by approval state, idempotency key, unique constraint, and atomic claim RPC.
+- Smartlead live: blocked (unchanged).
+- Brevo: test-send + webhooks; batch live gated.
 
 ## Validation commands
 
 ```bash
-npm run lint          # 0 errors (12 pre-existing warnings)
+npm run lint
 npm run typecheck
-npm test              # unit tests under src/
+npm test
 npm run build
-npm run test:e2e      # 43 tests, port 3012, DB forgeos:e2e:default
-npm run test:acceptance  # 50 tests, port 3001, DB forgeos:e2e:acceptance
+npm run test:e2e
+npm run test:acceptance
 npm run test:customer-pc:smoke
-npm run validate      # lint + typecheck + test + build
+npm run test:supabase:integration   # requires PostgreSQL (CI service or FORGEOS_TEST_DATABASE_URL)
 ```
-
-Focused outreach E2E: `e2e/outreach-workflow.spec.ts`, `e2e/campaign-send-job-simulation.spec.ts`, `e2e/acceptance/03-leads-import-outreach.spec.ts`.
-
-## Test counts (baseline)
-
-| Suite | Count |
-|-------|-------|
-| Unit (`npm test`) | 246 |
-| Main E2E | 43 |
-| Acceptance | 50 (+ 1 live-AI skipped by default) |
 
 ## Remaining production blockers
 
-1. Supabase session auth wired to Next.js (no middleware yet).
-2. Tenant public ID (`tenant_jh_gomes`) → UUID mapping for Supabase FKs.
-3. Server send-job Supabase repository adapter (routes exist, deps null).
-4. RLS policies on send-job and public-event tables (service_role only today).
-5. Full webhook → IndexedDB reconciliation for hosted mode.
-6. Smartlead exact-content mapping not documented — live Smartlead blocked.
-7. Production rate limiting and audit log persistence to Supabase.
+1. Full Supabase local stack verification (`supabase start`) — CLI available via `npx supabase`; Docker daemon was not running on the implementation machine.
+2. Hosted PostgREST vertical test through `@supabase/supabase-js` (repository bundle) — requires live Supabase API, not raw PostgreSQL only.
+3. Browser Supabase read path for campaign UI data (currently IndexedDB client; server send only wired for supabase mode).
+4. Send-job routes still use development header actor context in non-production.
+5. Production deployment and secrets configuration.
 
-## Contradictory docs (archived / superseded by this file)
+## Contradictory docs (superseded by this file)
 
-- `docs/product/outreach-mvp-implementation.md` — references localStorage and active Smartlead.
-- `docs/architecture/local-mvp-persistence.md` — outdated schema/seed versions.
-- `docs/deployment/mvp-live-readiness.md` — Smartlead as production path.
+- `docs/product/outreach-mvp-implementation.md` — pre-Supabase persistence notes.
+- `docs/architecture/local-mvp-persistence.md` — outdated schema versions.
 
-See `docs/email-outreach/integration-status.md` for outreach module detail.
+See `docs/email-outreach/integration-status.md` for module detail.

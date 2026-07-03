@@ -11,7 +11,7 @@ import {
   formatOrganizationDisplayName,
   formatSubjectOrganizationTarget
 } from "@/features/leadops/organization-display";
-import { resolveSalutation, type ContactSalutation } from "@/features/leadops/salutation-resolver";
+import { resolveSalutation } from "@/features/leadops/salutation-resolver";
 import {
   defaultUnsubscribeInstruction,
   type TemplateVariableKey

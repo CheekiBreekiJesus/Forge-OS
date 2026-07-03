@@ -3,7 +3,6 @@ import type {
   OutreachApprovedDeliveryResult
 } from "@/domain/outreach-approved-delivery";
 import {
-  buildOutreachDeliveryIdempotencyKey,
   mapWorkflowStateToApprovedDelivery
 } from "@/domain/outreach-approved-delivery";
 import { generatePtPtEmail } from "./workflow";
@@ -231,9 +230,7 @@ async function deliverViaSimulation(
   };
 }
 
-async function deliverViaSmartlead(
-  request: OutreachApprovedDeliveryRequest
-): Promise<OutreachApprovedDeliveryResult> {
+async function deliverViaSmartlead(): Promise<OutreachApprovedDeliveryResult> {
   const apiKey = process.env.SMARTLEAD_API_KEY?.trim();
   const campaignId = process.env.SMARTLEAD_DEFAULT_CAMPAIGN_ID?.trim();
 

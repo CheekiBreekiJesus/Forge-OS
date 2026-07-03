@@ -6,7 +6,6 @@ import type {
   LeadOpsLead,
   LeadOpsProductKey,
   LeadOpsProductRecommendation,
-  LeadOpsQueueValidation,
   LeadOpsSequenceStep,
   LeadOpsTone,
   LeadOpsWorkflowState
