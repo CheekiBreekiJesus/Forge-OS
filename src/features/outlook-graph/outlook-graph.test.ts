@@ -14,7 +14,7 @@ import {
 import { classifyGraphHttpStatus } from "./classify-error";
 import {
   buildOrganicIdempotencyKey,
-  createOrganicSendSession,
+  createOrganicSendSessionFromCommands,
   isOrganicIdempotencyKeySubmitted,
   isWithinBusinessHours,
   pauseOrganicSendSession,
@@ -25,6 +25,15 @@ import {
 import { readOutlookGraphConfig, isOutlookLiveSendAllowed, isOutlookTestRecipientAllowed } from "./config";
 import { OutlookGraphEmailProvider } from "./outlook-graph-provider";
 import { clearInMemoryTokenFallback } from "./token-service";
+import {
+  createOutlookSendServerDependencies,
+  setOutlookSendServerDependenciesForTests
+} from "./server-dependencies";
+import {
+  createOutlookDurableSendAttemptStore,
+  resetOutlookSendAttemptStoreForTests,
+  enableOutlookSendAttemptMemoryStore
+} from "./durable-send-attempt-store";
 import type { CachedOutlookTokens } from "./types";
 import { join } from "node:path";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -146,13 +155,26 @@ describe("organic send session", () => {
       bodyContentType: "Text" as const,
       locale: "pt-PT"
     }));
-    const session = createOrganicSendSession(items);
+    const session = createOrganicSendSessionFromCommands(
+      items.map((payload) => ({
+        campaignId: payload.campaignId,
+        idempotencyKey: buildOrganicIdempotencyKey(payload),
+        payload,
+        recipientId: payload.recipientId,
+        snapshotHash: payload.approvedDraftVersion
+      })),
+      { campaignId: "c1", enabled: false, tenantId: "tenant-test" }
+    );
     expect(session.items).toHaveLength(5);
     expect(session.status).toBe("paused");
   });
 
   it("supports pause and resume", () => {
-    const session = createOrganicSendSession([], { enabled: true });
+    const session = createOrganicSendSessionFromCommands([], {
+      campaignId: "c1",
+      enabled: true,
+      tenantId: "tenant-test"
+    });
     expect(session.status).toBe("running");
     pauseOrganicSendSession();
     expect(resumeOrganicSendSession()?.status).toBe("running");
@@ -184,19 +206,51 @@ describe("organic send session", () => {
     });
     const { saveCachedTokens } = await import("./token-service");
     await saveCachedTokens(config, sampleTokens);
-    createOrganicSendSession([payload], {
-      enabled: true,
-      delayMinSeconds: 0,
-      delayMaxSeconds: 0
-    });
+    enableOutlookSendAttemptMemoryStore();
+    resetOutlookSendAttemptStoreForTests();
+    const attemptStore = createOutlookDurableSendAttemptStore();
     const provider = new OutlookGraphEmailProvider({
       ...config,
       graphBaseUrl: "https://mock.graph.local/v1.0"
     });
+    const deps = createOutlookSendServerDependencies(
+      {
+        activities: { append: async () => ({}) },
+        campaigns: {
+          getById: async () => ({
+            id: "c1",
+            tenantId: "tenant-test"
+          })
+        }
+      } as never,
+      { attemptStore, config, provider }
+    );
+    setOutlookSendServerDependenciesForTests(deps);
+    const tickNow = new Date();
+    createOrganicSendSessionFromCommands(
+      [
+        {
+          campaignId: payload.campaignId,
+          idempotencyKey: key,
+          payload,
+          recipientId: payload.recipientId,
+          snapshotHash: payload.approvedDraftVersion
+        }
+      ],
+      {
+        campaignId: "c1",
+        enabled: true,
+        tenantId: "tenant-test",
+        config: {
+          delayMinSeconds: 0,
+          delayMaxSeconds: 0
+        }
+      }
+    );
     vi.spyOn(global, "fetch").mockResolvedValue(
       new Response(null, { status: 202 }) as Response
     );
-    await processOrganicSendSessionTick(provider);
+    await processOrganicSendSessionTick(deps, tickNow);
     expect(isOrganicIdempotencyKeySubmitted(key)).toBe(true);
     vi.restoreAllMocks();
   });

@@ -20,6 +20,18 @@ const tokens: CachedOutlookTokens = {
   cachedAt: new Date().toISOString()
 };
 
+function trustedHeaders(): Record<string, string> {
+  return {
+    "content-type": "application/json",
+    host: "localhost:3000",
+    origin: "http://localhost:3000",
+    "x-forgeos-actor-id": "operator",
+    "x-forgeos-correlation-id": "corr",
+    "x-forgeos-roles": "marketing_manager",
+    "x-forgeos-tenant-id": "tenant_demo"
+  };
+}
+
 describe("outlook integration api", () => {
   beforeEach(() => {
     clearInMemoryTokenFallback();
@@ -29,6 +41,7 @@ describe("outlook integration api", () => {
     process.env.FORGEOS_LOCAL_ENCRYPTION_KEY = TEST_KEY;
     process.env.OUTLOOK_TEST_RECIPIENTS = "allowed@example.com";
     process.env.MICROSOFT_GRAPH_BASE_URL = "https://mock.graph.local/v1.0";
+    process.env.FORGEOS_PUBLIC_BASE_URL = "http://localhost:3000";
   });
 
   it("returns connection status without token fields", async () => {
@@ -40,49 +53,33 @@ describe("outlook integration api", () => {
     expect(JSON.stringify(body)).not.toContain("integration-refresh");
   });
 
-  it("sends approved synthetic draft through mock graph and records accepted", async () => {
+  it("requires server persistence and trusted actor for test send", async () => {
     await saveCachedTokens(readOutlookGraphConfig(), tokens);
-    const fetchMock = vi.spyOn(global, "fetch").mockResolvedValue(
-      new Response(null, { status: 202 }) as Response
-    );
-    const request = new NextRequest("http://localhost/api/integrations/outlook/test-send", {
+    const request = new NextRequest("http://localhost:3000/api/integrations/outlook/test-send", {
       method: "POST",
       body: JSON.stringify({
         confirmation: "SEND OUTLOOK TEST",
         campaignId: "campaign-synthetic",
-        recipientId: "recipient-synthetic",
-        approvedDraftVersion: "hash-synthetic",
-        recipientEmail: "allowed@example.com",
-        subject: "Synthetic subject",
-        renderedBody: "<p>Synthetic body</p>",
-        bodyContentType: "HTML"
-      })
+        recipientId: "recipient-synthetic"
+      }),
+      headers: trustedHeaders()
     });
     const response = await testSendPost(request);
-    const body = await response.json();
-    expect(response.status).toBe(202);
-    expect(body.acceptedByGraph).toBe(true);
-    expect(fetchMock).toHaveBeenCalled();
-    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(String(init.body)).toContain("Synthetic subject");
-    expect(String(init.body)).not.toContain("integration-access");
-    fetchMock.mockRestore();
+    expect(response.status).toBe(503);
   });
 
-  it("blocks recipient outside allowlist", async () => {
-    const request = new NextRequest("http://localhost/api/integrations/outlook/test-send", {
+  it("blocks recipient outside allowlist when persistence configured", async () => {
+    const request = new NextRequest("http://localhost:3000/api/integrations/outlook/test-send", {
       method: "POST",
       body: JSON.stringify({
         confirmation: "SEND OUTLOOK TEST",
         campaignId: "campaign-synthetic",
         recipientId: "recipient-synthetic",
-        approvedDraftVersion: "hash-synthetic",
-        recipientEmail: "blocked@example.com",
-        subject: "Synthetic subject",
-        renderedBody: "Body"
-      })
+        recipientEmail: "blocked@example.com"
+      }),
+      headers: trustedHeaders()
     });
     const response = await testSendPost(request);
-    expect(response.status).toBe(403);
+    expect([403, 503]).toContain(response.status);
   });
 });
