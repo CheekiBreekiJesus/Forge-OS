@@ -51,3 +51,6 @@ data/imports/
 qa/outreach/private-import-profile.raw.json
 qa/outreach/.private-acceptance-metrics.json
 data/exports/
+
+# Customer PC local runtime artifacts (logs, PID files, diagnostics)
+.customer-pc/
