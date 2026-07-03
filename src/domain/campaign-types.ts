@@ -1,4 +1,5 @@
 import type { LeadOpsFilters } from "@/features/leadops/types";
+import type { ContactSalutation } from "@/features/leadops/salutation-resolver";
 
 export type CampaignStatus =
   | "draft"
@@ -109,6 +110,9 @@ export type CampaignRecipient = {
   snapshotCategory: string;
   snapshotRegion: string;
   snapshotWebsite: string;
+  greetingOverride: string;
+  organizationDisplayNameOverride: string;
+  contactSalutation: ContactSalutation | null;
   inclusionReason: string;
   status: CampaignRecipientStatus;
   personalizedSubject: string;
@@ -146,6 +150,9 @@ export type CreateCampaignRecipientInput = {
   snapshotCategory: string;
   snapshotRegion: string;
   snapshotWebsite?: string;
+  greetingOverride?: string;
+  organizationDisplayNameOverride?: string;
+  contactSalutation?: ContactSalutation | null;
   inclusionReason: string;
   status: CampaignRecipientStatus;
 };
@@ -154,6 +161,9 @@ export type UpdateCampaignRecipientDraftInput = {
   snapshotEmail?: string;
   snapshotCompanyName?: string;
   snapshotContactName?: string;
+  greetingOverride?: string;
+  organizationDisplayNameOverride?: string;
+  contactSalutation?: ContactSalutation | null;
   personalizedSubject?: string;
   personalizedPlainText?: string;
   personalizedHtml?: string;

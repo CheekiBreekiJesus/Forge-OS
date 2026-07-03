@@ -1,10 +1,23 @@
-import type { CampaignRecipient } from "@/domain/campaign-types";
-import type { CompanyProfileSnapshot, SenderIdentitySnapshot } from "@/domain/profile-types";
 import { plainTextToHtml, sanitizeEmailHtml } from "@/features/email-composition/sanitize";
+import { buildCategoryContentLine } from "@/features/leadops/category-content";
+import { localizeCategoryLabel } from "@/features/leadops/category-localization";
+import {
+  containsDemoSenderValues,
+  isDemoSenderEmail,
+  isDemoSenderName,
+  isDemoSenderPhone
+} from "@/features/leadops/demo-sender-values";
+import {
+  formatOrganizationDisplayName,
+  formatSubjectOrganizationTarget
+} from "@/features/leadops/organization-display";
+import { resolveSalutation, type ContactSalutation } from "@/features/leadops/salutation-resolver";
 import {
   defaultUnsubscribeInstruction,
   type TemplateVariableKey
 } from "@/features/leadops/template-variables";
+import type { CampaignRecipient } from "@/domain/campaign-types";
+import type { CompanyProfileSnapshot, SenderIdentitySnapshot } from "@/domain/profile-types";
 
 export type TemplateRenderInput = {
   subjectTemplate: string;
@@ -18,6 +31,10 @@ export type TemplateRenderInput = {
     | "snapshotCategory"
     | "snapshotRegion"
     | "snapshotWebsite"
+    | "snapshotEmail"
+    | "greetingOverride"
+    | "organizationDisplayNameOverride"
+    | "contactSalutation"
   >;
   sender: SenderIdentitySnapshot;
   company: CompanyProfileSnapshot;
@@ -33,19 +50,55 @@ export type TemplateRenderResult = {
   unresolvedVariables: string[];
   warnings: string[];
   hasUnresolvedVariables: boolean;
+  preview: {
+    greeting: string;
+    contactName: string;
+    organizationName: string;
+    organizationDisplayName: string;
+    localizedCategory: string;
+    senderName: string;
+    senderEmail: string;
+    senderPhone: string;
+    companyName: string;
+    companyWebsite: string;
+    usedDemoFallback: boolean;
+    organizationUsedAsContact: boolean;
+    untreatedEnglishCategory: boolean;
+  };
 };
 
 const PLACEHOLDER_PATTERN = /\{\{([^}]+)\}\}/g;
+
+const ALLOWED_KEYS = new Set([
+  "companyName",
+  "contactName",
+  "category",
+  "categoryLabel",
+  "region",
+  "website",
+  "senderName",
+  "companySenderName",
+  "senderPhone",
+  "senderEmail",
+  "unsubscribeInstruction",
+  "categoryLine",
+  "regionLine",
+  "websiteLine",
+  "greeting",
+  "organizationDisplayName",
+  "subjectOrganizationTarget",
+  "companyWebsiteLine"
+]);
 
 export function renderCampaignTemplate(input: TemplateRenderInput): TemplateRenderResult {
   const warnings: string[] = [];
   const usedVariables = new Set<TemplateVariableKey>();
   const fallbackVariables = new Set<TemplateVariableKey>();
-  const { values, allowedKeys } = buildVariableMap(input, usedVariables, fallbackVariables, warnings);
+  const { values, previewMeta } = buildVariableMap(input, usedVariables, fallbackVariables, warnings);
 
   const templateUnresolved = findUnknownTemplateVariables(
     `${input.subjectTemplate}\n${input.plainTextTemplate}`,
-    allowedKeys
+    ALLOWED_KEYS
   );
 
   const subject = cleanupRenderedText(substituteTemplate(input.subjectTemplate, values));
@@ -63,6 +116,16 @@ export function renderCampaignTemplate(input: TemplateRenderInput): TemplateRend
     warnings.push(`Unresolved variables: ${unresolvedVariables.join(", ")}`);
   }
 
+  if (previewMeta.usedDemoFallback) {
+    warnings.push("Demo sender values detected in draft.");
+  }
+  if (previewMeta.organizationUsedAsContact) {
+    warnings.push("Organization name was treated as contact name.");
+  }
+  if (previewMeta.untreatedEnglishCategory) {
+    warnings.push("Untranslated category code in draft.");
+  }
+
   return {
     subject,
     plainText,
@@ -71,7 +134,8 @@ export function renderCampaignTemplate(input: TemplateRenderInput): TemplateRend
     fallbackVariables: [...fallbackVariables],
     unresolvedVariables,
     warnings,
-    hasUnresolvedVariables: unresolvedVariables.length > 0
+    hasUnresolvedVariables: unresolvedVariables.length > 0,
+    preview: previewMeta
   };
 }
 
@@ -80,36 +144,75 @@ function buildVariableMap(
   usedVariables: Set<TemplateVariableKey>,
   fallbackVariables: Set<TemplateVariableKey>,
   warnings: string[]
-): { values: Record<string, string>; allowedKeys: Set<string> } {
+): {
+  values: Record<string, string>;
+  previewMeta: TemplateRenderResult["preview"];
+} {
   const companyName = normalizeValue(input.recipient.snapshotCompanyName);
   const rawContact = normalizeValue(input.recipient.snapshotContactName);
   const category = normalizeValue(input.recipient.snapshotCategory);
   const region = normalizeValue(input.recipient.snapshotRegion);
-  const website = normalizeValue(input.recipient.snapshotWebsite);
   const senderName = normalizeValue(input.sender.displayName);
-  const companySenderName = normalizeValue(
-    input.company.tradingName || input.company.legalName
-  );
+  const senderEmail = normalizeValue(input.sender.fromEmail || input.sender.replyToEmail);
   const senderPhone = normalizeValue(input.sender.phone);
-  const senderEmail = normalizeValue(input.sender.fromEmail);
+  const companySenderName = normalizeValue(input.company.tradingName || input.company.legalName);
+  const companyWebsite = normalizeValue(input.company.websiteUrl);
   const unsubscribeInstruction =
-    normalizeValue(input.unsubscribeInstruction) ||
-    defaultUnsubscribeInstruction(input.language);
+    normalizeValue(input.unsubscribeInstruction) || defaultUnsubscribeInstruction(input.language);
 
-  let contactName = rawContact;
-  if (!contactName) {
-    contactName = input.language.startsWith("pt") ? "Senhor(a)" : "Sir/Madam";
-    fallbackVariables.add("contactName");
-  } else {
-    usedVariables.add("contactName");
-  }
+  const organizationDisplayName =
+    normalizeValue(input.recipient.organizationDisplayNameOverride) ||
+    formatOrganizationDisplayName(companyName, category, input.language);
+
+  const salutation = resolveSalutation({
+    contactName: rawContact,
+    organizationName: companyName,
+    email: input.recipient.snapshotEmail,
+    salutationOverride: input.recipient.greetingOverride,
+    contactSalutation: input.recipient.contactSalutation ?? undefined,
+    locale: input.language
+  });
+
+  const localizedCategory = localizeCategoryLabel(category, input.language);
+  const categoryLine = buildCategoryContentLine(
+    category,
+    companyName,
+    input.recipient.organizationDisplayNameOverride,
+    input.language
+  );
+
+  const regionLine = region
+    ? input.language.startsWith("pt")
+      ? `Trabalhamos regularmente com organizações na região de ${region}.`
+      : `We regularly work with organizations in ${region}.`
+    : "";
+
+  const companyWebsiteLine =
+    companyWebsite && input.language.startsWith("pt")
+      ? `Mais informação em ${companyWebsite}.`
+      : companyWebsite
+        ? `More information at ${companyWebsite}.`
+        : "";
+
+  const subjectOrganizationTarget = formatSubjectOrganizationTarget(
+    organizationDisplayName,
+    category,
+    input.language
+  );
+
+  const usedDemoFallback = containsDemoSenderValues([senderName, senderEmail, senderPhone]);
+  const organizationUsedAsContact =
+    salutation.treatedContactAsUnnamed && Boolean(rawContact) && rawContact !== salutation.resolvedContactName;
 
   if (companyName) usedVariables.add("companyName");
   else warnings.push("Missing organization name.");
 
+  if (salutation.resolvedContactName) usedVariables.add("contactName");
+  else fallbackVariables.add("contactName");
+
   if (category) usedVariables.add("category");
+  if (localizedCategory) usedVariables.add("categoryLabel" as TemplateVariableKey);
   if (region) usedVariables.add("region");
-  if (website) usedVariables.add("website");
   if (senderName) usedVariables.add("senderName");
   else warnings.push("Missing sender name in Settings.");
   if (companySenderName) usedVariables.add("companySenderName");
@@ -119,31 +222,24 @@ function buildVariableMap(
   else warnings.push("Missing sender email in Settings.");
   usedVariables.add("unsubscribeInstruction");
 
-  const categoryLine = category
-    ? input.language.startsWith("pt")
-      ? `A sua área de atividade (${category}) encaixa-se bem com soluções que já fornecemos.`
-      : `Your field (${category}) aligns well with solutions we already supply.`
-    : "";
+  if (isDemoSenderEmail(senderEmail)) warnings.push("Sender email still uses demo seed value.");
+  if (isDemoSenderPhone(senderPhone)) warnings.push("Sender phone still uses demo seed value.");
+  if (isDemoSenderName(senderName)) warnings.push("Sender name still uses demo seed value.");
 
-  const regionLine = region
-    ? input.language.startsWith("pt")
-      ? `Trabalhamos regularmente com organizações na região de ${region}.`
-      : `We regularly work with organizations in ${region}.`
-    : "";
-
-  const websiteLine = website
-    ? input.language.startsWith("pt")
-      ? `Pode encontrar mais informação em ${website}.`
-      : `You can find more information at ${website}.`
-    : "";
+  const untreatedEnglishCategory =
+    Boolean(category) &&
+    input.language.startsWith("pt") &&
+    localizedCategory === category &&
+    /[A-Za-z]/.test(category);
 
   return {
     values: {
       companyName,
-      contactName,
-      category,
+      contactName: salutation.resolvedContactName,
+      category: localizedCategory,
+      categoryLabel: localizedCategory,
       region,
-      website,
+      website: "",
       senderName,
       companySenderName,
       senderPhone,
@@ -151,23 +247,27 @@ function buildVariableMap(
       unsubscribeInstruction,
       categoryLine,
       regionLine,
-      websiteLine
+      websiteLine: "",
+      greeting: salutation.greeting,
+      organizationDisplayName,
+      subjectOrganizationTarget,
+      companyWebsiteLine
     },
-    allowedKeys: new Set([
-      "companyName",
-      "contactName",
-      "category",
-      "region",
-      "website",
-      "senderName",
-      "companySenderName",
-      "senderPhone",
-      "senderEmail",
-      "unsubscribeInstruction",
-      "categoryLine",
-      "regionLine",
-      "websiteLine"
-    ])
+    previewMeta: {
+      greeting: salutation.greeting,
+      contactName: salutation.resolvedContactName,
+      organizationName: companyName,
+      organizationDisplayName,
+      localizedCategory,
+      senderName,
+      senderEmail,
+      senderPhone,
+      companyName: companySenderName,
+      companyWebsite,
+      usedDemoFallback,
+      organizationUsedAsContact,
+      untreatedEnglishCategory
+    }
   };
 }
 
@@ -222,20 +322,5 @@ export function countUnresolvedInTemplate(
   subjectTemplate: string,
   plainTextTemplate: string
 ): string[] {
-  const allowedKeys = new Set([
-    "companyName",
-    "contactName",
-    "category",
-    "region",
-    "website",
-    "senderName",
-    "companySenderName",
-    "senderPhone",
-    "senderEmail",
-    "unsubscribeInstruction",
-    "categoryLine",
-    "regionLine",
-    "websiteLine"
-  ]);
-  return findUnknownTemplateVariables(`${subjectTemplate}\n${plainTextTemplate}`, allowedKeys);
+  return findUnknownTemplateVariables(`${subjectTemplate}\n${plainTextTemplate}`, ALLOWED_KEYS);
 }

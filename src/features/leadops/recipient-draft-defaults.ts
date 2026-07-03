@@ -12,6 +12,9 @@ export function createEmptyRecipientDraftFields(): Pick<
   | "userEdited"
   | "draftUpdatedAt"
   | "snapshotWebsite"
+  | "greetingOverride"
+  | "organizationDisplayNameOverride"
+  | "contactSalutation"
   | "approvedAt"
   | "approvedBy"
   | "approvalContentHash"
@@ -37,6 +40,9 @@ export function createEmptyRecipientDraftFields(): Pick<
     userEdited: false,
     draftUpdatedAt: null,
     snapshotWebsite: "",
+    greetingOverride: "",
+    organizationDisplayNameOverride: "",
+    contactSalutation: null,
     approvedAt: null,
     approvedBy: null,
     approvalContentHash: null,
