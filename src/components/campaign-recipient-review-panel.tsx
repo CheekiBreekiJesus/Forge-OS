@@ -17,6 +17,10 @@ import { panelClass } from "@/components/app-frame";
 import { EmailCopyActions } from "@/components/leadops-email-composer";
 import type { CampaignRecipient, OutreachCampaign } from "@/domain/campaign-types";
 import {
+  isSupabasePersistenceModeClient,
+  sendOutreachMessageViaServer
+} from "@/features/outreach/server-send";
+import {
   buildGmailComposeUrl,
   buildMailtoUrl,
   buildOutlookComposeUrl
@@ -175,7 +179,24 @@ export function CampaignRecipientReviewPanel({
 
   async function handleSimulate() {
     setBusy(true);
+    setFeedback(null);
     try {
+      if (isSupabasePersistenceModeClient()) {
+        const { response, result } = await sendOutreachMessageViaServer(recipient.id, {});
+        if (response.status === 409 || result.alreadyProcessed) {
+          setFeedback(copy.duplicateBlocked);
+          await refreshAll();
+          return;
+        }
+        if (!response.ok || result.delivery?.providerStatus === "blocked" || result.delivery?.providerStatus === "failed") {
+          setFeedback(result.error ?? dictionary.leadops.detailWorkspace.providerError);
+          return;
+        }
+        setFeedback(copy.simulated);
+        await refreshAll();
+        return;
+      }
+
       await simulateRecipientSend(repos, tenantId, campaignId, recipient.id);
       await refreshAll();
       setFeedback(copy.simulated);
