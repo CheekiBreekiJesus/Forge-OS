@@ -984,11 +984,11 @@ async function seedProfileDefaults(db: ForgeOSDatabase, tenantId: string): Promi
 
   const user = await userProfiles.ensureDefault(tenantId, {
     active: true,
-    email: "joao.gomes@demo.local",
-    fullName: "João Gomes",
+    email: "operador@forgeos.preview",
+    fullName: "Operador ForgeOS",
     isLocalPreview: false,
     jobTitle: "Diretor Comercial",
-    phone: "+351 910 000 000",
+    phone: "+351 256 000 001",
     preferredLanguage: "pt-PT",
     profileImageLocalAssetId: null,
     role: "admin"

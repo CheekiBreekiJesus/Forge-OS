@@ -80,12 +80,16 @@ export async function createCampaignWithSnapshot(
   const context = await buildLeadManagementContext(repos, tenantId);
   const preview = previewCampaignSegment(input.segmentDefinition, context, input.searchQuery ?? "");
   const sendable = preview.candidates.filter((item) => item.row.sendability.sendable);
+  const defaultSender = await repos.senderIdentities.getDefault(tenantId);
 
   const campaign = await repos.campaigns.create(tenantId, {
     name: input.name,
     description: input.description,
     language: input.language,
-    segmentDefinition: input.segmentDefinition
+    segmentDefinition: input.segmentDefinition,
+    senderProfileId: defaultSender?.id ?? null,
+    fromName: defaultSender?.displayName ?? "",
+    replyTo: defaultSender?.replyToEmail || defaultSender?.fromEmail || ""
   });
 
   await snapshotCampaignRecipients(repos, tenantId, campaign.id, preview.candidates);
