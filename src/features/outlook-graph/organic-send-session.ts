@@ -1,8 +1,18 @@
 import { randomUUID } from "node:crypto";
 import type { OutlookApprovedSendPayload, OutlookSendResult } from "./types";
-import type { OutlookGraphEmailProvider } from "./outlook-graph-provider";
-import { isOutlookLiveSendAllowed, readOutlookGraphConfig } from "./config";
+import type { OutlookSendServerDependencies } from "./server-dependencies";
+import { isOutlookLiveSendAllowed } from "./config";
 import { assertOutlookServerOnlyModule } from "./server-only";
+import {
+  buildOutlookDurableIdempotencyKey,
+  isBlockingOutlookAttemptStatus,
+  type OutlookDurableSendAttemptStore
+} from "./durable-send-attempt-store";
+import { ensureOutlookSendRecoveryOnStartup } from "./send-recovery";
+import { appendOutlookAuditEvent } from "./outlook-audit";
+import { mapClassificationToErrorCode } from "./classify-error";
+import { OUTLOOK_DURABLE_PROVIDER } from "@/domain/outlook-send-types";
+import type { OutlookDurableSendAttemptStatus } from "@/domain/outlook-send-types";
 
 assertOutlookServerOnlyModule();
 
@@ -22,14 +32,25 @@ export type OrganicSendSessionStatus =
   | "paused"
   | "completed";
 
+export type OrganicSessionCommand = {
+  campaignId: string;
+  recipientId: string;
+  idempotencyKey: string;
+  snapshotHash: string;
+  payload: OutlookApprovedSendPayload;
+};
+
 export type OrganicSessionItem = {
   id: string;
+  campaignId: string;
+  recipientId: string;
   payload: OutlookApprovedSendPayload;
   status: OrganicSessionItemStatus;
   nextEligibleAt: string | null;
   result: OutlookSendResult | null;
   snapshotHash: string;
   idempotencyKey: string;
+  attemptId: string | null;
 };
 
 export type OrganicSendSessionConfig = {
@@ -45,6 +66,8 @@ export type OrganicSendSessionConfig = {
 
 export type OrganicSendSessionSnapshot = {
   sessionId: string;
+  tenantId: string;
+  campaignId: string;
   status: OrganicSendSessionStatus;
   config: OrganicSendSessionConfig;
   items: OrganicSessionItem[];
@@ -84,29 +107,43 @@ export function resetOrganicSendSessionForTests(): void {
   submittedIdempotencyKeys.clear();
 }
 
-export function createOrganicSendSession(
-  items: OutlookApprovedSendPayload[],
-  config: Partial<OrganicSendSessionConfig> = {}
+export function createOrganicSendSessionFromCommands(
+  commands: OrganicSessionCommand[],
+  options: {
+    enabled?: boolean;
+    campaignId: string;
+    tenantId: string;
+    config?: Partial<OrganicSendSessionConfig>;
+  }
 ): OrganicSendSessionSnapshot {
   if (activeSession && activeSession.status === "running") {
     throw new Error("organic_session_already_running");
   }
-  const merged = { ...DEFAULT_CONFIG, ...config };
+  const merged: OrganicSendSessionConfig = {
+    ...DEFAULT_CONFIG,
+    ...options.config,
+    enabled: options.enabled ?? options.config?.enabled ?? DEFAULT_CONFIG.enabled
+  };
   const sessionId = randomUUID();
   const now = new Date().toISOString();
-  const limited = items.slice(0, merged.maxMessagesPerSession);
+  const limited = commands.slice(0, merged.maxMessagesPerSession);
   activeSession = {
     sessionId,
+    tenantId: options.tenantId,
+    campaignId: options.campaignId,
     status: merged.enabled ? "running" : "paused",
     config: merged,
-    items: limited.map((payload, index) => ({
+    items: limited.map((command, index) => ({
       id: randomUUID(),
-      payload,
-      status: merged.enabled ? "queued" : "paused",
-      nextEligibleAt: computeNextEligibleAt(merged, index, new Date()),
+      attemptId: null,
+      campaignId: command.campaignId,
+      idempotencyKey: command.idempotencyKey,
+      payload: command.payload,
+      recipientId: command.recipientId,
       result: null,
-      snapshotHash: payload.approvedDraftVersion,
-      idempotencyKey: buildOrganicIdempotencyKey(payload)
+      snapshotHash: command.snapshotHash,
+      status: merged.enabled ? "queued" : "paused",
+      nextEligibleAt: computeNextEligibleAt(merged, index, new Date())
     })),
     startedAt: now,
     completedAt: null,
@@ -119,6 +156,23 @@ export function createOrganicSendSession(
     skippedCount: 0
   };
   return structuredClone(activeSession);
+}
+
+/** @deprecated Client payloads are rejected at the API boundary. */
+export function createOrganicSendSession(
+  items: OutlookApprovedSendPayload[],
+  config: Partial<OrganicSendSessionConfig> = {}
+): OrganicSendSessionSnapshot {
+  return createOrganicSendSessionFromCommands(
+    items.map((payload) => ({
+      campaignId: payload.campaignId,
+      idempotencyKey: buildOrganicIdempotencyKey(payload),
+      payload,
+      recipientId: payload.recipientId,
+      snapshotHash: payload.approvedDraftVersion
+    })),
+    { campaignId: items[0]?.campaignId ?? "", config, enabled: config.enabled, tenantId: "" }
+  );
 }
 
 export function pauseOrganicSendSession(): OrganicSendSessionSnapshot | null {
@@ -142,13 +196,73 @@ export function resumeOrganicSendSession(): OrganicSendSessionSnapshot | null {
   return structuredClone(activeSession);
 }
 
+function mapGraphResultToAttemptStatus(result: OutlookSendResult): OutlookDurableSendAttemptStatus {
+  switch (result.classification) {
+    case "accepted":
+      return "accepted";
+    case "throttled":
+      return "throttled";
+    case "uncertain":
+      return "uncertain";
+    case "reconnect_required":
+      return "reconnect_required";
+    case "temporary_provider_failure":
+      return "temporary_failure";
+    case "blocked":
+    case "permission_failure":
+    case "permanent_request_failure":
+      return "permanent_failure";
+    default: {
+      const _exhaustive: never = result.classification;
+      return _exhaustive;
+    }
+  }
+}
+
+async function createDurableSubmittingAttempt(
+  store: OutlookDurableSendAttemptStore,
+  tenantId: string,
+  item: OrganicSessionItem,
+  initiatedBy: string
+): Promise<{ blocked: boolean; attemptId: string }> {
+  const now = new Date().toISOString();
+  const { attempt, created } = await store.createSubmitting({
+    approvedDraftVersion: item.snapshotHash,
+    campaignId: item.campaignId,
+    campaignRecipientId: item.recipientId,
+    createdAt: now,
+    failedAt: null,
+    httpStatus: null,
+    idempotencyKey: item.idempotencyKey,
+    initiatedBy,
+    provider: OUTLOOK_DURABLE_PROVIDER,
+    providerMessageId: null,
+    retryable: false,
+    sanitizedErrorCode: null,
+    sanitizedErrorMessage: null,
+    status: "submitting",
+    submittingAt: now,
+    acceptedAt: null,
+    uncertainAt: null,
+    cancelledAt: null,
+    tenantId
+  });
+  if (!created && isBlockingOutlookAttemptStatus(attempt.status)) {
+    return { attemptId: attempt.id, blocked: true };
+  }
+  return { attemptId: attempt.id, blocked: false };
+}
+
 export async function processOrganicSendSessionTick(
-  provider: OutlookGraphEmailProvider,
-  now = new Date()
+  deps: OutlookSendServerDependencies,
+  now = new Date(),
+  initiatedBy = "organic-session"
 ): Promise<OrganicSendSessionSnapshot | null> {
+  await ensureOutlookSendRecoveryOnStartup(deps.attemptStore);
+
   if (!activeSession || activeSession.status !== "running") return activeSession;
   if (processingLock) return structuredClone(activeSession);
-  if (!isOutlookLiveSendAllowed(readOutlookGraphConfig())) return structuredClone(activeSession);
+  if (!isOutlookLiveSendAllowed(deps.config)) return structuredClone(activeSession);
   if (!isWithinBusinessHours(activeSession.config, now)) return structuredClone(activeSession);
 
   const nextItem = activeSession.items.find(
@@ -157,14 +271,25 @@ export async function processOrganicSendSessionTick(
       (!item.nextEligibleAt || new Date(item.nextEligibleAt) <= now)
   );
   if (!nextItem) {
-    finalizeIfComplete();
+    finalizeIfComplete(deps);
+    return structuredClone(activeSession);
+  }
+
+  const existing = await deps.attemptStore.getByIdempotencyKey(
+    activeSession.tenantId,
+    nextItem.idempotencyKey
+  );
+  if (existing && isBlockingOutlookAttemptStatus(existing.status)) {
+    nextItem.status = "skipped";
+    activeSession.skippedCount += 1;
+    finalizeIfComplete(deps);
     return structuredClone(activeSession);
   }
 
   if (submittedIdempotencyKeys.has(nextItem.idempotencyKey)) {
     nextItem.status = "skipped";
     activeSession.skippedCount += 1;
-    finalizeIfComplete();
+    finalizeIfComplete(deps);
     return structuredClone(activeSession);
   }
 
@@ -173,9 +298,44 @@ export async function processOrganicSendSessionTick(
   submittedIdempotencyKeys.add(nextItem.idempotencyKey);
 
   try {
-    const result = await provider.sendApprovedMessage(nextItem.payload);
+    const tenantId = activeSession.tenantId;
+    const durable = await createDurableSubmittingAttempt(
+      deps.attemptStore,
+      tenantId,
+      nextItem,
+      initiatedBy
+    );
+    if (durable.blocked) {
+      nextItem.status = "skipped";
+      activeSession.skippedCount += 1;
+      return structuredClone(activeSession);
+    }
+    nextItem.attemptId = durable.attemptId;
+    nextItem.payload.attemptId = durable.attemptId;
+
+    const result = await deps.provider.sendApprovedMessage(nextItem.payload);
     nextItem.result = result;
     activeSession.processedCount += 1;
+
+    const attemptStatus = mapGraphResultToAttemptStatus(result);
+    const timestamp = new Date().toISOString();
+    await deps.attemptStore.update(tenantId, durable.attemptId, {
+      acceptedAt: attemptStatus === "accepted" ? timestamp : null,
+      failedAt:
+        attemptStatus === "permanent_failure" ||
+        attemptStatus === "temporary_failure" ||
+        attemptStatus === "reconnect_required"
+          ? timestamp
+          : null,
+      httpStatus: result.httpStatus,
+      providerMessageId: result.providerMessageId,
+      retryable: result.retryable,
+      sanitizedErrorCode: mapClassificationToErrorCode(result.classification),
+      sanitizedErrorMessage: result.errorMessage,
+      status: attemptStatus,
+      uncertainAt: attemptStatus === "uncertain" ? timestamp : null
+    });
+
     switch (result.classification) {
       case "accepted":
         nextItem.status = "accepted";
@@ -199,7 +359,7 @@ export async function processOrganicSendSessionTick(
     processingLock = false;
   }
 
-  finalizeIfComplete();
+  finalizeIfComplete(deps);
   return structuredClone(activeSession);
 }
 
@@ -208,15 +368,14 @@ export function isOrganicIdempotencyKeySubmitted(key: string): boolean {
 }
 
 export function buildOrganicIdempotencyKey(payload: OutlookApprovedSendPayload): string {
-  return [
-    "organic",
+  return buildOutlookDurableIdempotencyKey(
     payload.campaignId,
     payload.recipientId,
     payload.approvedDraftVersion
-  ].join(":");
+  );
 }
 
-function finalizeIfComplete(): void {
+function finalizeIfComplete(deps: OutlookSendServerDependencies): void {
   if (!activeSession) return;
   const pending = activeSession.items.some(
     (item) => item.status === "queued" || item.status === "submitting" || item.status === "paused"
@@ -224,6 +383,14 @@ function finalizeIfComplete(): void {
   if (!pending && activeSession.status === "running") {
     activeSession.status = "completed";
     activeSession.completedAt = new Date().toISOString();
+    void appendOutlookAuditEvent(
+      deps.repos,
+      activeSession.tenantId,
+      "outlook_organic_session_completed",
+      activeSession.campaignId,
+      "Outlook organic session completed",
+      { sessionId: activeSession.sessionId }
+    );
   }
 }
 
