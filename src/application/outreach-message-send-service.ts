@@ -1,0 +1,177 @@
+import { buildApprovalContentHash } from "@/application/campaign-approval-service";
+import type { OutreachApprovedDeliveryResult } from "@/domain/outreach-approved-delivery";
+import { buildOutreachDeliveryIdempotencyKey } from "@/domain/outreach-approved-delivery";
+import type { OutreachSendAttemptStatus } from "@/domain/email-delivery-types";
+import { deliverApprovedOutreachMessage } from "@/features/leadops/providers";
+import type { LocalRepositoryBundle } from "@/persistence/interfaces";
+import { PersistenceError } from "@/persistence/interfaces";
+
+export type MessageSendInput = {
+  tenantId: string;
+  campaignId: string;
+  recipientId: string;
+  actorId: string;
+};
+
+export type MessageSendResult = {
+  delivery: OutreachApprovedDeliveryResult;
+  idempotencyKey: string;
+  alreadyProcessed: boolean;
+};
+
+function nowIso(): string {
+  return new Date().toISOString();
+}
+
+function mapAttemptStatus(
+  providerStatus: OutreachApprovedDeliveryResult["providerStatus"]
+): OutreachSendAttemptStatus {
+  if (providerStatus === "sent") return "TEST_SENT";
+  return "TEST_BLOCKED";
+}
+
+export async function sendApprovedOutreachMessage(
+  repos: LocalRepositoryBundle,
+  input: MessageSendInput
+): Promise<MessageSendResult> {
+  const campaign = await repos.campaigns.getById(input.tenantId, input.campaignId);
+  if (!campaign) {
+    throw new PersistenceError("not_found", "Campaign not found.");
+  }
+
+  const recipient = await repos.campaignRecipients.getById(input.tenantId, input.recipientId);
+  if (!recipient || recipient.campaignId !== campaign.id) {
+    throw new PersistenceError("not_found", "Campaign recipient not found.");
+  }
+
+  if (recipient.draftStatus !== "APPROVED") {
+    throw new PersistenceError("invalid_transition", "Message is not approved.");
+  }
+
+  if (!recipient.approvalContentHash) {
+    throw new PersistenceError("invalid_transition", "Approval hash is missing.");
+  }
+
+  if (buildApprovalContentHash(recipient) !== recipient.approvalContentHash) {
+    throw new PersistenceError("invalid_transition", "Approved content changed since approval.");
+  }
+
+  if (recipient.sentAt || recipient.sendIdempotencyKey) {
+    return {
+      alreadyProcessed: true,
+      delivery: {
+        mode: "simulation",
+        providerMessageId: recipient.sendIdempotencyKey ?? undefined,
+        providerStatus: "sent"
+      },
+      idempotencyKey: recipient.sendIdempotencyKey ?? buildOutreachDeliveryIdempotencyKey({
+        tenantId: input.tenantId,
+        messageId: recipient.id,
+        messageVersion: recipient.approvalContentHash
+      })
+    };
+  }
+
+  const messageVersion = recipient.approvalContentHash;
+  const idempotencyKey = buildOutreachDeliveryIdempotencyKey({
+    tenantId: input.tenantId,
+    messageId: recipient.id,
+    messageVersion
+  });
+
+  const existing = await repos.outreachSendAttempts.getByIdempotencyKey(input.tenantId, idempotencyKey);
+  if (existing?.status === "TEST_SENT" || existing?.status === "TEST_ALREADY_PROCESSED") {
+    return {
+      alreadyProcessed: true,
+      delivery: {
+        mode: "simulation",
+        providerMessageId: existing.providerMessageId ?? undefined,
+        providerStatus: "sent"
+      },
+      idempotencyKey
+    };
+  }
+
+  const deliveryRequest = {
+    tenantId: input.tenantId,
+    messageId: recipient.id,
+    leadId: recipient.leadId,
+    campaignId: campaign.id,
+    recipientEmail: recipient.snapshotEmail,
+    recipientName: recipient.snapshotContactName,
+    companyName: recipient.snapshotCompanyName,
+    approvedSubject: recipient.personalizedSubject,
+    approvedPlainText: recipient.personalizedPlainText,
+    approvedHtml: recipient.personalizedHtml || undefined,
+    messageVersion,
+    idempotencyKey
+  };
+
+  const startedAt = nowIso();
+  const delivery = await deliverApprovedOutreachMessage(deliveryRequest);
+
+  if (delivery.providerStatus !== "sent") {
+    await repos.outreachSendAttempts.create({
+      actualDestinationEmail: recipient.snapshotEmail,
+      approvedContentHash: messageVersion,
+      campaignId: campaign.id,
+      campaignRecipientId: recipient.id,
+      completedAt: nowIso(),
+      deliveryMode: "simulation",
+      idempotencyKey,
+      initiatedBy: input.actorId,
+      leadId: recipient.leadId,
+      provider: "simulation",
+      providerMessageId: null,
+      retryable: false,
+      sanitizedErrorCode: "provider_rejected",
+      sanitizedErrorMessage: delivery.error ?? "Delivery blocked.",
+      startedAt,
+      status: "TEST_BLOCKED",
+      tenantId: input.tenantId
+    });
+    throw new PersistenceError("invalid_transition", delivery.error ?? "Delivery blocked.");
+  }
+
+  const completedAt = nowIso();
+  await repos.outreachSendAttempts.create({
+    actualDestinationEmail: recipient.snapshotEmail,
+    approvedContentHash: messageVersion,
+    campaignId: campaign.id,
+    campaignRecipientId: recipient.id,
+    completedAt,
+    deliveryMode: "simulation",
+    idempotencyKey,
+    initiatedBy: input.actorId,
+    leadId: recipient.leadId,
+    provider: "simulation",
+    providerMessageId: delivery.providerMessageId ?? null,
+    retryable: false,
+    sanitizedErrorCode: null,
+    sanitizedErrorMessage: null,
+    startedAt,
+    status: mapAttemptStatus(delivery.providerStatus),
+    tenantId: input.tenantId
+  });
+
+  await repos.campaignRecipients.updateDraft(input.tenantId, recipient.id, {
+    draftStatus: "DELIVERED",
+    sentAt: completedAt,
+    sentBy: input.actorId,
+    sendIdempotencyKey: idempotencyKey
+  });
+
+  await repos.activities.append(input.tenantId, {
+    action: "campaign_draft_sent_simulated",
+    entityId: campaign.id,
+    entityType: "campaign",
+    metadata: {
+      campaignRecipientId: recipient.id,
+      idempotencyKey,
+      mode: delivery.mode
+    },
+    title: `Simulated delivery: ${recipient.snapshotCompanyName}`
+  });
+
+  return { alreadyProcessed: false, delivery, idempotencyKey };
+}
