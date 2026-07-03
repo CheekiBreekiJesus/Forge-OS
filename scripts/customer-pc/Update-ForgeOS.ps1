@@ -1,8 +1,9 @@
 #Requires -Version 5.1
 
 param(
-    [string] $Branch = 'feat/customer-pc-local-runtime',
-    [string] $Remote = 'origin'
+    [string] $Branch,
+    [string] $Remote = 'origin',
+    [switch] $AllowBranchChange
 )
 
 Set-StrictMode -Version Latest
@@ -28,6 +29,17 @@ try {
     Ensure-ForgeOSLocalDirectories -RepoRoot $repoRoot
     Write-ForgeOSLog -RepoRoot $repoRoot -Message 'ForgeOS update started.'
 
+    $branchResolution = Resolve-ForgeOSUpdateBranch -RepoRoot $repoRoot -OverrideBranch $Branch -AllowBranchChange:$AllowBranchChange
+    $targetBranch = $branchResolution.Branch
+
+    Write-Host "Configured update branch: $targetBranch"
+    if ($branchResolution.IsOverride) {
+        Write-Host 'Using explicit -Branch override (development testing only).'
+    }
+    if ($branchResolution.PreviousBranch -and $branchResolution.PreviousBranch -ne $targetBranch) {
+        Write-Host "Previous update branch: $($branchResolution.PreviousBranch)"
+    }
+
     $dirty = @(Get-GitPorcelainStatus -Root $repoRoot | Where-Object { $_ -match '\S' })
     if ($dirty.Count -gt 0) {
         throw 'Local source modifications detected. Commit or stash changes before updating.'
@@ -43,7 +55,19 @@ try {
         Write-Host 'Settings -> Backup -> Export JSON backup'
         Write-Host ''
 
-        $confirm = Read-Host "Apply updates from $Remote/$Branch? Type YES to continue"
+        if ($branchResolution.PreviousBranch -and $branchResolution.PreviousBranch -ne $targetBranch -and -not $AllowBranchChange) {
+            throw "Configured update branch changed from '$($branchResolution.PreviousBranch)' to '$targetBranch'. Re-run with -AllowBranchChange and type YES when prompted."
+        }
+
+        if ($branchResolution.PreviousBranch -and $branchResolution.PreviousBranch -ne $targetBranch) {
+            $branchConfirm = Read-Host "Update branch changed to '$targetBranch'. Type YES to continue"
+            if ($branchConfirm -ne 'YES') {
+                Write-ForgeOSLog -RepoRoot $repoRoot -Message 'Update cancelled after branch change prompt.'
+                exit 0
+            }
+        }
+
+        $confirm = Read-Host "Apply updates from $Remote/$targetBranch? Type YES to continue"
         if ($confirm -ne 'YES') {
             Write-ForgeOSLog -RepoRoot $repoRoot -Message 'Update cancelled by operator.'
             exit 0
@@ -56,17 +80,18 @@ try {
             throw "git fetch $Remote failed."
         }
 
-        $range = "$currentCommit..$Remote/$Branch"
+        $range = "$currentCommit..$Remote/$targetBranch"
         $incoming = @(& git log --oneline $range 2>$null)
         if ($incoming.Count -gt 0) {
             Write-Host 'Commits to apply:'
             $incoming | ForEach-Object { Write-Host "  $_" }
         } else {
             Write-Host 'Repository is already up to date.'
+            Set-ForgeOSLastUpdateBranch -RepoRoot $repoRoot -Branch $targetBranch
             exit 0
         }
 
-        & git merge --ff-only "$Remote/$Branch"
+        & git merge --ff-only "$Remote/$targetBranch"
         if ($LASTEXITCODE -ne 0) {
             throw 'Fast-forward update failed. Resolve manually or contact support.'
         }
@@ -77,11 +102,10 @@ try {
             throw 'npm ci failed after update.'
         }
 
-        Write-ForgeOSLog -RepoRoot $repoRoot -Message 'Running build validation...'
-        & npm run build
-        if ($LASTEXITCODE -ne 0) {
-            throw 'npm run build failed after update.'
-        }
+        Write-ForgeOSLog -RepoRoot $repoRoot -Message 'Running build validation after update...'
+        Invoke-ForgeOSProductionBuild -RepoRoot $repoRoot
+
+        Set-ForgeOSLastUpdateBranch -RepoRoot $repoRoot -Branch $targetBranch
 
         $newCommit = (& git rev-parse --short HEAD).Trim()
         Write-ForgeOSLog -RepoRoot $repoRoot -Message "Update complete. New commit: $newCommit"
