@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { AppFrame, panelClass } from "@/components/app-frame";
 import { exportBackup, validateBackup } from "@/features/backup/service";
 import { getClientIntegrationCards, type IntegrationCard } from "@/features/integrations/status";
@@ -579,6 +580,11 @@ function IntegrationsSection({
         ))}
       </div>
       <ProviderDiagnosticPanel s={s} />
+      <div className="mt-4">
+        <Link className="text-sm text-blue-300" href="/pt-PT/settings/integrations/outlook">
+          Microsoft Outlook (Graph)
+        </Link>
+      </div>
       {diag ? <p className="mt-4 text-sm text-slate-300">{diag}</p> : null}
       <HostedFeaturesDialog card={hostedCard} dictionary={dictionary} onClose={() => setHostedCard(null)} />
     </Panel>
