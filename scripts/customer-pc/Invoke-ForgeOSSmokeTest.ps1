@@ -10,6 +10,7 @@ $mode = 'local-production'
 
 try {
     Ensure-ForgeOSLocalDirectories -RepoRoot $repoRoot
+    Resolve-ForgeOSWorktreeDevLock -RepoRoot $repoRoot | Out-Null
     Stop-ForgeOSServer -RepoRoot $repoRoot -AllModes | Out-Null
 
     if (-not (Test-Path -LiteralPath (Join-Path $repoRoot 'node_modules'))) {

@@ -376,6 +376,19 @@ Assert-Test 'Diagnostics excludes .env.local' {
     }
 }
 
+Assert-Test 'Repo dev launcher command line is recognized' {
+    $snapshot = [pscustomobject]@{
+        ProcessId = 1
+        Exists = $true
+        ExecutablePath = 'C:\Program Files\nodejs\node.exe'
+        CommandLine = "`"node`" `"$repoRoot\node_modules\.bin\\..\next\dist\bin\next`" dev --port 3000"
+        StartTimeUtc = (Get-Date).ToUniversalTime().ToString('o')
+    }
+    if (-not (Test-ForgeOSCommandLineIsRepoServer -RepoRoot $repoRoot -Snapshot $snapshot -Mode 'development')) {
+        throw 'Expected .bin next dev launcher to match development server identity'
+    }
+}
+
 Assert-Test 'PowerShell syntax validation for customer-pc scripts' {
     $scripts = Get-ChildItem -LiteralPath $PSScriptRoot -Filter '*.ps1' -File
     foreach ($script in $scripts) {

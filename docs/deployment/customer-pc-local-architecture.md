@@ -93,4 +93,4 @@ Each running server writes structured metadata (not a bare PID) including:
 
 ## E2E test isolation
 
-Developer E2E tests use isolated port `3012` with `pretest:e2e` (`scripts/qa/resolve-e2e-port.ps1`) that stops only a prior ForgeOS E2E server from this repository on that port. Unrelated processes are never terminated automatically.
+Developer E2E and acceptance tests use `pretest:e2e` / `pretest:acceptance` (`scripts/qa/prepare-playwright-tests.ps1`) to stop verified ForgeOS dev servers holding the worktree `.next/dev` lock and free the isolated test port (`3012` / `3001`). A free test port alone is not sufficient when the same worktree already runs `next dev`. Unrelated processes are never terminated automatically.

@@ -1148,11 +1148,188 @@ function Test-ForgeOSCommandLineIsRepoServer {
         return $false
     }
 
-    $nextCli = Normalize-ForgeOSPath -Path (Get-ForgeOSNextCli -RepoRoot $RepoRoot)
+    $repoMarker = Normalize-ForgeOSPath -Path $RepoRoot
     $commandLine = if ($Snapshot.CommandLine) { $Snapshot.CommandLine.ToLowerInvariant() } else { '' }
-    $subcommand = if ($Mode -eq 'development') { 'dev' } else { 'start' }
+    $touchesRepoNext = ($commandLine -match [regex]::Escape($repoMarker)) -and ($commandLine -match 'node_modules') -and ($commandLine -match 'next')
 
-    return $commandLine -match [regex]::Escape($nextCli) -and $commandLine -match "\b$subcommand\b"
+    if (-not $touchesRepoNext) {
+        return $false
+    }
+
+    if ($Mode -eq 'development') {
+        return $commandLine -match 'next(\.cmd)?["\s].*\bdev\b'
+    }
+
+    return ($commandLine -match 'next(\.cmd)?["\s].*\bstart\b') -or ($commandLine -match 'start-server\.js')
+}
+
+function Resolve-ForgeOSRepoDevStopPid {
+    param(
+        [string] $RepoRoot,
+        [int] $ProcessId
+    )
+
+    $snapshot = Get-ForgeOSWindowsProcessSnapshot -ProcessId $ProcessId
+    if ($null -eq $snapshot) {
+        return $null
+    }
+
+    if (Test-ForgeOSCommandLineIsRepoServer -RepoRoot $RepoRoot -Snapshot $snapshot -Mode 'development') {
+        return $ProcessId
+    }
+
+    $commandLine = if ($snapshot.CommandLine) { $snapshot.CommandLine.ToLowerInvariant() } else { '' }
+    $repoMarker = Normalize-ForgeOSPath -Path $RepoRoot
+    $needsParentWalk = [string]::IsNullOrWhiteSpace($commandLine) -or (
+        $commandLine -match [regex]::Escape($repoMarker) -and $commandLine -match 'start-server\.js'
+    )
+
+    if ($needsParentWalk) {
+        $currentPid = $ProcessId
+        for ($depth = 0; $depth -lt 4; $depth++) {
+            $cim = Get-CimInstance Win32_Process -Filter "ProcessId = $currentPid" -ErrorAction SilentlyContinue
+            if ($null -eq $cim -or $cim.ParentProcessId -le 0) {
+                break
+            }
+
+            $parentSnapshot = Get-ForgeOSWindowsProcessSnapshot -ProcessId $cim.ParentProcessId
+            if (Test-ForgeOSCommandLineIsRepoServer -RepoRoot $RepoRoot -Snapshot $parentSnapshot -Mode 'development') {
+                return $cim.ParentProcessId
+            }
+
+            $currentPid = $cim.ParentProcessId
+        }
+    }
+
+    return $null
+}
+
+function Read-ForgeOSNextDevLock {
+    param([string] $RepoRoot)
+
+    $lockPath = Join-Path $RepoRoot '.next\dev\lock'
+    if (-not (Test-Path -LiteralPath $lockPath)) {
+        return $null
+    }
+
+    try {
+        return (Get-Content -LiteralPath $lockPath -Raw | ConvertFrom-Json)
+    } catch {
+        return $null
+    }
+}
+
+function Remove-ForgeOSStaleNextDevLock {
+    param([string] $RepoRoot)
+
+    $lock = Read-ForgeOSNextDevLock -RepoRoot $RepoRoot
+    if ($null -eq $lock -or -not $lock.pid) {
+        return $false
+    }
+
+    $lockPid = [int]$lock.pid
+    if (Test-ForgeOSProcessRunning -ProcessId $lockPid) {
+        return $false
+    }
+
+    $lockPath = Join-Path $RepoRoot '.next\dev\lock'
+    Remove-Item -LiteralPath $lockPath -Force
+    Write-ForgeOSLog -RepoRoot $RepoRoot -Message "Removed stale Next.js dev lock for PID $lockPid." -Level warn
+    return $true
+}
+
+function Get-ForgeOSVerifiedRepoDevStopPids {
+    param([string] $RepoRoot)
+
+    $stopPids = New-Object 'System.Collections.Generic.HashSet[int]'
+
+    Remove-ForgeOSStaleNextDevLock -RepoRoot $RepoRoot | Out-Null
+
+    $lock = Read-ForgeOSNextDevLock -RepoRoot $RepoRoot
+    if ($null -ne $lock -and $lock.pid) {
+        $lockPid = [int]$lock.pid
+        if (Test-ForgeOSProcessRunning -ProcessId $lockPid) {
+            $stopPid = Resolve-ForgeOSRepoDevStopPid -RepoRoot $RepoRoot -ProcessId $lockPid
+            if ($null -ne $stopPid) {
+                [void]$stopPids.Add($stopPid)
+            } else {
+                throw "Refusing to stop Next.js dev lock holder PID $lockPid. ForgeOS process identity could not be verified."
+            }
+        }
+    }
+
+    Remove-ForgeOSStaleRuntimeMetadata -RepoRoot $RepoRoot -Mode 'development'
+    $metadata = Read-ForgeOSRuntimeMetadata -RepoRoot $RepoRoot -Mode 'development'
+    if ($null -ne $metadata) {
+        if (Test-ForgeOSProcessRunning -ProcessId ([int]$metadata.pid)) {
+            $identity = Test-ForgeOSRuntimeProcessIdentity -RepoRoot $RepoRoot -Metadata $metadata
+            if ($identity.Verified) {
+                [void]$stopPids.Add([int]$metadata.pid)
+            } elseif (-not $identity.SafeToRemoveMetadata) {
+                throw "Refusing to stop development server PID $($metadata.pid): $($identity.Reason)"
+            }
+        }
+    }
+
+    $processes = @(Get-CimInstance Win32_Process -Filter "Name = 'node.exe'" -ErrorAction SilentlyContinue)
+    foreach ($process in $processes) {
+        $stopPid = Resolve-ForgeOSRepoDevStopPid -RepoRoot $RepoRoot -ProcessId $process.ProcessId
+        if ($null -ne $stopPid) {
+            [void]$stopPids.Add($stopPid)
+        }
+    }
+
+    foreach ($listenerPid in @(Get-ForgeOSPortListenerPids -Port $ForgeOSPort)) {
+        $stopPid = Resolve-ForgeOSRepoDevStopPid -RepoRoot $RepoRoot -ProcessId $listenerPid
+        if ($null -ne $stopPid) {
+            [void]$stopPids.Add($stopPid)
+        }
+    }
+
+    return @($stopPids)
+}
+
+function Resolve-ForgeOSWorktreeDevLock {
+    param([string] $RepoRoot)
+
+    $stopPids = @(Get-ForgeOSVerifiedRepoDevStopPids -RepoRoot $RepoRoot)
+    if ($stopPids.Count -eq 0) {
+        Write-Host 'No verified ForgeOS dev server holds this worktree Next.js development lock.'
+        return [pscustomobject]@{
+            Freed = $false
+            Action = 'no_dev_lock_owner'
+            ProcessIds = @()
+        }
+    }
+
+    Write-Host ''
+    Write-Host 'Note: A free Playwright test port is not sufficient when this worktree already holds a Next.js development lock (.next/dev/lock).'
+    Write-Host 'Stopping verified ForgeOS dev server(s) from this repository before tests.'
+    Write-Host ''
+
+    foreach ($stopPid in $stopPids) {
+        Write-Host "Stopping verified ForgeOS dev server (PID $stopPid)."
+        Stop-Process -Id $stopPid -ErrorAction Stop
+    }
+
+    Start-Sleep -Seconds 2
+    return [pscustomobject]@{
+        Freed = $true
+        Action = 'stopped_dev_server'
+        ProcessIds = $stopPids
+    }
+}
+
+function Prepare-ForgeOSPlaywrightWorktree {
+    param([string] $RepoRoot)
+
+    $devResult = Resolve-ForgeOSWorktreeDevLock -RepoRoot $RepoRoot
+    $portResult = Resolve-ForgeOSE2EPortConflict -RepoRoot $RepoRoot -Port $ForgeOSE2EPort
+
+    return [pscustomobject]@{
+        DevLock = $devResult
+        E2ePort = $portResult
+    }
 }
 
 function Clear-ForgeOSOrphanPortOwner {
@@ -1163,21 +1340,20 @@ function Clear-ForgeOSOrphanPortOwner {
 
     $cleared = $false
     foreach ($listenerPid in @(Get-ForgeOSPortListenerPids -Port $Port)) {
-        $snapshot = Get-ForgeOSWindowsProcessSnapshot -ProcessId $listenerPid
-        $isForgeOS = $false
-        foreach ($mode in @('development', 'local-production')) {
-            if (Test-ForgeOSCommandLineIsRepoServer -RepoRoot $RepoRoot -Snapshot $snapshot -Mode $mode) {
-                $isForgeOS = $true
-                break
+        $stopPid = Resolve-ForgeOSRepoDevStopPid -RepoRoot $RepoRoot -ProcessId $listenerPid
+        if ($null -eq $stopPid) {
+            $snapshot = Get-ForgeOSWindowsProcessSnapshot -ProcessId $listenerPid
+            if (Test-ForgeOSCommandLineIsRepoServer -RepoRoot $RepoRoot -Snapshot $snapshot -Mode 'local-production') {
+                $stopPid = $listenerPid
             }
         }
 
-        if (-not $isForgeOS) {
+        if ($null -eq $stopPid) {
             continue
         }
 
-        Write-ForgeOSLog -RepoRoot $RepoRoot -Message "Stopping orphaned ForgeOS listener on port $Port (PID $listenerPid)." -Level warn
-        Stop-Process -Id $listenerPid -ErrorAction Stop
+        Write-ForgeOSLog -RepoRoot $RepoRoot -Message "Stopping orphaned ForgeOS listener on port $Port (PID $stopPid)." -Level warn
+        Stop-Process -Id $stopPid -ErrorAction Stop
         $cleared = $true
     }
 
@@ -1190,6 +1366,7 @@ function Clear-ForgeOSOrphanPortOwner {
 
 function Resolve-ForgeOSE2EPortConflict {
     param(
+        [string] $RepoRoot,
         [int] $Port = $script:ForgeOSE2EPort
     )
 
@@ -1199,23 +1376,28 @@ function Resolve-ForgeOSE2EPortConflict {
     }
 
     foreach ($listenerPid in $listenerPids) {
-        $snapshot = Get-ForgeOSWindowsProcessSnapshot -ProcessId $listenerPid
-        if ($null -eq $snapshot) {
-            continue
+        $stopPid = Resolve-ForgeOSRepoDevStopPid -RepoRoot $RepoRoot -ProcessId $listenerPid
+        if ($null -eq $stopPid) {
+            $snapshot = Get-ForgeOSWindowsProcessSnapshot -ProcessId $listenerPid
+            if ($null -eq $snapshot) {
+                continue
+            }
+
+            $commandLine = if ($snapshot.CommandLine) { $snapshot.CommandLine.ToLowerInvariant() } else { '' }
+            $repoMarker = Normalize-ForgeOSPath -Path $RepoRoot
+            $isForgeOSE2E = $commandLine -match [regex]::Escape($repoMarker) -and $commandLine -match 'node_modules' -and $commandLine -match 'next' -and ($commandLine -match '\bdev\b' -or $commandLine -match 'start-server')
+            if (-not $isForgeOSE2E) {
+                $owner = Get-ForgeOSPortOwnerDescription -Port $Port
+                throw "E2E port $Port is in use by an unrelated process ($owner). Close that application or choose another port. ForgeOS will not terminate unrelated processes."
+            }
+
+            $stopPid = $listenerPid
         }
 
-        $commandLine = if ($snapshot.CommandLine) { $snapshot.CommandLine.ToLowerInvariant() } else { '' }
-        $repoMarker = (Normalize-ForgeOSPath -Path $RepoRoot)
-        $isForgeOSE2E = $commandLine -match [regex]::Escape($repoMarker) -and $commandLine -match 'node_modules' -and $commandLine -match 'next' -and ($commandLine -match '\bdev\b' -or $commandLine -match 'start-server')
-        if (-not $isForgeOSE2E) {
-            $owner = Get-ForgeOSPortOwnerDescription -Port $Port
-            throw "E2E port $Port is in use by an unrelated process ($owner). Close that application or choose another port. ForgeOS will not terminate unrelated processes."
-        }
-
-        Write-Host "Stopping prior ForgeOS E2E dev server on port $Port (PID $listenerPid)."
-        Stop-Process -Id $listenerPid -Force -ErrorAction Stop
+        Write-Host "Stopping prior ForgeOS E2E dev server on port $Port (PID $stopPid)."
+        Stop-Process -Id $stopPid -Force -ErrorAction Stop
         Start-Sleep -Seconds 2
-        return [pscustomobject]@{ Freed = $true; Action = 'stopped_e2e_server'; ProcessId = $listenerPid }
+        return [pscustomobject]@{ Freed = $true; Action = 'stopped_e2e_server'; ProcessId = $stopPid }
     }
 
     throw "E2E port $Port is occupied but could not be resolved safely."
@@ -1278,6 +1460,12 @@ Export-ModuleMember -Function @(
     'Start-ForgeOSServerProcess',
     'Clear-ForgeOSOrphanPortOwner',
     'Test-ForgeOSCommandLineIsRepoServer',
+    'Resolve-ForgeOSRepoDevStopPid',
+    'Read-ForgeOSNextDevLock',
+    'Remove-ForgeOSStaleNextDevLock',
+    'Get-ForgeOSVerifiedRepoDevStopPids',
+    'Resolve-ForgeOSWorktreeDevLock',
+    'Prepare-ForgeOSPlaywrightWorktree',
     'Resolve-ForgeOSE2EPortConflict'
 ) -Variable @(
     'ForgeOSPort',
