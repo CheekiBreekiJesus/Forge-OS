@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest run src",
+    "pretest:e2e": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/qa/resolve-e2e-port.ps1",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:acceptance": "playwright test --config playwright.acceptance.config.ts",

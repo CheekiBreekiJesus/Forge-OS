@@ -10,6 +10,23 @@
 
 3. Confirm no local source edits are pending (for Git-based installs).
 
+## Configured update branch
+
+Customer updates read `FORGEOS_UPDATE_BRANCH` from `.env.local`. The customer template default is:
+
+```env
+FORGEOS_UPDATE_BRANCH=deploy/jh-gomes-local
+```
+
+The branch `deploy/jh-gomes-local` will be created on the remote after integration. Until then, operators may pass an explicit override for development testing only.
+
+The update script:
+
+- Displays the configured branch clearly
+- Rejects blank branch names
+- Requires confirmation when the configured branch changes from the last successful update
+- Never silently follows the current Git feature branch
+
 ## Update procedure
 
 Run from the ForgeOS folder:
@@ -18,23 +35,30 @@ Run from the ForgeOS folder:
 .\scripts\customer-pc\Update-ForgeOS.ps1
 ```
 
-Optional branch parameter (default: `feat/customer-pc-local-runtime`):
+Development-only explicit override:
 
 ```powershell
 .\scripts\customer-pc\Update-ForgeOS.ps1 -Branch feat/customer-pc-local-runtime
 ```
 
+When the configured branch changes (for example after integration cutover):
+
+```powershell
+.\scripts\customer-pc\Update-ForgeOS.ps1 -AllowBranchChange
+```
+
 The update script will:
 
 1. Refuse to run if the working tree has uncommitted changes
-2. Show the current commit and incoming commits
-3. Require typing `YES` to continue
-4. Remind you to export a backup
-5. Stop the local server safely
-6. `git fetch` and **fast-forward only** merge
-7. Run `npm ci`
-8. Run `npm run build`
-9. Print rollback instructions
+2. Show the configured update branch and current commit
+3. Show incoming commits
+4. Require typing `YES` to continue
+5. Remind you to export a backup
+6. Stop the local server only after verified process identity
+7. `git fetch` and **fast-forward only** merge
+8. Run `npm ci`
+9. Run `npm run build` and record the build manifest
+10. Print rollback instructions
 
 ### What is preserved
 
@@ -47,6 +71,7 @@ The update script will:
 - No `git reset --hard`
 - No browser storage reset
 - No deletion of `.env.local`
+- No termination of unrelated processes on port 3000
 
 ## After updating
 

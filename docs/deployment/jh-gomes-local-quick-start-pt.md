@@ -25,7 +25,7 @@ Abra a pasta onde o ForgeOS foi copiado ou instalado.
 .\Setup-ForgeOS.ps1
 ```
 
-Aguarde até aparecer a mensagem de configuração concluída.
+Aguarde até aparecer a mensagem de configuração concluída. A configuração inicial também executa a **primeira compilação** do ForgeOS para arranques diários mais rápidos.
 
 ### 3. Iniciar o ForgeOS (utilização diária)
 
@@ -37,6 +37,12 @@ Ou execute:
 
 ```powershell
 .\scripts\customer-pc\Start-ForgeOS-Local.ps1
+```
+
+O arranque diário **reutiliza** a compilação existente quando corresponde ao commit atual. Para forçar nova compilação:
+
+```powershell
+.\scripts\customer-pc\Start-ForgeOS-Local.ps1 -Rebuild
 ```
 
 ### 4. Aguardar a mensagem de pronto
@@ -95,6 +101,14 @@ Para testes com recarregamento automático:
 ```powershell
 .\scripts\customer-pc\Start-ForgeOS-Dev.ps1
 ```
+
+## Atualizações
+
+As atualizações usam o ramo configurado em `.env.local`:
+
+`FORGEOS_UPDATE_BRANCH=deploy/jh-gomes-local`
+
+Este ramo será criado após a integração. Consulte [Atualização e reversão (EN)](customer-pc-update-and-rollback.md).
 
 ## Se algo correr mal
 

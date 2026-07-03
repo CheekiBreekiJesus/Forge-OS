@@ -14,7 +14,7 @@ export default defineConfig({
   reporter: "list",
   timeout: 60000,
   use: {
-    baseURL: "http://localhost:3002",
+    baseURL: "http://localhost:3012",
     trace: "on-first-retry"
   },
   projects: [
@@ -24,7 +24,7 @@ export default defineConfig({
     }
   ],
   webServer: {
-    command: "npm run dev -- --port 3002",
+    command: "npm run dev -- --port 3012",
     env: {
       ...process.env,
       ABACUS_API_KEY: "",
@@ -38,6 +38,6 @@ export default defineConfig({
     },
     reuseExistingServer: false,
     timeout: 180000,
-    url: "http://localhost:3002/pt-PT/leadops"
+    url: "http://localhost:3012/pt-PT/leadops"
   }
 });

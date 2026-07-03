@@ -11,12 +11,29 @@
 
 Outra aplicação está a usar a porta 3000.
 
-1. Execute `Stop-ForgeOS.ps1`
-2. Se o erro continuar, feche outras aplicações de desenvolvimento web
-3. Reinicie o computador se necessário
-4. Inicie o ForgeOS outra vez
+1. Execute `Stop-ForgeOS.ps1` (só termina um servidor ForgeOS **verificado**)
+2. Se o erro continuar, o script mostra qual processo está a usar a porta
+3. Identifique o processo no Gestor de Tarefas pelo PID indicado
+4. Feche a aplicação responsável ou reinicie o computador se não tiver a certeza
 
-O script indica qual processo está a usar a porta. **Não termine todos os processos Node** manualmente — use apenas `Stop-ForgeOS.ps1`.
+**Não termine todos os processos Node manualmente.** O ForgeOS recusa parar processos quando os metadados de runtime estão desatualizados ou quando o PID foi reutilizado por outro programa.
+
+### Diagnóstico manual da porta
+
+```powershell
+netstat -ano | findstr :3000
+```
+
+Compare o PID com o Gestor de Tarefas. Se não for o ForgeOS, feche essa aplicação.
+
+## «Runtime metadata is stale or unsafe»
+
+Isto significa que o ficheiro de metadados em `.customer-pc/runtime/` não corresponde ao processo atual (por exemplo, reutilização de PID no Windows).
+
+1. Identifique o processo na porta 3000 com `netstat -ano | findstr :3000`
+2. Se **não** for o ForgeOS, feche essa aplicação
+3. Se for um servidor ForgeOS antigo órfão, contacte o programador antes de terminar processos manualmente
+4. Só depois de resolver o conflito, execute novamente `Start-ForgeOS-Local.ps1`
 
 ## «Node.js is not installed»
 
@@ -35,6 +52,16 @@ Execute a configuração inicial:
 ```powershell
 .\scripts\customer-pc\Setup-ForgeOS.ps1
 ```
+
+## Compilação lenta no arranque diário
+
+O arranque normal deve reutilizar a compilação existente. Se precisar de recompilar:
+
+```powershell
+.\scripts\customer-pc\Start-ForgeOS-Local.ps1 -Rebuild
+```
+
+Após uma atualização, o script de atualização já executa uma nova compilação.
 
 ## Os dados desapareceram
 
