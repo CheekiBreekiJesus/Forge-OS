@@ -47,3 +47,7 @@ scripts/data-preparation/customer-config*.yaml
 scripts/data-preparation/customer-config*.yml
 *_Lead_Database_Standardized.xlsx
 *lead*_standardized*.xlsx
+*Product_Catalog_Draft*.xlsx
+*artigos*.xls
+*artigos*.csv
+scripts/data-preparation/reports/product-private-profile.json
