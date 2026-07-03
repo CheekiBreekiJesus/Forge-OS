@@ -17,6 +17,8 @@
     "test:acceptance:live-ai": "playwright test --config playwright.acceptance.config.ts e2e/acceptance/live-ai.spec.ts",
     "typecheck": "tsc --noEmit",
     "validate": "npm run lint && npm run typecheck && npm test && npm run build",
+    "test:customer-pc": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/customer-pc/Test-ForgeOS.ps1",
+    "test:customer-pc:smoke": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/customer-pc/Invoke-ForgeOSSmokeTest.ps1",
     "ai:models": "tsx scripts/ai/models.ts",
     "ai:doctor": "tsx scripts/ai/doctor.ts",
     "ai:compare": "tsx scripts/ai/compare.ts",
