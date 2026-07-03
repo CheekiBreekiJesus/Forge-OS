@@ -11,6 +11,7 @@ import {
 } from "./config";
 import { BrevoEmailDeliveryProvider } from "./brevo-provider";
 import { SimulationEmailDeliveryProvider } from "./simulation-provider";
+import { OutlookGraphDeliveryProvider } from "@/features/outlook-graph/outlook-delivery-provider";
 
 assertServerOnlyModule();
 
@@ -24,6 +25,9 @@ export function createEmailDeliveryProvider(
 ): EmailDeliveryProvider {
   if (config.provider === "brevo") {
     return new BrevoEmailDeliveryProvider(config);
+  }
+  if (config.provider === "outlook") {
+    return new OutlookGraphDeliveryProvider();
   }
   return new SimulationEmailDeliveryProvider(config);
 }

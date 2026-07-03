@@ -1,4 +1,4 @@
-export type EmailDeliveryProviderKey = "simulation" | "brevo";
+export type EmailDeliveryProviderKey = "simulation" | "brevo" | "outlook";
 
 export type EmailDeliveryMode = "simulation" | "provider_test";
 
@@ -6,7 +6,9 @@ export type EmailDeliveryStatus =
   | "accepted"
   | "blocked"
   | "failed"
-  | "already_processed";
+  | "already_processed"
+  | "uncertain"
+  | "throttled";
 
 export type EmailDeliveryErrorCode =
   | "configuration_missing"

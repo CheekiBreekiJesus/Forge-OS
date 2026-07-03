@@ -28,7 +28,10 @@ function readBoolean(value: string | undefined): boolean {
 }
 
 function readProvider(value: string | undefined): EmailDeliveryProviderKey {
-  return value?.trim().toLowerCase() === "brevo" ? "brevo" : "simulation";
+  const normalized = value?.trim().toLowerCase();
+  if (normalized === "brevo") return "brevo";
+  if (normalized === "outlook") return "outlook";
+  return "simulation";
 }
 
 function readAllowlist(value: string | undefined): string[] {
