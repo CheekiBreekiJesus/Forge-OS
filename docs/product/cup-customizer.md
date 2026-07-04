@@ -18,13 +18,14 @@ Import alias: `@cup-customizer` → `packages/cup-customizer`.
 ## User workflow
 
 1. Open customizer from Quotations, Products, Customers, or Quick Create
-2. Select cup product and quantity
-3. Configure printing (colours, print area)
-4. Upload artwork and adjust position/scale/rotation
-5. Review deterministic preview (offline, immediate)
-6. Optionally generate realistic mockup (explicit action, gated)
-7. Save simulation (IndexedDB, tenant-scoped)
-8. Create or update draft quotation (idempotent)
+2. See blank cup canvas with upload overlay immediately
+3. Select cup product and quantity
+4. Configure printing (colours, print area)
+5. Upload artwork or apply stored customer/company logo (explicit actions)
+6. Review deterministic `CupDesignCanvas` preview (offline, immediate)
+7. Optionally generate realistic mockup (explicit action) — view in Mockup tab
+8. Save simulation (IndexedDB, tenant-scoped)
+9. Create or update draft quotation (idempotent)
 
 ## Supported products
 
