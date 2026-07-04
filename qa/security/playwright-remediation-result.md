@@ -102,9 +102,9 @@ CI runs e2e with `FORGEOS_TEST_AUTH_ENABLED` and related env vars (`.github/work
 
 | Package | Advisories | Severity |
 |---------|------------|----------|
-| `xlsx@0.18.5` | GHSA-4r6h-8v6p-xvw6, GHSA-5pgg-2g8v-p4x9 | High |
+| ~~`xlsx@0.18.5`~~ | ~~GHSA-4r6h-8v6p-xvw6, GHSA-5pgg-2g8v-p4x9~~ | **Cleared** on `integration/dependency-security-remediation` |
 
-See `docs/security/dependency-remediation-plan.md` — Prompt 2 (Codex) for `xlsx` migration.
+See `qa/security/dependency-integration-result.md` for combined Playwright + ExcelJS integration.
 
 ## Related documents
 
