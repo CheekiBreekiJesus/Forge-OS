@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="280" viewBox="0 0 320 280" role="img" aria-label="Takeaway box preview">
+  <rect width="320" height="280" fill="#0f172a"/>
+  <path d="M72 96h176l-24 120H96z" fill="#d6d3d1" stroke="#a8a29e" stroke-width="4"/>
+  <path d="M72 96l88-36 88 36" fill="none" stroke="#a8a29e" stroke-width="3"/>
+</svg>
