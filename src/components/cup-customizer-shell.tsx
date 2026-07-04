@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CupPreview } from "@cup-customizer";
 import {
   buildMockupAssetBlob,
   buildMockupFileName,
@@ -18,7 +18,6 @@ import {
   filterCupProducts,
   normalizeConfiguration,
   resolveProductPreviewUrl,
-  validateCustomizerArtwork,
   validateQuantity
 } from "@/features/cup-customizer";
 import {
@@ -36,7 +35,21 @@ import {
   type CustomizerWorkflowStep
 } from "@/features/cup-customizer";
 import { deriveWorkflowStatus } from "@/features/cup-customizer";
+import {
+  createPreviewUrlFromAssetBlob,
+  processArtworkUpload,
+  type ArtworkMetadata,
+  type ArtworkUploadStatus
+} from "@/features/cup-customizer/artwork-pipeline";
+import { lookupStoredCustomerLogo } from "@/features/cup-customizer/customer-logos";
+import {
+  resolveLogoGenerationProvider,
+  resolveLogoSearchProvider
+} from "@/features/cup-customizer/logo-providers";
+import { saveMarketingVisualization } from "@/features/cup-customizer/marketing-assets";
+import { revokeObjectUrlIfBlob } from "@/features/cup-customizer/use-managed-object-url";
 import { AppFrame, panelClass } from "@/components/app-frame";
+import { CupCustomizerPreviewPanel } from "@/components/cup-customizer-preview-panel";
 import {
   CupCustomizerWorkflowNav,
   shouldShowWorkflowSection
@@ -117,6 +130,17 @@ export function CupCustomizerShell({
   const [isDesktop, setIsDesktop] = useState(true);
   const [isDirty, setIsDirty] = useState(false);
   const [artworkPreviewUrl, setArtworkPreviewUrl] = useState<string | null>(null);
+  const [artworkMetadata, setArtworkMetadata] = useState<ArtworkMetadata | null>(null);
+  const [artworkUploadStatus, setArtworkUploadStatus] = useState<ArtworkUploadStatus>("idle");
+  const [mockupPreviewUrl, setMockupPreviewUrl] = useState<string | null>(null);
+  const [previewMode, setPreviewMode] = useState<"design" | "mockup">("design");
+  const [showAssumptions, setShowAssumptions] = useState(false);
+  const [showSimulations, setShowSimulations] = useState(false);
+  const [customerLogoPreviewUrl, setCustomerLogoPreviewUrl] = useState<string | null>(null);
+  const [customerLogoStatus, setCustomerLogoStatus] = useState<
+    "idle" | "searching" | "found" | "not_found" | "loaded" | "failed"
+  >("idle");
+  const [saveStatus, setSaveStatus] = useState<"unsaved" | "saving" | "saved" | "failed">("saved");
   const [cupImageUrl, setCupImageUrl] = useState<string | null>(null);
   const [manualUnitPriceOverride, setManualUnitPriceOverride] = useState<number | null>(null);
   const [overrideReason, setOverrideReason] = useState("");
@@ -125,6 +149,17 @@ export function CupCustomizerShell({
   const [archiveTarget, setArchiveTarget] = useState<CustomizerSimulation | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const uploadRef = useRef<HTMLInputElement>(null);
+  const logoSearchProvider = useMemo(() => resolveLogoSearchProvider(), []);
+  const logoGenerationProvider = useMemo(() => resolveLogoGenerationProvider(), []);
+
+  const selectedCustomer = useMemo(
+    () => customers.find((customer) => customer.id === customerId) ?? null,
+    [customers, customerId]
+  );
+  const selectedLead = useMemo(
+    () => leads.find((lead) => lead.id === leadId) ?? null,
+    [leadId, leads]
+  );
 
   const selectedProduct = useMemo(
     () => cupProducts.find((product) => product.id === productId) ?? null,
@@ -190,6 +225,13 @@ export function CupCustomizerShell({
       setGeneratingMockup(false);
       setIsDirty(false);
       setArtworkPreviewUrl(null);
+      setArtworkMetadata(null);
+      setArtworkUploadStatus("idle");
+      setMockupPreviewUrl(null);
+      setPreviewMode("design");
+      setCustomerLogoPreviewUrl(null);
+      setCustomerLogoStatus("idle");
+      setSaveStatus("saved");
       setCupImageUrl(resolveProductPreviewUrl(product));
       setManualUnitPriceOverride(null);
       setOverrideReason("");
@@ -222,20 +264,49 @@ export function CupCustomizerShell({
       setManualUnitPriceOverride(simulation.pricing.manualUnitPriceOverride);
       setOverrideReason(simulation.pricing.overrideReason ?? "");
       setCupImageUrl(resolveProductPreviewUrl(product));
+      setIsDirty(false);
+      setSaveStatus("saved");
       if (simulation.artworkAssetId && state.status === "ready") {
         const asset = await state.repos.localAssets.getById(tenantId, simulation.artworkAssetId);
         if (asset) {
-          setArtworkPreviewUrl(URL.createObjectURL(asset.blob));
+          revokeObjectUrlIfBlob(artworkPreviewUrl);
+          const previewUrl = await createPreviewUrlFromAssetBlob(asset.blob, asset.mimeType);
+          setArtworkPreviewUrl(previewUrl);
+          setArtworkMetadata({
+            fileName: asset.fileName,
+            height: 0,
+            mimeType: asset.mimeType,
+            size: asset.size,
+            width: 0
+          });
+          setArtworkUploadStatus("loaded");
         }
       } else {
+        revokeObjectUrlIfBlob(artworkPreviewUrl);
         setArtworkPreviewUrl(null);
+        setArtworkMetadata(null);
+        setArtworkUploadStatus("idle");
+      }
+      if (simulation.mockupGeneration?.realisticMockupAssetId && state.status === "ready") {
+        const mockupAsset = await state.repos.localAssets.getById(
+          tenantId,
+          simulation.mockupGeneration.realisticMockupAssetId
+        );
+        if (mockupAsset) {
+          revokeObjectUrlIfBlob(mockupPreviewUrl);
+          const url = await createPreviewUrlFromAssetBlob(mockupAsset.blob, mockupAsset.mimeType);
+          setMockupPreviewUrl(url);
+        }
+      } else {
+        revokeObjectUrlIfBlob(mockupPreviewUrl);
+        setMockupPreviewUrl(null);
       }
     },
-    [cupProducts, state, tenantId]
+    [artworkPreviewUrl, cupProducts, mockupPreviewUrl, state, tenantId]
   );
 
   useEffect(() => {
-    const media = window.matchMedia("(min-width: 1280px)");
+    const media = window.matchMedia("(min-width: 1024px)");
     const update = () => setIsDesktop(media.matches);
     update();
     media.addEventListener("change", update);
@@ -283,40 +354,64 @@ export function CupCustomizerShell({
 
   useEffect(() => {
     return () => {
-      if (artworkPreviewUrl?.startsWith("blob:")) {
-        URL.revokeObjectURL(artworkPreviewUrl);
-      }
+      revokeObjectUrlIfBlob(artworkPreviewUrl);
+      revokeObjectUrlIfBlob(mockupPreviewUrl);
+      revokeObjectUrlIfBlob(customerLogoPreviewUrl);
     };
-  }, [artworkPreviewUrl]);
+  }, [artworkPreviewUrl, customerLogoPreviewUrl, mockupPreviewUrl]);
+
+  function artworkErrorMessage(errorKey: string): string {
+    const map: Record<string, string> = {
+      decodeFailed: copy.artwork.decodeFailed,
+      fileTooLarge: copy.artwork.fileTooLarge,
+      missingDimensions: copy.artwork.missingDimensions,
+      persistenceFailed: copy.artwork.persistenceFailed,
+      unsafeFile: copy.artwork.unsafeFile,
+      unsafeSvg: copy.artwork.unsafeSvg,
+      unsupportedType: copy.artwork.unsupportedType
+    };
+    return map[errorKey] ?? copy.artwork.failed;
+  }
 
   async function uploadArtwork(file: File) {
-    if (state.status !== "ready") return;
-    const validation = validateCustomizerArtwork(file);
-    if (!validation.ok) {
-      const errorMessage =
-        validation.errorKey === "fileTooLarge"
-          ? copy.artwork.fileTooLarge
-          : validation.errorKey === "unsafeFile"
-            ? copy.artwork.unsafeFile
-            : copy.artwork.unsupportedType;
-      setFormError(errorMessage);
+    if (state.status !== "ready") {
+      setFormError(copy.loading);
       return;
     }
-    if (artworkAssetId && artworkAssetIsOwned) {
-      await state.repos.localAssets.delete(tenantId, artworkAssetId).catch(() => {});
+    setArtworkUploadStatus("validating");
+    setFormError(null);
+    const processed = await processArtworkUpload(file);
+    if (!processed.ok) {
+      setArtworkUploadStatus("invalid");
+      setFormError(artworkErrorMessage(processed.errorKey));
+      return;
     }
-    const asset = await state.repos.localAssets.create(tenantId, {
-      assetType: "other",
-      blob: file,
-      fileName: file.name,
-      mimeType: validation.mimeType,
-      size: validation.size
-    });
-    setArtworkAssetId(asset.id);
-    setArtworkAssetIsOwned(true);
-    setArtworkPreviewUrl(URL.createObjectURL(file));
-    notifyDataChanged();
-    setFeedback(copy.artwork.uploaded);
+    try {
+      if (artworkAssetId && artworkAssetIsOwned) {
+        await state.repos.localAssets.delete(tenantId, artworkAssetId).catch(() => {});
+      }
+      const asset = await state.repos.localAssets.create(tenantId, {
+        assetType: "other",
+        blob: processed.blob,
+        fileName: processed.metadata.fileName,
+        mimeType: processed.mimeType,
+        size: processed.metadata.size
+      });
+      revokeObjectUrlIfBlob(artworkPreviewUrl);
+      setArtworkAssetId(asset.id);
+      setArtworkAssetIsOwned(true);
+      setArtworkPreviewUrl(processed.previewUrl);
+      setArtworkMetadata(processed.metadata);
+      setArtworkUploadStatus(artworkPreviewUrl ? "replaced" : "loaded");
+      setIsDirty(true);
+      setSaveStatus("unsaved");
+      notifyDataChanged();
+      setFeedback(copy.artwork.loaded);
+    } catch {
+      revokeObjectUrlIfBlob(processed.previewUrl);
+      setArtworkUploadStatus("failed");
+      setFormError(copy.artwork.persistenceFailed);
+    }
   }
 
   async function applyCompanyLogoArtwork() {
@@ -329,10 +424,146 @@ export function CupCustomizerShell({
       setFormError(copy.artwork.noLogo);
       return;
     }
+    revokeObjectUrlIfBlob(artworkPreviewUrl);
+    const previewUrl = await createPreviewUrlFromAssetBlob(asset.blob, asset.mimeType);
     setArtworkAssetId(asset.id);
     setArtworkAssetIsOwned(false);
-    setArtworkPreviewUrl(URL.createObjectURL(asset.blob));
+    setArtworkPreviewUrl(previewUrl);
+    setArtworkMetadata({
+      fileName: asset.fileName,
+      height: 0,
+      mimeType: asset.mimeType,
+      size: asset.size,
+      width: 0
+    });
+    setArtworkUploadStatus("loaded");
+    setIsDirty(true);
+    setSaveStatus("unsaved");
     setFeedback(copy.artwork.logoApplied);
+  }
+
+  async function lookupCustomerLogo() {
+    if (state.status !== "ready" || (!customerId && !leadId)) {
+      setCustomerLogoStatus("not_found");
+      return;
+    }
+    setCustomerLogoStatus("searching");
+    const result = await lookupStoredCustomerLogo({
+      customer: selectedCustomer,
+      customerId: customerId || null,
+      lead: selectedLead,
+      leadId: leadId || null,
+      localAssets: state.repos.localAssets,
+      metaGet: (key) => state.repos.meta.get(key),
+      tenantId
+    });
+    if (result.status === "found") {
+      const asset = await state.repos.localAssets.getById(tenantId, result.assetId);
+      if (asset) {
+        revokeObjectUrlIfBlob(customerLogoPreviewUrl);
+        const url = await createPreviewUrlFromAssetBlob(asset.blob, asset.mimeType);
+        setCustomerLogoPreviewUrl(url);
+        setCustomerLogoStatus("found");
+        setFeedback(copy.artwork.customerLogoFound);
+        return;
+      }
+    }
+    if (result.status === "failed") {
+      setCustomerLogoStatus("failed");
+      setFormError(copy.artwork.customerLogoFailed);
+      return;
+    }
+    setCustomerLogoStatus("not_found");
+    setFeedback(copy.artwork.customerLogoNotFound);
+  }
+
+  async function applyStoredCustomerLogo() {
+    if (state.status !== "ready" || (!customerId && !leadId)) {
+      setFormError(copy.artwork.customerLogoNotFound);
+      return;
+    }
+    const result = await lookupStoredCustomerLogo({
+      customer: selectedCustomer,
+      customerId: customerId || null,
+      lead: selectedLead,
+      leadId: leadId || null,
+      localAssets: state.repos.localAssets,
+      metaGet: (key) => state.repos.meta.get(key),
+      tenantId
+    });
+    if (result.status !== "found") {
+      setFormError(copy.artwork.customerLogoNotFound);
+      return;
+    }
+    const asset = await state.repos.localAssets.getById(tenantId, result.assetId);
+    if (!asset) {
+      setFormError(copy.artwork.customerLogoFailed);
+      return;
+    }
+    revokeObjectUrlIfBlob(artworkPreviewUrl);
+    const previewUrl = await createPreviewUrlFromAssetBlob(asset.blob, asset.mimeType);
+    setArtworkAssetId(asset.id);
+    setArtworkAssetIsOwned(false);
+    setArtworkPreviewUrl(previewUrl);
+    setArtworkMetadata({
+      fileName: asset.fileName,
+      height: 0,
+      mimeType: asset.mimeType,
+      size: asset.size,
+      width: 0
+    });
+    setArtworkUploadStatus("loaded");
+    setCustomerLogoStatus("loaded");
+    setIsDirty(true);
+    setSaveStatus("unsaved");
+    setFeedback(copy.artwork.customerLogoApplied);
+  }
+
+  async function handleSearchLogoOnline() {
+    if (!logoSearchProvider.isAvailable()) {
+      setFormError(copy.artwork.providerNotConfigured);
+      return;
+    }
+    const result = await logoSearchProvider.search({
+      customerId: customerId || undefined,
+      leadId: leadId || undefined,
+      query: selectedCustomer?.companyName ?? selectedLead?.companyName
+    });
+    if (!result.ok) {
+      setFormError(copy.artwork.providerNotConfigured);
+      return;
+    }
+    setFeedback(`${copy.artwork.searchOnline}: ${result.candidates.length}`);
+  }
+
+  async function handleGenerateLogo() {
+    if (!logoGenerationProvider.isAvailable()) {
+      setFormError(copy.artwork.providerNotConfigured);
+      return;
+    }
+    const result = await logoGenerationProvider.generate({
+      brief: selectedCustomer?.companyName ?? selectedLead?.companyName ?? "Logo"
+    });
+    if (!result.ok || state.status !== "ready") {
+      setFormError(copy.artwork.providerNotConfigured);
+      return;
+    }
+    const asset = await state.repos.localAssets.create(tenantId, {
+      assetType: "logo",
+      blob: result.assetBlob,
+      fileName: result.fileName,
+      mimeType: result.mimeType,
+      size: result.assetBlob.size
+    });
+    revokeObjectUrlIfBlob(artworkPreviewUrl);
+    const previewUrl = await createPreviewUrlFromAssetBlob(result.assetBlob, result.mimeType);
+    setArtworkAssetId(asset.id);
+    setArtworkAssetIsOwned(true);
+    setArtworkPreviewUrl(previewUrl);
+    setArtworkUploadStatus("loaded");
+    setIsDirty(true);
+    setSaveStatus("unsaved");
+    setFeedback(copy.artwork.loaded);
   }
 
   async function applyProductImageArtwork() {
@@ -390,13 +621,14 @@ export function CupCustomizerShell({
     try {
       const { blob, meta } = await generateDeterministicPhotorealisticMockup({
         artworkAssetId,
+        artworkDataUrl: artworkPreviewUrl,
         configuration,
         existingMeta: mockupGeneration,
         pricing,
         product: selectedProduct,
         quantity
       });
-      if (mockupGeneration?.realisticMockupAssetId && artworkAssetIsOwned) {
+      if (mockupGeneration?.realisticMockupAssetId) {
         await state.repos.localAssets
           .delete(tenantId, mockupGeneration.realisticMockupAssetId)
           .catch(() => {});
@@ -410,6 +642,12 @@ export function CupCustomizerShell({
       });
       const nextMeta: MockupGenerationMeta = { ...meta, realisticMockupAssetId: asset.id };
       setMockupGeneration(nextMeta);
+      revokeObjectUrlIfBlob(mockupPreviewUrl);
+      const nextMockupUrl = await createPreviewUrlFromAssetBlob(blob, "image/svg+xml");
+      setMockupPreviewUrl(nextMockupUrl);
+      setPreviewMode("mockup");
+      setIsDirty(true);
+      setSaveStatus("unsaved");
       setFeedback(copy.mockup.generated);
       notifyDataChanged();
     } catch {
@@ -427,12 +665,40 @@ export function CupCustomizerShell({
     }
   }
 
+  async function handleSaveVisualization() {
+    if (state.status !== "ready" || !selectedProduct || !pricing) {
+      setFormError(copy.form.required);
+      return;
+    }
+    const sourceBlob =
+      previewMode === "mockup" && mockupPreviewUrl
+        ? await (await fetch(mockupPreviewUrl)).blob()
+        : buildMockupAssetBlob(selectedProduct, configuration, quantity, pricing);
+    try {
+      await saveMarketingVisualization(state.repos.localAssets, state.repos.meta.set, {
+        blob: sourceBlob,
+        configurationFingerprint,
+        customerId: customerId || null,
+        fileName: buildMockupFileName(selectedProduct.sku),
+        leadId: leadId || null,
+        mimeType: "image/svg+xml",
+        simulationId: activeSimulationId,
+        source: previewMode === "mockup" ? "realistic-mockup" : "deterministic-preview",
+        tenantId
+      });
+      setFeedback(copy.actions.visualizationSaved);
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : copy.artwork.persistenceFailed);
+    }
+  }
+
   async function handleSave() {
     if (state.status !== "ready" || !selectedProduct || !pricing) {
       setFormError(copy.form.required);
       return;
     }
     setSubmitting(true);
+    setSaveStatus("saving");
     setFormError(null);
     try {
       const nextMockupAssetId = await ensureMockupAsset();
@@ -466,9 +732,11 @@ export function CupCustomizerShell({
         setFeedback(copy.actions.saved);
       }
       setIsDirty(false);
+      setSaveStatus("saved");
       notifyDataChanged();
       await reloadSimulations();
     } catch (error) {
+      setSaveStatus("failed");
       setFormError(error instanceof Error ? error.message : shared.error.generic);
     } finally {
       setSubmitting(false);
@@ -561,20 +829,6 @@ export function CupCustomizerShell({
       supplementalRoute={entryRoute}
     >
       <PageHeader
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <button
-              className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800"
-              onClick={() => void handleSave()}
-              type="button"
-            >
-              {copy.actions.save}
-            </button>
-            <PrimaryActionButton disabled={submitting} onClick={() => void handleConvertToQuote()}>
-              {copy.actions.convertToQuote}
-            </PrimaryActionButton>
-          </div>
-        }
         backHref={getLocalizedModuleHref(locale, "orders")}
         backLabel={dictionary.modulePage.backToDashboard}
         description={copy.description}
@@ -583,7 +837,14 @@ export function CupCustomizerShell({
 
       <QuotationsSubnav dictionary={dictionary} locale={locale} />
 
-      {isDirty ? <p className="mb-2 text-xs font-semibold text-amber-200">{copy.unsavedChanges}</p> : null}
+      {isDirty || saveStatus === "unsaved" ? (
+        <p className="mb-2 text-xs font-semibold text-amber-200">{copy.unsavedChanges}</p>
+      ) : null}
+      {artworkUploadStatus === "validating" ? (
+        <p aria-live="polite" className="mb-2 text-xs text-slate-400">
+          {copy.artwork.validating}
+        </p>
+      ) : null}
       {feedback ? (
         <p aria-live="polite" className="mb-4 text-sm text-emerald-300">
           {feedback}
@@ -613,8 +874,8 @@ export function CupCustomizerShell({
       ) : cupProducts.length === 0 ? (
         <div className={`${panelClass} p-8 text-center text-slate-400`}>{copy.emptyProducts}</div>
       ) : (
-        <div className="grid gap-5 xl:grid-cols-[1.4fr_1fr]">
-          <div className="space-y-5">
+        <div className="grid min-h-0 gap-4 lg:grid-cols-[minmax(0,56%)_minmax(0,44%)] lg:items-start">
+          <div className="min-h-0 space-y-3 overflow-y-auto lg:max-h-[calc(100vh-6rem)] lg:pr-1">
             {shouldShowWorkflowSection("product", activeStep, isDesktop) ? (
             <section className={`${panelClass} p-5`}>
               <h2 className="text-sm font-bold uppercase tracking-wide text-slate-400">{copy.sections.context}</h2>
@@ -847,11 +1108,11 @@ export function CupCustomizerShell({
             ) : null}
 
             {shouldShowWorkflowSection("artwork", activeStep, isDesktop) ? (
-            <section className={`${panelClass} p-5`}>
+            <section className={`${panelClass} p-4`}>
               <h2 className="text-sm font-bold uppercase tracking-wide text-slate-400">{copy.sections.artwork}</h2>
-              <div className="mt-4 flex flex-wrap gap-2">
+              <div className="mt-3 flex flex-wrap gap-2">
                 <input
-                  accept="image/*"
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
                   className="hidden"
                   onChange={(event) => {
                     const file = event.target.files?.[0];
@@ -861,28 +1122,42 @@ export function CupCustomizerShell({
                   type="file"
                 />
                 <button
-                  className="rounded-lg border border-slate-700 px-3 py-2 text-sm hover:bg-slate-800"
+                  className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold hover:bg-slate-800"
                   onClick={() => uploadRef.current?.click()}
                   type="button"
                 >
-                  {copy.artwork.upload}
+                  {copy.artwork.uploadTitle}
                 </button>
                 <button
-                  className="rounded-lg border border-slate-700 px-3 py-2 text-sm hover:bg-slate-800"
+                  className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold hover:bg-slate-800"
+                  onClick={() => void applyStoredCustomerLogo()}
+                  type="button"
+                >
+                  {copy.artwork.useCustomerLogo}
+                </button>
+                <button
+                  className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold hover:bg-slate-800"
                   onClick={() => void applyCompanyLogoArtwork()}
                   type="button"
                 >
                   {copy.artwork.useLogo}
                 </button>
                 <button
-                  className="rounded-lg border border-slate-700 px-3 py-2 text-sm hover:bg-slate-800"
-                  onClick={() => void applyProductImageArtwork()}
+                  className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold hover:bg-slate-800"
+                  onClick={() => void handleSearchLogoOnline()}
                   type="button"
                 >
-                  {copy.artwork.useProductImage}
+                  {copy.artwork.searchOnline}
                 </button>
                 <button
-                  className="rounded-lg border border-slate-700 px-3 py-2 text-sm hover:bg-slate-800"
+                  className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold hover:bg-slate-800"
+                  onClick={() => void handleGenerateLogo()}
+                  type="button"
+                >
+                  {copy.artwork.generateLogo}
+                </button>
+                <button
+                  className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold hover:bg-slate-800"
                   onClick={() =>
                     setConfiguration({
                       ...configuration,
@@ -898,24 +1173,73 @@ export function CupCustomizerShell({
                   {copy.actions.resetView}
                 </button>
               </div>
+              {customerId || leadId ? (
+                <div className="mt-3 rounded-lg border border-slate-800 bg-slate-950/40 p-3 text-xs">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      className="rounded border border-slate-700 px-2 py-1 text-[11px] font-semibold"
+                      onClick={() => void lookupCustomerLogo()}
+                      type="button"
+                    >
+                      {copy.artwork.useCustomerLogo}
+                    </button>
+                    {customerLogoStatus === "searching" ? (
+                      <span className="text-slate-400">{copy.artwork.customerLogoSearching}</span>
+                    ) : null}
+                    {customerLogoStatus === "not_found" ? (
+                      <span className="text-slate-500">{copy.artwork.customerLogoNotFound}</span>
+                    ) : null}
+                    {customerLogoPreviewUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img alt="" className="size-8 rounded border border-slate-700 object-contain" src={customerLogoPreviewUrl} />
+                    ) : null}
+                  </div>
+                  {!profile?.logoLocalAssetId ? (
+                    <p className="mt-2 text-slate-500">
+                      <Link className="text-orange-300 underline" href={`/${locale}/settings`}>
+                        {copy.artwork.noCompanyLogoLink}
+                      </Link>
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+              {artworkMetadata ? (
+                <p className="mt-2 text-xs text-slate-500" data-testid="artwork-metadata-line">
+                  {artworkMetadata.fileName}
+                  {artworkMetadata.width > 0
+                    ? ` · ${artworkMetadata.width}×${artworkMetadata.height}`
+                    : ""}
+                </p>
+              ) : null}
             </section>
             ) : null}
 
             {isDesktop ? (
-            <section className={`${panelClass} p-5`}>
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <h2 className="text-sm font-bold uppercase tracking-wide text-slate-400">{copy.sections.simulations}</h2>
+            <section className={`${panelClass} p-4`}>
+              <button
+                className="flex w-full items-center justify-between gap-2 text-left"
+                onClick={() => setShowSimulations((current) => !current)}
+                type="button"
+              >
+                <h2 className="text-sm font-bold uppercase tracking-wide text-slate-400">
+                  {copy.sections.simulations}
+                </h2>
+                <span className="text-xs text-slate-500">{showSimulations ? "−" : "+"}</span>
+              </button>
+              {showSimulations ? (
+              <>
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <label className="flex items-center gap-2 text-xs text-slate-300">
+                  <input
+                    checked={showArchived}
+                    onChange={(event) => setShowArchived(event.target.checked)}
+                    type="checkbox"
+                  />
+                  {shared.showArchived}
+                </label>
                 <PrimaryActionButton onClick={openCreate}>{copy.actions.newSimulation}</PrimaryActionButton>
               </div>
-              <label className="mb-3 flex items-center gap-2 text-sm text-slate-300">
-                <input
-                  checked={showArchived}
-                  onChange={(event) => setShowArchived(event.target.checked)}
-                  type="checkbox"
-                />
-                {shared.showArchived}
-              </label>
-              <ul className="mt-3 space-y-2">
+              <ul className="mt-3 max-h-48 space-y-2 overflow-y-auto">
                 {simulations.length === 0 ? (
                   <li className="text-sm text-slate-500">{copy.emptySimulations}</li>
                 ) : (
@@ -966,126 +1290,46 @@ export function CupCustomizerShell({
                   ))
                 )}
               </ul>
+              </>
+              ) : null}
             </section>
             ) : null}
           </div>
 
-          <div className="space-y-5">
-            {shouldShowWorkflowSection("preview", activeStep, isDesktop) ? (
-            <section className={`${panelClass} p-5`}>
-              <CupPreview
-                artworkDataUrl={artworkPreviewUrl}
-                artworkOffsetX={configuration.artworkOffsetX}
-                artworkOffsetY={configuration.artworkOffsetY}
-                artworkPosition={configuration.artworkPosition}
-                artworkRotation={configuration.artworkRotation}
-                artworkScale={configuration.artworkScale}
-                brokenImageLabel={copy.preview.brokenProductImage}
-                cupImageUrl={cupImageUrl}
-                label={copy.preview.label}
+          <div className="min-h-0">
+            {shouldShowWorkflowSection("preview", activeStep, isDesktop) ||
+            shouldShowWorkflowSection("quotation", activeStep, isDesktop) ? (
+              <CupCustomizerPreviewPanel
+                artworkMetadata={artworkMetadata}
+                artworkPreviewUrl={artworkPreviewUrl}
+                capacity={configuration.cupSize}
+                configuration={configuration}
+                copy={copy}
+                cupColor={selectedProduct?.color ?? "White"}
+                generatingMockup={generatingMockup}
+                locale={locale}
+                manualUnitPriceOverride={manualUnitPriceOverride}
+                material={configuration.material}
+                mockupPreviewUrl={mockupPreviewUrl}
+                mockupStatus={mockupStatus}
+                onConvert={() => void handleConvertToQuote()}
+                onGenerateMockup={() => void handleGeneratePhotorealisticMockup()}
+                onManualPriceChange={setManualUnitPriceOverride}
+                onOverrideReasonChange={setOverrideReason}
+                onPreviewModeChange={setPreviewMode}
+                onSave={() => void handleSave()}
+                onSaveVisualization={() => void handleSaveVisualization()}
+                onToggleAssumptions={() => setShowAssumptions((current) => !current)}
+                onUploadFile={(file) => void uploadArtwork(file)}
+                onUploadRequest={() => uploadRef.current?.click()}
+                overrideReason={overrideReason}
+                previewMode={previewMode}
+                pricing={pricing}
                 printArea={configuration.printArea}
+                saveStatus={saveStatus}
+                saving={submitting}
+                showAssumptions={showAssumptions}
               />
-              <div className="mt-4 space-y-2 border-t border-slate-800 pt-4">
-                <p className="text-xs font-semibold uppercase text-slate-500">{copy.mockup.summaryTitle}</p>
-                <p className="text-xs text-slate-400">
-                  {selectedProduct?.name} · {quantity.toLocaleString(locale)} · {configuration.printColorCount}{" "}
-                  {copy.form.printColors.toLowerCase()}
-                </p>
-                {mockupStatus === "stale" ? (
-                  <p className="text-xs text-amber-200">{copy.mockup.stale}</p>
-                ) : null}
-                <p className="text-[11px] text-slate-500">{copy.mockup.disclaimer}</p>
-                <p className="text-[11px] text-slate-500">{copy.mockup.providerDeterministic}</p>
-                <button
-                  aria-busy={generatingMockup}
-                  className="w-full rounded-lg border border-orange-500/40 bg-orange-500/10 px-3 py-2 text-sm font-semibold text-orange-100 hover:bg-orange-500/20 disabled:opacity-50"
-                  disabled={generatingMockup || !selectedProduct || !pricing}
-                  onClick={() => void handleGeneratePhotorealisticMockup()}
-                  type="button"
-                >
-                  {generatingMockup ? copy.mockup.generating : copy.mockup.generateRealistic}
-                </button>
-              </div>
-            </section>
-            ) : null}
-
-            {shouldShowWorkflowSection("quotation", activeStep, isDesktop) ? (
-            <section className={`${panelClass} p-5`}>
-              <div className="flex items-center justify-between gap-2">
-                <h2 className="text-sm font-bold uppercase tracking-wide text-slate-400">{copy.sections.pricing}</h2>
-                {pricing?.isEstimate ? (
-                  <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-bold text-amber-200">
-                    {copy.pricing.estimateBadge}
-                  </span>
-                ) : null}
-              </div>
-              {pricing ? (
-                <div className="mt-4 space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">{copy.pricing.unitPrice}</span>
-                    <span>
-                      {new Intl.NumberFormat(locale, { currency: "EUR", style: "currency" }).format(pricing.unitPrice)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">{copy.pricing.setupCost}</span>
-                    <span>
-                      {new Intl.NumberFormat(locale, { currency: "EUR", style: "currency" }).format(pricing.setupCost)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">{copy.pricing.subtotal}</span>
-                    <span>
-                      {new Intl.NumberFormat(locale, { currency: "EUR", style: "currency" }).format(pricing.subtotal)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">{copy.pricing.vat}</span>
-                    <span>
-                      {new Intl.NumberFormat(locale, { currency: "EUR", style: "currency" }).format(pricing.vat)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between border-t border-slate-800 pt-2 font-bold">
-                    <span>{copy.pricing.total}</span>
-                    <span>
-                      {new Intl.NumberFormat(locale, { currency: "EUR", style: "currency" }).format(pricing.total)}
-                    </span>
-                  </div>
-                  <FormField label={copy.pricing.manualOverride}>
-                    <input
-                      className={inputClassName}
-                      min={0}
-                      onChange={(event) =>
-                        setManualUnitPriceOverride(event.target.value ? Number(event.target.value) : null)
-                      }
-                      step="0.0001"
-                      type="number"
-                      value={manualUnitPriceOverride ?? ""}
-                    />
-                  </FormField>
-                  <FormField label={copy.pricing.overrideReason}>
-                    <input
-                      className={inputClassName}
-                      onChange={(event) => setOverrideReason(event.target.value)}
-                      value={overrideReason}
-                    />
-                  </FormField>
-                  <div>
-                    <div className="text-xs font-semibold uppercase text-slate-500">{copy.pricing.assumptions}</div>
-                    <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-slate-400">
-                      {pricing.assumptions.map((assumption) => (
-                        <li key={assumption}>{assumption}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              ) : (
-                <p className="mt-4 text-sm text-slate-500">{copy.pricing.selectProduct}</p>
-              )}
-              {!pricing?.ruleId && !pricing?.manualUnitPriceOverride ? (
-                <p className="mt-3 text-sm text-amber-200">{copy.commercialDataRequired}</p>
-              ) : null}
-            </section>
             ) : null}
           </div>
         </div>
