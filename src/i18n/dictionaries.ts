@@ -1424,6 +1424,7 @@ export type Dictionary = {
       artwork: string;
       simulations: string;
       pricing: string;
+      commercial: string;
     };
     form: {
       customer: string;
@@ -1450,17 +1451,82 @@ export type Dictionary = {
     artworkPositions: Record<"left" | "center" | "right", string>;
     artwork: {
       upload: string;
+      uploadTitle: string;
+      replace: string;
       useLogo: string;
+      useCustomerLogo: string;
+      searchOnline: string;
+      generateLogo: string;
       useProductImage: string;
       uploaded: string;
+      validating: string;
+      loaded: string;
+      invalid: string;
+      failed: string;
+      replaced: string;
+      removed: string;
       logoApplied: string;
+      customerLogoApplied: string;
+      customerLogoSearching: string;
+      customerLogoFound: string;
+      customerLogoNotFound: string;
+      customerLogoFailed: string;
       productImageApplied: string;
       noLogo: string;
+      noCompanyLogoLink: string;
       noProductImage: string;
+      providerNotConfigured: string;
+      fileTooLarge: string;
+      unsupportedType: string;
+      unsafeFile: string;
+      decodeFailed: string;
+      unsafeSvg: string;
+      missingDimensions: string;
+      persistenceFailed: string;
     };
     preview: {
       label: string;
+      designTab: string;
+      mockupTab: string;
       brokenProductImage: string;
+      uploadHint: string;
+      dragDropHint: string;
+      capacityLabel: string;
+      printAreaLabel: string;
+      safetyBoundaryLabel: string;
+      overflowWarning: string;
+    };
+    workflow: {
+      navLabel: string;
+      previous: string;
+      next: string;
+      steps: Record<"product" | "printing" | "artwork" | "preview" | "quotation", string>;
+    };
+    mockup: {
+      generateRealistic: string;
+      generating: string;
+      generated: string;
+      generatedDisclaimer: string;
+      stale: string;
+      failed: string;
+      retry: string;
+      unavailable: string;
+      disclaimer: string;
+      providerDeterministic: string;
+      summaryTitle: string;
+    };
+    commercialDataRequired: string;
+    unsavedChanges: string;
+    summary: {
+      title: string;
+      customer: string;
+      cup: string;
+      quantity: string;
+      printing: string;
+      artwork: string;
+      pricing: string;
+      quotation: string;
+      warnings: string;
     };
     pricing: {
       estimateBadge: string;
@@ -1470,13 +1536,17 @@ export type Dictionary = {
       vat: string;
       total: string;
       assumptions: string;
+      viewAssumptions: string;
       manualOverride: string;
       overrideReason: string;
       selectProduct: string;
     };
     actions: {
       save: string;
+      saving: string;
       saved: string;
+      saveVisualization: string;
+      visualizationSaved: string;
       convertToQuote: string;
       converted: string;
       newSimulation: string;
@@ -1486,7 +1556,20 @@ export type Dictionary = {
       customize: string;
       openForCustomer: string;
     };
-    statuses: Record<"draft" | "saved" | "converted" | "archived", string>;
+    statuses: Record<
+      | "draft"
+      | "saved"
+      | "converted"
+      | "archived"
+      | "DRAFT"
+      | "ARTWORK_REVIEW"
+      | "PRICING_REQUIRED"
+      | "READY_FOR_QUOTATION"
+      | "QUOTED"
+      | "APPROVED"
+      | "ARCHIVED",
+      string
+    >;
     leadopsMedia: {
       title: string;
       description: string;

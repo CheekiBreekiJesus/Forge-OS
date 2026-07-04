@@ -5,6 +5,7 @@ import type {
   UpdateCustomizerSimulationInput
 } from "@/domain/customizer-types";
 import type { CreateQuoteInput, Quote } from "@/domain/types";
+import { deriveWorkflowStatus } from "@/features/cup-customizer/workflow-status";
 import { recordActivity } from "@/features/crud/activity-recorder";
 import {
   createArchivePatch,
@@ -52,6 +53,13 @@ export function createCustomizerSimulationRepository(
         leadId: input.leadId ?? null,
         artworkAssetId: input.artworkAssetId ?? null,
         mockupAssetId: input.mockupAssetId ?? null,
+        mockupGeneration: input.mockupGeneration ?? null,
+        workflowStatus: input.workflowStatus ?? deriveWorkflowStatus({
+          artworkAssetId: input.artworkAssetId ?? null,
+          pricing: input.pricing,
+          quoteId: null,
+          status: input.status ?? "saved"
+        }),
         notes: input.notes?.trim() ?? "",
         pricing: input.pricing,
         productId: input.productId,
@@ -81,8 +89,16 @@ export function createCustomizerSimulationRepository(
         ...input,
         id: existing.id,
         tenantId: existing.tenantId,
-        quoteId: existing.quoteId,
+        quoteId: input.quoteId !== undefined ? input.quoteId : existing.quoteId,
         createdAt: existing.createdAt,
+        workflowStatus:
+          input.workflowStatus ??
+          deriveWorkflowStatus({
+            artworkAssetId: input.artworkAssetId ?? existing.artworkAssetId,
+            pricing: input.pricing ?? existing.pricing,
+            quoteId: existing.quoteId,
+            status: input.status ?? existing.status
+          }),
         updatedAt: nowIso()
       };
       await db.customizerSimulations.put(updated);
@@ -142,27 +158,23 @@ export async function convertSimulationToQuote(
 ): Promise<{ simulation: CustomizerSimulation; quote: Quote }> {
   const simulation = await simulations.getById(tenantId, simulationId);
   if (!simulation) throw new PersistenceError("not_found", "Simulation not found.");
-  if (simulation.quoteId) {
-    const existing = await quotes.getById(tenantId, simulation.quoteId);
-    if (existing) {
-      return { quote: existing, simulation };
-    }
-  }
 
   const assumptionNotes = simulation.pricing.assumptions.map((a: string) => `• ${a}`).join("\n");
-  const quoteInput: CreateQuoteInput = {
+  const quoteNotes = [
+    simulation.notes,
+    simulation.pricing.isEstimate ? "Estimate from Cup Customizer — requires approval." : "",
+    assumptionNotes
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+  const createInput: CreateQuoteInput = {
     customerId: simulation.customerId,
     discount: 0,
     isEstimate: simulation.pricing.isEstimate,
     leadId: simulation.leadId,
     mockupAssetId: simulation.mockupAssetId,
-    notes: [
-      simulation.notes,
-      simulation.pricing.isEstimate ? "Estimate from Cup Customizer — requires approval." : "",
-      assumptionNotes
-    ]
-      .filter(Boolean)
-      .join("\n\n"),
+    notes: quoteNotes,
     printColorCount: simulation.configuration.printColorCount,
     productId: simulation.productId,
     productName: simulation.productName,
@@ -176,16 +188,59 @@ export async function convertSimulationToQuote(
     validityDate: null
   };
 
-  const quote = await quotes.create(tenantId, quoteInput);
+  if (simulation.quoteId) {
+    const existing = await quotes.getById(tenantId, simulation.quoteId);
+    if (existing) {
+      if (existing.status === "draft") {
+        const quote = await quotes.update(tenantId, existing.id, {
+          customerId: createInput.customerId,
+          discount: createInput.discount,
+          isEstimate: createInput.isEstimate,
+          leadId: createInput.leadId,
+          lines: [
+            {
+              lineTotal: createInput.total,
+              productId: createInput.productId,
+              productName: createInput.productName,
+              quantity: createInput.quantity,
+              setupCost: createInput.setupCost,
+              unitPrice: createInput.unitPrice
+            }
+          ],
+          mockupAssetId: createInput.mockupAssetId,
+          notes: createInput.notes,
+          printColorCount: createInput.printColorCount,
+          productId: createInput.productId,
+          productName: createInput.productName,
+          quantity: createInput.quantity,
+          simulationId: createInput.simulationId,
+          subtotal: createInput.subtotal,
+          total: createInput.total,
+          vat: createInput.vat,
+          validityDate: createInput.validityDate
+        });
+        const updatedSimulation = await simulations.update(tenantId, simulationId, {
+          status: "converted",
+          workflowStatus: "QUOTED"
+        });
+        return { quote, simulation: updatedSimulation };
+      }
+      return { quote: existing, simulation };
+    }
+  }
+
+  const quote = await quotes.create(tenantId, createInput);
   const updatedSimulation: CustomizerSimulation = {
     ...simulation,
     quoteId: quote.id,
     status: "converted",
+    workflowStatus: "QUOTED",
     updatedAt: nowIso()
   };
   await simulations.update(tenantId, simulationId, {
     quoteId: quote.id,
-    status: "converted"
+    status: "converted",
+    workflowStatus: "QUOTED"
   });
 
   if (activities) {

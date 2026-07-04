@@ -1,9 +1,11 @@
 export {
   createForgeOSCustomizerBridge,
+  CupDesignCanvas,
   CupPreview,
   estimateCupPricing,
   resolveQuotationRuleForProduct
 } from "./adapters/forgeos";
+export type { CupDesignCanvasProps, CupDesignView } from "./rendering/cup-design-canvas";
 export type {
   CupConfiguration,
   CupCustomizerAdapterInput,
