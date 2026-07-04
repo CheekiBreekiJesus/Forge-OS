@@ -4,6 +4,7 @@ import {
   SendJobActorContextError,
   type TrustedSendJobActorContext
 } from "@/features/email-delivery/send-job-actor-context";
+import { resolveEffectivePersistenceMode } from "@/persistence/mode";
 
 const PREPARATION_RELEVANT_PERMISSIONS = [
   "send_job:view",
@@ -13,6 +14,10 @@ const PREPARATION_RELEVANT_PERMISSIONS = [
 
 export async function GET(request: Request): Promise<Response> {
   try {
+    if (resolveEffectivePersistenceMode() !== "supabase") {
+      return emptyTenantMembershipResponse();
+    }
+
     const context = await resolveTrustedSendJobTenantMemberships(request);
     const memberships = context.memberships.map((membership) => ({
       permissions: PREPARATION_RELEVANT_PERMISSIONS.filter((permission) =>
@@ -48,4 +53,14 @@ export async function GET(request: Request): Promise<Response> {
       { status: 500 }
     );
   }
+}
+
+function emptyTenantMembershipResponse(): Response {
+  return Response.json({
+    ok: true,
+    result: {
+      memberships: [],
+      selectedTenantId: null
+    }
+  });
 }

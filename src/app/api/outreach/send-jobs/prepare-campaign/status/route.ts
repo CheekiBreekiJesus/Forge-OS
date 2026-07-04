@@ -8,15 +8,30 @@ import {
   SendJobActorContextError
 } from "@/features/email-delivery/send-job-actor-context";
 import { PersistenceError } from "@/persistence/interfaces";
+import { resolveEffectivePersistenceMode } from "@/persistence/mode";
 
 export async function GET(request: Request): Promise<Response> {
   try {
-    const actor = await resolveTrustedSendJobActorContext(request);
-    requireSendJobPermission(actor, "send_job:view");
     const campaignId = new URL(request.url).searchParams.get("campaignId")?.trim() ?? "";
     if (!campaignId) {
       throw new PersistenceError("invalid_transition", "campaignId is required.");
     }
+    if (resolveEffectivePersistenceMode() !== "supabase") {
+      return Response.json({
+        ok: true,
+        result: {
+          activity: [],
+          campaignId,
+          preparedAt: null,
+          preparedBy: null,
+          preparedRecipients: 0,
+          snapshotFingerprint: null,
+          status: "not_prepared"
+        }
+      });
+    }
+    const actor = await resolveTrustedSendJobActorContext(request);
+    requireSendJobPermission(actor, "send_job:view");
     const result = await getHostedCampaignPreparationStatus(campaignId, actor);
     return Response.json({ ok: true, result });
   } catch (error) {

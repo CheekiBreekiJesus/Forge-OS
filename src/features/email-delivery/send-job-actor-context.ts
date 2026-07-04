@@ -82,23 +82,27 @@ export async function resolveTrustedSendJobActorContext(
   const tenantId = readHeader(request, "x-forgeos-tenant-id");
   const roleHeader = readHeader(request, "x-forgeos-roles");
   const correlationId = readHeader(request, "x-forgeos-correlation-id") || crypto.randomUUID();
+  const testAuthEnabled = env.FORGEOS_TEST_AUTH_ENABLED === "true" || env.FORGEOS_E2E === "true";
+  const resolvedUserId = userId || (testAuthEnabled ? env.FORGEOS_TEST_USER_ID?.trim() ?? "" : "");
+  const resolvedTenantId = tenantId || (testAuthEnabled ? env.FORGEOS_TEST_TENANT_ID?.trim() ?? "" : "");
+  const resolvedRoleHeader = roleHeader || (testAuthEnabled ? env.FORGEOS_TEST_ROLES?.trim() ?? "" : "");
 
-  if (!userId || !tenantId || !roleHeader) {
+  if (!resolvedUserId || !resolvedTenantId || !resolvedRoleHeader) {
     throw new SendJobActorContextError(
       "authentication_required",
       "Trusted actor headers are required in development and test."
     );
   }
 
-  const roles = parseRoles(roleHeader);
+  const roles = parseRoles(resolvedRoleHeader);
 
   return {
     correlationId,
     permissions: [],
     roles,
     source: "development_headers",
-    tenantId,
-    userId
+    tenantId: resolvedTenantId,
+    userId: resolvedUserId
   };
 }
 
