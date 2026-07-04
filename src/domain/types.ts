@@ -323,6 +323,8 @@ export type ActivityAction =
   | "campaign_draft_cooldown_override"
   | "campaign_test_email_attempted"
   | "campaign_queued"
+  | "campaign_server_send_prepared"
+  | "campaign_server_send_prepare_reused"
   | "send_job_created"
   | "send_job_queue_requested"
   | "send_job_queued"

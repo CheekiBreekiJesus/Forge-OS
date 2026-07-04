@@ -22,6 +22,7 @@
     "validate": "npm run lint && npm run typecheck && npm test && npm run build",
     "test:customer-pc": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/customer-pc/Test-ForgeOS.ps1",
     "test:customer-pc:smoke": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/customer-pc/Invoke-ForgeOSSmokeTest.ps1",
+    "outreach:hosted:migration:check": "tsx scripts/outreach-hosted-runtime/check-migrations.ts",
     "ai:models": "tsx scripts/ai/models.ts",
     "ai:doctor": "tsx scripts/ai/doctor.ts",
     "ai:compare": "tsx scripts/ai/compare.ts",

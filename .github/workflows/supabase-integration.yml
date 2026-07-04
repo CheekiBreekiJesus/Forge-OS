@@ -1,4 +1,16 @@
+name: Supabase Integration
 
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/supabase-integration.yml"
+      - "package-lock.json"
+      - "package.json"
+      - "src/persistence/supabase/**"
+      - "supabase/**"
+  workflow_dispatch:
+
+jobs:
   supabase-integration:
     runs-on: ubuntu-latest
     services:

@@ -64,41 +64,63 @@ export async function resolveTenantKeyByUuid(
   return data?.tenant_key ?? null;
 }
 
+export type TenantMembershipRecord = {
+  tenantId: string;
+  role: string;
+  permissions: string[];
+  status: string;
+};
+
 export async function resolveTenantMembership(
   client: SupabaseClient,
   userId: string,
   tenantUuid: string
-): Promise<{ role: string } | null> {
+): Promise<TenantMembershipRecord | null> {
   const { data, error } = await client
     .from("tenant_memberships")
-    .select("role")
+    .select("tenant_id, role, permissions, status")
     .eq("user_id", userId)
     .eq("tenant_id", tenantUuid)
+    .eq("status", "active")
     .maybeSingle();
 
   if (error) {
     throw new PersistenceError("unavailable", "Tenant membership lookup failed.");
   }
-  return data ? { role: String(data.role) } : null;
+  return data ? mapTenantMembershipRow(data) : null;
 }
 
 export async function listTenantMemberships(
   client: SupabaseClient,
   userId: string
-): Promise<Array<{ tenantId: string; role: string }>> {
+): Promise<TenantMembershipRecord[]> {
   const { data, error } = await client
     .from("tenant_memberships")
-    .select("tenant_id, role")
-    .eq("user_id", userId);
+    .select("tenant_id, role, permissions, status")
+    .eq("user_id", userId)
+    .eq("status", "active");
 
   if (error) {
     throw new PersistenceError("unavailable", "Tenant membership lookup failed.");
   }
 
-  return (data ?? []).map((row) => ({
+  return (data ?? []).map((row) => mapTenantMembershipRow(row));
+}
+
+function mapTenantMembershipRow(row: {
+  tenant_id?: unknown;
+  role?: unknown;
+  permissions?: unknown;
+  status?: unknown;
+}): TenantMembershipRecord {
+  return {
     tenantId: String(row.tenant_id),
-    role: String(row.role)
-  }));
+    role: String(row.role),
+    permissions: Array.isArray(row.permissions)
+      ? row.permissions.filter((permission): permission is string => typeof permission === "string")
+      : [],
+    status: String(row.status ?? "active")
+  };
 }
 
 const ROLE_MAP: Record<string, import("@/lib/auth/types").ForgeOSAuthRole> = {

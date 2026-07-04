@@ -7,6 +7,7 @@ import {
   SendJobActorContextError,
   type TrustedSendJobActorContext
 } from "@/features/email-delivery/send-job-actor-context";
+import { createHostedSendJobServerDependencies } from "@/features/email-delivery/hosted-send-job-repositories";
 
 type SendJobOperation = (
   deps: SendJobServerMutationDependencies,
@@ -44,7 +45,7 @@ export function createSendJobRouteHandler(
 }
 
 function getDefaultSendJobServerDependencies(): SendJobServerMutationDependencies | null {
-  return null;
+  return createHostedSendJobServerDependencies();
 }
 
 async function readJsonBody(request: Request): Promise<unknown> {

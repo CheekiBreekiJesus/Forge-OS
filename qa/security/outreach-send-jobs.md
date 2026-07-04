@@ -6,7 +6,7 @@ Date: 2026-07-03
 
 | Area | Current result |
 |------|----------------|
-| Cross-tenant access | Server mutations derive tenant from trusted actor context; production auth adapter still pending. |
+| Cross-tenant access | Server mutations derive tenant from Supabase Auth plus active tenant membership in production. |
 | Service-role exposure | Server-only durable store reads `SUPABASE_SERVICE_ROLE_KEY`; client UI does not import it. |
 | Duplicate execution | Recipient idempotency keys plus attempt conflict handling prevent duplicate accepted sends. |
 | Lock bypass | IndexedDB uses local TTL locks; Supabase lock acquisition uses an RPC update/returning path. |
@@ -24,15 +24,18 @@ Date: 2026-07-03
 - Added trusted send-job server route boundaries for queue, process, pause, resume, cancel, retry, and status.
 - Added explicit send-job permission checks and cross-tenant route tests.
 - Added sanitized status responses and sanitized route error tests.
+- Added production Supabase Auth bearer-token adapter and active tenant-membership lookup.
+- Added hosted campaign/recipient projection migration and server-only hosted repository bundle.
+- Added static SQL migration checks for service-role grants, RLS, lock RPCs, daily usage RPCs, and hosted projection tables.
 
 ## Remaining Production Risks
 
-1. **Production auth adapter:** development/test trusted headers are not a production auth mechanism.
-2. **Hosted repository adapter:** default route execution remains blocked until server persistence is configured.
-3. **Hosted RLS policies:** send-job tables are service-role-only until hosted auth maps local tenant references to membership rows.
+1. **Trusted tenant selection:** users with multiple active memberships are rejected until Step 7D2 adds a trusted selector.
+2. **Hosted handoff UI:** approved local IndexedDB campaigns still need an explicit prepare-for-server route and UI.
+3. **Hosted RLS policies:** send-job tables remain service-role-only for this milestone.
 4. **Postgres integration validation:** migration and RPCs have not been applied to a local or hosted Supabase database in this pass.
 5. **Real Brevo batch path:** provider wiring remains deferred to Step 9 approval.
 
 ## Finding Status
 
-No Blocker or High findings are present in the local simulation path, mocked server-only REST helper, or Step 7C development/test server boundary. Production send-job execution remains blocked until the production auth adapter, hosted repository adapter, and database integration tests are complete.
+No Blocker or High findings are present in the local simulation path, mocked server-only REST helper, or Step 7D1 auth/repository boundary. Production send-job execution still requires non-production database validation and explicit hosted campaign preparation before pilot use.

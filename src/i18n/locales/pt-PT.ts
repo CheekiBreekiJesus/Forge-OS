@@ -1170,7 +1170,44 @@ export const dictionary: Dictionary = {
       pausedResult: "Pausada",
       resumedResult: "Retomada",
       cancelledResult: "Cancelada",
-      result: "Ultimo resultado"
+      result: "Ultimo resultado",
+      hostedPreparation: {
+        title: "Preparacao para envio no servidor",
+        description:
+          "Prepara a fotografia aprovada da campanha para simulacao duravel alojada. Nao envia email nem ativa envio Brevo.",
+        prepare: "Preparar para envio no servidor",
+        preparing: "A preparar...",
+        refresh: "Atualizar estado preparado",
+        tenant: "Tenant",
+        noTenants: "Sem membership de tenant confiavel",
+        approvalState: "Aprovacao",
+        approvedRecipients: "Destinatarios aprovados",
+        staleApprovals: "Aprovacoes desatualizadas",
+        status: "Estado preparado",
+        eligibility: "Elegibilidade",
+        eligible: "Pronto para preparar",
+        notEligible: "Nao esta pronto",
+        needsApproval: "A campanha tem de estar aprovada antes da preparacao.",
+        hasStaleApprovals: "Resolva aprovacoes desatualizadas antes da preparacao.",
+        emptySnapshot: "E necessario pelo menos um destinatario incluido e aprovado.",
+        preparedAt: "Preparado em",
+        preparedBy: "Preparado por",
+        audit: "Auditoria alojada recente",
+        authUnavailable: "Autenticacao alojada ou membership de tenant indisponivel nesta sessao local.",
+        statusFailed: "Nao foi possivel carregar o estado preparado.",
+        prepareFailed: "A preparacao da campanha falhou. Nenhum email foi enviado.",
+        senderIncomplete: "Empresa ou identidade de remetente incompleta.",
+        createdPrepared: "{count} destinatarios preparados para simulacao duravel alojada.",
+        reusedPrepared: "Ja estava preparado. A fotografia alojada existente foi reutilizada.",
+        states: {
+          failed: "Falhou",
+          loading: "A carregar",
+          not_prepared: "Nao preparado",
+          prepared: "Preparado",
+          preparing: "A preparar",
+          stale: "Fotografia desatualizada / invalida"
+        }
+      }
     },
     suppression: {
       title: "Lista de supressão",
