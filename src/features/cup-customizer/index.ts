@@ -17,4 +17,24 @@ export {
 export { filterCupProducts, isCupProduct, resolveProductPreviewUrl } from "./products";
 export { buildPricingSnapshot, validateQuantity } from "./pricing";
 export { buildMockupAssetBlob, buildMockupFileName } from "./mockup";
+export { buildConfigurationFingerprint } from "./workflow";
+export {
+  buildPhotorealisticMockupBlob,
+  buildPhotorealisticMockupFileName,
+  createEmptyMockupGeneration,
+  generateDeterministicPhotorealisticMockup,
+  isPaidProviderAvailable,
+  resolveMockupGenerationStatus,
+  type MockupGenerationMeta,
+  type MockupGenerationStatus
+} from "./mockup-generation";
+export {
+  CUSTOMIZER_WORKFLOW_STEPS,
+  getNextStep,
+  getPreviousStep,
+  isStepComplete,
+  validatePrintConfiguration,
+  type CustomizerWorkflowStep
+} from "./workflow";
+export { deriveWorkflowStatus, mapPersistenceStatusForSave } from "./workflow-status";
 export { validateCustomizerArtwork } from "./artwork-upload";

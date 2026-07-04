@@ -2,6 +2,24 @@ import type { Archivable } from "@/domain/operations-types";
 
 export type CustomizerSimulationStatus = "draft" | "saved" | "converted" | "archived";
 
+export type CustomizerWorkflowStatus =
+  | "DRAFT"
+  | "ARTWORK_REVIEW"
+  | "PRICING_REQUIRED"
+  | "READY_FOR_QUOTATION"
+  | "QUOTED"
+  | "APPROVED"
+  | "ARCHIVED";
+
+export type MockupGenerationMeta = {
+  status: "none" | "generating" | "complete" | "stale" | "failed";
+  provider: "deterministic" | "abacus" | null;
+  configurationFingerprint: string;
+  generatedAt: string | null;
+  realisticMockupAssetId: string | null;
+  promptVersion: string | null;
+};
+
 export type CustomizerConfiguration = {
   material: string;
   cupSize: string;
@@ -40,6 +58,8 @@ export type CustomizerSimulation = Archivable & {
   quantity: number;
   artworkAssetId: string | null;
   mockupAssetId: string | null;
+  mockupGeneration?: MockupGenerationMeta | null;
+  workflowStatus?: CustomizerWorkflowStatus | null;
   pricing: CustomizerPricingSnapshot;
   quoteId: string | null;
   notes: string;
@@ -58,6 +78,8 @@ export type CreateCustomizerSimulationInput = {
   quantity: number;
   artworkAssetId?: string | null;
   mockupAssetId?: string | null;
+  mockupGeneration?: MockupGenerationMeta | null;
+  workflowStatus?: CustomizerWorkflowStatus | null;
   pricing: CustomizerPricingSnapshot;
   notes?: string;
   status?: CustomizerSimulationStatus;
