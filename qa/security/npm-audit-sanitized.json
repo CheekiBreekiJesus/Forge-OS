@@ -1,0 +1,79 @@
+{
+  "generatedAt": "2026-07-04",
+  "baseCommit": "cf97561",
+  "branch": "chore/dependency-audit-triage",
+  "installCommand": "npm ci",
+  "summary": {
+    "high": 3,
+    "moderate": 0,
+    "low": 0,
+    "info": 0,
+    "total": 3
+  },
+  "findings": [
+    {
+      "auditNode": "playwright",
+      "advisory": "GHSA-7mvr-c777-76hp",
+      "title": "Playwright downloads and installs browsers without verifying the authenticity of the SSL certificate",
+      "severity": "high",
+      "cwe": ["CWE-347"],
+      "package": "playwright",
+      "installedVersion": "1.53.1",
+      "vulnerableRange": "<1.55.1",
+      "isDirect": false,
+      "dependencyPath": "forge-os > @playwright/test@1.53.1 > playwright@1.53.1",
+      "fixAvailable": {
+        "package": "@playwright/test",
+        "version": "1.61.1",
+        "isSemVerMajor": false
+      }
+    },
+    {
+      "auditNode": "@playwright/test",
+      "advisory": "GHSA-7mvr-c777-76hp",
+      "title": "Playwright downloads and installs browsers without verifying the authenticity of the SSL certificate (via playwright)",
+      "severity": "high",
+      "package": "@playwright/test",
+      "installedVersion": "1.53.1",
+      "vulnerableRange": "0.9.7 - 0.1112.0-alpha2 || 1.38.0-alpha-1692262648000 - 1.55.1-beta-1758616458000",
+      "isDirect": true,
+      "dependencyPath": "forge-os > @playwright/test@1.53.1",
+      "fixAvailable": {
+        "package": "@playwright/test",
+        "version": "1.61.1",
+        "isSemVerMajor": false
+      }
+    },
+    {
+      "auditNode": "xlsx",
+      "advisories": [
+        {
+          "id": "GHSA-4r6h-8v6p-xvw6",
+          "title": "Prototype Pollution in sheetJS",
+          "vulnerableRange": "<0.19.3",
+          "cvss": "CVSS:3.1/AV:L/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H",
+          "score": 7.8
+        },
+        {
+          "id": "GHSA-5pgg-2g8v-p4x9",
+          "title": "SheetJS Regular Expression Denial of Service (ReDoS)",
+          "vulnerableRange": "<0.20.2",
+          "cvss": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+          "score": 7.5
+        }
+      ],
+      "severity": "high",
+      "package": "xlsx",
+      "installedVersion": "0.18.5",
+      "vulnerableRange": "*",
+      "isDirect": true,
+      "dependencyPath": "forge-os > xlsx@0.18.5",
+      "fixAvailable": false
+    }
+  ],
+  "baselineValidation": {
+    "typecheck": "pass",
+    "npmTest": "pass (299 passed, 3 skipped)",
+    "npmBuild": "pass"
+  }
+}

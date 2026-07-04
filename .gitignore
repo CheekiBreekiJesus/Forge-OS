@@ -31,6 +31,9 @@ __pycache__/
 .qa/findings/
 .qa/tasks/
 
+# Local dependency-audit raw machine output (sanitized summaries are committed separately)
+qa/security/tmp/
+
 # Generated agent maintenance reports (keep schema and .gitkeep trackable)
 qa/reports/*
 !qa/reports/.gitkeep
