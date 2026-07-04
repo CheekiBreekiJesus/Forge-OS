@@ -392,6 +392,6 @@ export async function updateRecipientPersonalizationOverrides(
     await invalidateRecipientApproval(repos, tenantId, recipientId, "personalization_override");
   }
 
-  const updated = await repos.campaignRecipients.updateDraft(tenantId, recipientId, patch);
+  await repos.campaignRecipients.updateDraft(tenantId, recipientId, patch);
   return regenerateRecipientDraft(repos, tenantId, existing.campaignId, recipientId, true);
 }

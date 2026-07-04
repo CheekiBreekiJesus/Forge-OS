@@ -182,7 +182,7 @@ export async function deliverApprovedOutreachMessage(
   }
 
   if (provider === "smartlead") {
-    return deliverViaSmartlead(request);
+    return deliverViaSmartlead();
   }
 
   return deliverViaSimulation(request);

@@ -14,11 +14,6 @@ function sanitizeLabel(filePath) {
   return base.replace(EMAIL_RE, "[email]").slice(0, 120);
 }
 
-function countEmails(text) {
-  const matches = text.match(EMAIL_RE) ?? [];
-  return matches.length;
-}
-
 function isValidEmailSyntax(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim().toLowerCase());
 }
