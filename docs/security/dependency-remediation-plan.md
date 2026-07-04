@@ -7,7 +7,7 @@ Related triage: `qa/security/npm-audit-triage.md`
 
 This document plans remediation for the three high-severity `npm audit` findings.
 
-**Status:** Playwright (GHSA-7mvr-c777-76hp) remediated 2026-07-04. `xlsx` findings remain open.
+**Status:** Playwright (GHSA-7mvr-c777-76hp) and `xlsx` (GHSA-4r6h-8v6p-xvw6, GHSA-5pgg-2g8v-p4x9) remediated on `integration/dependency-security-remediation`.
 
 ## Summary table
 
@@ -15,15 +15,15 @@ This document plans remediation for the three high-severity `npm audit` findings
 |---------|---------|-----------------|------------------|---------------|---------------|-------------------|
 | GHSA-7mvr-c777-76hp | `playwright@1.53.1` | `forge-os` → `@playwright/test@1.53.1` → `playwright@1.53.1` | Dev/CI only (browser install) | Yes (`playwright` ≥ 1.55.1) | Low | **Resolved** — `@playwright/test@1.61.1` |
 | GHSA-7mvr-c777-76hp | `@playwright/test@1.53.1` | `forge-os` → `@playwright/test@1.53.1` | Test/CI only | Yes (`1.61.1`) | Low | **Resolved** — same upgrade |
-| GHSA-4r6h-8v6p-xvw6 | `xlsx@0.18.5` | `forge-os` → `xlsx@0.18.5` | **Production client** (lead import) | No on npm `xlsx` | Medium–High | **Option C** then **A:** vetted replacement (`@e965/xlsx@0.20.3` or `exceljs`) |
-| GHSA-5pgg-2g8v-p4x9 | `xlsx@0.18.5` | `forge-os` → `xlsx@0.18.5` | **Production client** (lead import) | No on npm `xlsx` | Medium–High | Same as prototype pollution row |
+| GHSA-4r6h-8v6p-xvw6 | `xlsx@0.18.5` | `forge-os` → `xlsx@0.18.5` | **Production client** (lead import) | No on npm `xlsx` | Medium–High | **Resolved** — `exceljs@4.4.0` + adapter |
+| GHSA-5pgg-2g8v-p4x9 | `xlsx@0.18.5` | `forge-os` → `xlsx@0.18.5` | **Production client** (lead import) | No on npm `xlsx` | Medium–High | **Resolved** — same migration |
 
 ---
 
 ## Recommended remediation order
 
 1. ~~**Playwright**~~ — **completed** (`fix/playwright-audit-remediation`).
-2. **`xlsx`** — higher application risk; requires parser migration and import-wizard regression tests.
+2. ~~**`xlsx`**~~ — **completed** (`exceljs@4.4.0` + adapter on `integration/dependency-security-remediation`).
 
 ---
 

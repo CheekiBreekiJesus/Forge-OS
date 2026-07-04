@@ -1,6 +1,5 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
-import * as XLSX from "xlsx";
 import { approveRecipientDraft } from "@/application/campaign-approval-service";
 import {
   evaluateCampaignQueueEligibility,
@@ -28,6 +27,7 @@ import { buildSegmentDefinitionFromSelection } from "@/features/leadops/segmenta
 import { getDatabase } from "@/persistence/db";
 import { destroyDatabaseForTests } from "@/persistence/registry";
 import { createLocalRepositoryBundle, seedDatabase } from "@/persistence/indexeddb/repositories";
+import { buildSyntheticXlsxFile } from "@/features/shared/spreadsheet/spreadsheet-fixtures";
 
 const TEST_DB = "forgeos:test:outreach-integration";
 
@@ -52,28 +52,23 @@ class NoOpSimulationProvider implements SendJobDeliveryProvider {
   }
 }
 
-function buildMultiSheetWorkbook(): File {
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(
-    workbook,
-    XLSX.utils.aoa_to_sheet([
-      ["company", "contact", "email", "region", "industry"],
-      ["Integration Cafe", "Maria", "integration.cafe@example.invalid", "Lisbon", "Hospitality"]
-    ]),
-    "Hospitality"
-  );
-  XLSX.utils.book_append_sheet(
-    workbook,
-    XLSX.utils.aoa_to_sheet([
-      ["Name", "Email", "Ciudad", "Tipo"],
-      ["Integration Municipality", "integration.mun@example.invalid", "Porto", "Public"]
-    ]),
-    "Municipalities"
-  );
-  const buffer = XLSX.write(workbook, { type: "array", bookType: "xlsx" });
-  return new File([buffer], "integration-multi-sheet.xlsx", {
-    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-  });
+async function buildMultiSheetWorkbook(): Promise<File> {
+  return buildSyntheticXlsxFile("integration-multi-sheet.xlsx", [
+    {
+      name: "Hospitality",
+      rows: [
+        ["company", "contact", "email", "region", "industry"],
+        ["Integration Cafe", "Maria", "integration.cafe@example.invalid", "Lisbon", "Hospitality"]
+      ]
+    },
+    {
+      name: "Municipalities",
+      rows: [
+        ["Name", "Email", "Ciudad", "Tipo"],
+        ["Integration Municipality", "integration.mun@example.invalid", "Porto", "Public"]
+      ]
+    }
+  ]);
 }
 
 describe("outreach import-to-simulation integration", () => {
@@ -92,7 +87,7 @@ describe("outreach import-to-simulation integration", () => {
     );
     expect(profile).toBeDefined();
 
-    const file = buildMultiSheetWorkbook();
+    const file = await buildMultiSheetWorkbook();
     const hospitalityPreview = await buildImportPreview(repos, DEFAULT_TENANT_ID, file, {
       sheetName: "Hospitality"
     });

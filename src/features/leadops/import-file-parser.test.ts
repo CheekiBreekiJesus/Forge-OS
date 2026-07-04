@@ -11,7 +11,7 @@ import {
   isPlaceholderValue,
   sanitizeFormulaInjection
 } from "@/features/leadops/import-normalization";
-import * as XLSX from "xlsx";
+import { buildSyntheticXlsxFile } from "@/features/shared/spreadsheet/spreadsheet-fixtures";
 
 describe("import file parser hardening", () => {
   it("detects semicolon delimiters for Portuguese CSV exports", () => {
@@ -40,21 +40,22 @@ describe("import file parser hardening", () => {
   });
 
   it("reads a selected XLSX worksheet", async () => {
-    const workbook = XLSX.utils.book_new();
-    const sheetA = XLSX.utils.aoa_to_sheet([
-      ["Name", "Email"],
-      ["Sheet A Org", "a@example.test"]
+    const file = await buildSyntheticXlsxFile("multi-sheet.xlsx", [
+      {
+        name: "Events",
+        rows: [
+          ["Name", "Email"],
+          ["Sheet A Org", "a@example.test"]
+        ]
+      },
+      {
+        name: "Municipalities",
+        rows: [
+          ["Name", "Email"],
+          ["Sheet B Org", "b@example.test"]
+        ]
+      }
     ]);
-    const sheetB = XLSX.utils.aoa_to_sheet([
-      ["Name", "Email"],
-      ["Sheet B Org", "b@example.test"]
-    ]);
-    XLSX.utils.book_append_sheet(workbook, sheetA, "Events");
-    XLSX.utils.book_append_sheet(workbook, sheetB, "Municipalities");
-    const buffer = XLSX.write(workbook, { type: "array", bookType: "xlsx" });
-    const file = new File([buffer], "multi-sheet.xlsx", {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    });
     const parsed = await parseImportFile(file, { sheetName: "Municipalities" });
     expect(parsed.selectedSheet).toBe("Municipalities");
     expect(parsed.rows[0]?.[0]).toBe("Sheet B Org");
