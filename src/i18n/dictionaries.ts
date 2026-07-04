@@ -389,6 +389,22 @@ export type Dictionary = {
     microsoftDialogBody: string;
     closeDialog: string;
   };
+  authAccess: {
+    signOut: string;
+    pending: {
+      title: string;
+      body: string;
+    };
+    denied: {
+      title: string;
+      body: string;
+    };
+    tenants: {
+      title: string;
+      body: string;
+      select: string;
+    };
+  };
   settings: {
     eyebrow: string;
     title: string;

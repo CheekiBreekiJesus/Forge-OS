@@ -9,7 +9,7 @@ ForgeOS uses Supabase Auth as the hosted identity provider for OAuth sign-in. Th
 3. Supabase redirects back to `/auth/callback?next=<internal-path>`.
 4. The callback exchanges the OAuth code for a Supabase session using the server-side cookie client.
 5. ForgeOS redirects to the sanitized internal `next` path.
-6. Existing server session resolution checks the authenticated user against tenant membership before granting tenant access.
+6. ForgeOS resolves tenant membership before granting tenant access.
 
 OAuth proves identity only. Tenant access still depends on an active ForgeOS tenant membership.
 
@@ -52,10 +52,10 @@ When `FORGEOS_PERSISTENCE_MODE` is not `supabase`, the local demo login remains 
 - Add matching redirect URLs in Google Cloud Console and Microsoft Entra ID.
 - Configure tenant membership records for the authenticated user before granting app access.
 - Validate that no service-role key is present in browser-visible environment variables.
+- Keep membership activation as a trusted administrator or service-side operation.
 
 ## Deferred Work
 
-- Add route protection/session refresh with the current Next.js `proxy.ts` convention once the protected route policy is finalized.
 - Add hosted smoke tests against real Supabase Auth only in an approved environment with non-production accounts.
 - Add user onboarding or invitation flows after the tenant membership model is finalized.
 

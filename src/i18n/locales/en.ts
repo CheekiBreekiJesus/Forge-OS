@@ -729,6 +729,22 @@ export const dictionary: Dictionary = {
       "Microsoft OAuth requires Supabase Auth and provider configuration in the hosted ForgeOS deployment. After login, your profile is prefilled from workspace membership and you complete company onboarding and sender identity setup.",
     closeDialog: "Close"
   },
+  authAccess: {
+    signOut: "Sign out",
+    pending: {
+      title: "Access awaiting approval",
+      body: "Your identity is authenticated, but ForgeOS has not found an active tenant membership for this account. Ask a workspace administrator to approve your membership before accessing tenant data."
+    },
+    denied: {
+      title: "Access denied",
+      body: "This account is suspended or revoked for the available ForgeOS tenant memberships. Tenant data is not available from this session."
+    },
+    tenants: {
+      title: "Choose workspace",
+      body: "This account has access to more than one ForgeOS workspace. Choose a tenant membership to continue.",
+      select: "Select"
+    }
+  },
   settings: {
     eyebrow: "Workspace configuration",
     title: "Settings",

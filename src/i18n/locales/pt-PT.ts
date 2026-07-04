@@ -735,6 +735,22 @@ export const dictionary: Dictionary = {
       "OAuth Microsoft requer Supabase Auth e configuração do fornecedor na versão alojada do ForgeOS. Após o login, o perfil é pré-preenchido pela associação ao workspace e conclui o onboarding da empresa e identidades de remetente.",
     closeDialog: "Fechar"
   },
+  authAccess: {
+    signOut: "Terminar sessao",
+    pending: {
+      title: "Acesso a aguardar aprovacao",
+      body: "A identidade esta autenticada, mas o ForgeOS nao encontrou uma associacao ativa a um tenant para esta conta. Peca a um administrador do workspace para aprovar o acesso antes de consultar dados do tenant."
+    },
+    denied: {
+      title: "Acesso negado",
+      body: "Esta conta esta suspensa ou revogada nas associacoes de tenant disponiveis. Os dados do tenant nao estao disponiveis nesta sessao."
+    },
+    tenants: {
+      title: "Escolher workspace",
+      body: "Esta conta tem acesso a mais do que um workspace ForgeOS. Escolha uma associacao de tenant para continuar.",
+      select: "Selecionar"
+    }
+  },
   settings: {
     eyebrow: "Configuração do workspace",
     title: "Definições",

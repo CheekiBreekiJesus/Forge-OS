@@ -6,6 +6,12 @@ import {
   type LoginErrorCode
 } from "@/lib/auth/safe-redirect";
 import { isSupabaseAuthConfigured } from "@/lib/supabase/env";
+import {
+  membershipAccessPath,
+  resolveMembershipAccessForUser,
+  selectedTenantCookieOptions,
+  SELECTED_TENANT_COOKIE
+} from "@/lib/auth/membership";
 
 export async function GET(request: Request): Promise<NextResponse> {
   const url = new URL(request.url);
@@ -27,7 +33,30 @@ export async function GET(request: Request): Promise<NextResponse> {
     return redirectToLogin(url, destination, "oauth_exchange_failed");
   }
 
-  return NextResponse.redirect(new URL(destination, url.origin));
+  const {
+    data: { user },
+    error: userError
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return redirectToLogin(url, destination, "oauth_exchange_failed");
+  }
+
+  const access = await resolveMembershipAccessForUser(user);
+
+  if (access.status !== "active") {
+    return NextResponse.redirect(
+      new URL(membershipAccessPath(accessLocale(destination), access.status, destination), url.origin)
+    );
+  }
+
+  const response = NextResponse.redirect(new URL(destination, url.origin));
+  response.cookies.set(
+    SELECTED_TENANT_COOKIE,
+    access.context.tenantId,
+    selectedTenantCookieOptions()
+  );
+  return response;
 }
 
 function redirectToLogin(
@@ -36,4 +65,8 @@ function redirectToLogin(
   error: LoginErrorCode
 ): NextResponse {
   return NextResponse.redirect(new URL(loginPathForRedirect(destination, error), url.origin));
+}
+
+function accessLocale(destination: string) {
+  return destination.startsWith("/en") ? "en" : "pt-PT";
 }
