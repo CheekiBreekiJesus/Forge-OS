@@ -1,18 +1,20 @@
 # Dependency Remediation Plan
 
 Date: 2026-07-04  
-Branch: `chore/dependency-audit-triage`  
+Branch: `chore/dependency-audit-triage` (plan); remediated on `fix/playwright-audit-remediation`  
 Base commit: `cf97561`  
 Related triage: `qa/security/npm-audit-triage.md`
 
-This document plans remediation for the three high-severity `npm audit` findings. **No dependency changes were applied on the triage branch.**
+This document plans remediation for the three high-severity `npm audit` findings.
+
+**Status:** Playwright (GHSA-7mvr-c777-76hp) remediated 2026-07-04. `xlsx` findings remain open.
 
 ## Summary table
 
 | Finding | Package | Dependency path | Runtime exposure | Fix available | Breaking risk | Recommended action |
 |---------|---------|-----------------|------------------|---------------|---------------|-------------------|
-| GHSA-7mvr-c777-76hp | `playwright@1.53.1` | `forge-os` → `@playwright/test@1.53.1` → `playwright@1.53.1` | Dev/CI only (browser install) | Yes (`playwright` ≥ 1.55.1) | Low | **Option A:** bump `@playwright/test` to `1.61.1` |
-| GHSA-7mvr-c777-76hp | `@playwright/test@1.53.1` | `forge-os` → `@playwright/test@1.53.1` | Test/CI only | Yes (`1.61.1`) | Low | Same as above (single upgrade) |
+| GHSA-7mvr-c777-76hp | `playwright@1.53.1` | `forge-os` → `@playwright/test@1.53.1` → `playwright@1.53.1` | Dev/CI only (browser install) | Yes (`playwright` ≥ 1.55.1) | Low | **Resolved** — `@playwright/test@1.61.1` |
+| GHSA-7mvr-c777-76hp | `@playwright/test@1.53.1` | `forge-os` → `@playwright/test@1.53.1` | Test/CI only | Yes (`1.61.1`) | Low | **Resolved** — same upgrade |
 | GHSA-4r6h-8v6p-xvw6 | `xlsx@0.18.5` | `forge-os` → `xlsx@0.18.5` | **Production client** (lead import) | No on npm `xlsx` | Medium–High | **Option C** then **A:** vetted replacement (`@e965/xlsx@0.20.3` or `exceljs`) |
 | GHSA-5pgg-2g8v-p4x9 | `xlsx@0.18.5` | `forge-os` → `xlsx@0.18.5` | **Production client** (lead import) | No on npm `xlsx` | Medium–High | Same as prototype pollution row |
 
@@ -20,14 +22,22 @@ This document plans remediation for the three high-severity `npm audit` findings
 
 ## Recommended remediation order
 
-1. **Playwright** — low risk, clears two audit nodes, restores CI/dev supply-chain integrity.
+1. ~~**Playwright**~~ — **completed** (`fix/playwright-audit-remediation`).
 2. **`xlsx`** — higher application risk; requires parser migration and import-wizard regression tests.
 
 ---
 
 ## Finding A — Playwright / `@playwright/test` (GHSA-7mvr-c777-76hp)
 
-### OPTION A — Safest non-breaking direct upgrade (recommended)
+**Status: REMEDIATED** (2026-07-04, branch `fix/playwright-audit-remediation`)
+
+| Field | Detail |
+|-------|--------|
+| Applied change | `@playwright/test`: `1.53.1` → `^1.61.1` (resolved `1.61.1`); `playwright` / `playwright-core` → `1.61.1` |
+| Advisory | GHSA-7mvr-c777-76hp cleared in `npm audit` |
+| Result doc | `qa/security/playwright-remediation-result.md` |
+
+### OPTION A — Safest non-breaking direct upgrade (recommended) — applied
 
 | Field | Detail |
 |-------|--------|
