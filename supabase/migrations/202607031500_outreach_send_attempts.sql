@@ -3,6 +3,9 @@
 
 drop table if exists public.outreach_delivery_attempts;
 
+-- Composite unique on leads for tenant-safe FK from send attempts.
+create unique index if not exists leads_tenant_id_id_idx on public.leads (tenant_id, id);
+
 create table if not exists public.outreach_send_attempts (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references public.tenants(id) on delete cascade,
@@ -42,8 +45,6 @@ create table if not exists public.outreach_send_attempts (
     references public.leads (tenant_id, id)
     on delete restrict
 );
-
-create unique index if not exists leads_tenant_id_id_idx on public.leads (tenant_id, id);
 
 create index if not exists outreach_send_attempts_tenant_recipient_idx
   on public.outreach_send_attempts (tenant_id, campaign_recipient_id);
@@ -131,19 +132,11 @@ begin
     if v_existing.request_fingerprint <> p_request_fingerprint then
       return jsonb_build_object('result', 'conflict', 'reason', 'idempotency_fingerprint_mismatch');
     end if;
-    if v_existing.status in ('TEST_SENT', 'TEST_ALREADY_PROCESSED') then
-      return jsonb_build_object(
-        'result', 'already_processed',
-        'attempt_id', v_existing.id,
-        'idempotency_key', v_existing.idempotency_key,
-        'provider_message_id', v_existing.provider_message_id
-      );
-    end if;
     return jsonb_build_object(
-      'result', 'claimed',
+      'result', 'already_processed',
       'attempt_id', v_existing.id,
       'idempotency_key', v_existing.idempotency_key,
-      'reclaimed', true
+      'provider_message_id', v_existing.provider_message_id
     );
   end if;
 
