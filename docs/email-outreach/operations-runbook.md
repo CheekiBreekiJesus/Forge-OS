@@ -27,7 +27,20 @@ Before hosted send-job processing:
 - prepare approved campaigns into the hosted campaign projection;
 - run Supabase/Postgres integration tests for lock acquisition and daily usage increments.
 
-Step 7D1 route boundaries can use hosted repositories when Supabase server credentials are configured. Hosted execution remains simulation-only and should not be considered production-ready until the migration is validated against a non-production database.
+Step 7D2 route boundaries can use hosted repositories when Supabase server credentials are configured. Hosted execution remains simulation-only and should not be considered production-ready until the migrations are validated against a non-production database.
+
+## Hosted Preparation Workflow
+
+1. Authenticate with a Supabase bearer session in a hosted or staging deployment.
+2. Open an approved campaign detail page.
+3. Select one of the active memberships returned by the trusted tenant selector.
+4. Confirm the panel shows approved recipients and zero stale approvals.
+5. Click `Prepare for server sending`.
+6. Confirm the prepared state shows `Prepared`, prepared timestamp, prepared actor, and hosted audit.
+7. Click refresh or reload the page and confirm the prepared state is still available.
+8. Click preparation again and confirm the existing snapshot is reused.
+
+This workflow persists an approved campaign projection only. It does not queue or send email.
 
 ## Hosted Brevo Prerequisites
 
@@ -50,8 +63,20 @@ Completed attempts are preserved, stale locks expire, cancelled jobs keep sent h
 The Supabase CLI is not installed in the current local environment and no staging credentials are stored in Git. Before production use, run the migrations against a local or dedicated non-production Supabase/Postgres database and verify:
 
 ```bash
-supabase migration up
+npm run outreach:hosted:migration:check
 npm run test -- src/features/email-delivery/outreach-migration-static.test.ts
+npx supabase db reset --local
+```
+
+For approved staging only:
+
+```bash
+npx supabase link --project-ref <non-production-project-ref>
+npx supabase db push --linked
 ```
 
 Do not apply the migrations to production until the lock RPC, lock release, idempotency constraints, daily usage increment, grants, and RLS assumptions are verified.
+
+## Step 9 Real-Send Gate
+
+Brevo campaign batch sending, SMTP sending, background workers, and automatic hosted processing remain disabled until Step 9 receives explicit approval. Staging validation for Step 7D2 must use simulation provider behavior only.

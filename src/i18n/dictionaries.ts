@@ -770,6 +770,35 @@ export type Dictionary = {
       resumedResult: string;
       cancelledResult: string;
       result: string;
+      hostedPreparation: {
+        title: string;
+        description: string;
+        prepare: string;
+        preparing: string;
+        refresh: string;
+        tenant: string;
+        noTenants: string;
+        approvalState: string;
+        approvedRecipients: string;
+        staleApprovals: string;
+        status: string;
+        eligibility: string;
+        eligible: string;
+        notEligible: string;
+        needsApproval: string;
+        hasStaleApprovals: string;
+        emptySnapshot: string;
+        preparedAt: string;
+        preparedBy: string;
+        audit: string;
+        authUnavailable: string;
+        statusFailed: string;
+        prepareFailed: string;
+        senderIncomplete: string;
+        createdPrepared: string;
+        reusedPrepared: string;
+        states: Record<"not_prepared" | "loading" | "preparing" | "prepared" | "failed" | "stale", string>;
+      };
     };
     suppression: {
       title: string;

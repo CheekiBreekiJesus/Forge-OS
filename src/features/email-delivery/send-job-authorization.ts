@@ -3,6 +3,7 @@ import type { TrustedSendJobActorContext } from "./send-job-actor-context";
 export type SendJobPermission =
   | "send_job:view"
   | "send_job:view_errors"
+  | "send_job:prepare"
   | "send_job:queue"
   | "send_job:process"
   | "send_job:pause"
@@ -23,6 +24,7 @@ export class SendJobAuthorizationError extends Error {
 const ALL_SEND_JOB_PERMISSIONS: SendJobPermission[] = [
   "send_job:view",
   "send_job:view_errors",
+  "send_job:prepare",
   "send_job:queue",
   "send_job:process",
   "send_job:pause",
@@ -36,6 +38,7 @@ const ROLE_PERMISSIONS: Record<TrustedSendJobActorContext["roles"][number], Send
   marketing_manager: ALL_SEND_JOB_PERMISSIONS,
   outreach_operator: [
     "send_job:view",
+    "send_job:prepare",
     "send_job:queue",
     "send_job:process",
     "send_job:pause",

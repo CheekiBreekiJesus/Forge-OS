@@ -1,4 +1,4 @@
-import { prepareHostedCampaignProjection } from "@/features/email-delivery/hosted-send-job-repositories";
+import { getHostedCampaignPreparationStatus } from "@/features/email-delivery/hosted-send-job-repositories";
 import {
   requireSendJobPermission,
   SendJobAuthorizationError
@@ -9,14 +9,15 @@ import {
 } from "@/features/email-delivery/send-job-actor-context";
 import { PersistenceError } from "@/persistence/interfaces";
 
-export async function POST(request: Request): Promise<Response> {
+export async function GET(request: Request): Promise<Response> {
   try {
     const actor = await resolveTrustedSendJobActorContext(request);
-    requireSendJobPermission(actor, "send_job:prepare");
-    const body = await request.json().catch(() => {
-      throw new PersistenceError("unavailable", "Request body must be valid JSON.");
-    });
-    const result = await prepareHostedCampaignProjection(body, actor);
+    requireSendJobPermission(actor, "send_job:view");
+    const campaignId = new URL(request.url).searchParams.get("campaignId")?.trim() ?? "";
+    if (!campaignId) {
+      throw new PersistenceError("invalid_transition", "campaignId is required.");
+    }
+    const result = await getHostedCampaignPreparationStatus(campaignId, actor);
     return Response.json({ ok: true, result });
   } catch (error) {
     return mapError(error);
@@ -30,17 +31,16 @@ function mapError(error: unknown): Response {
   }
   if (error instanceof SendJobAuthorizationError) {
     return Response.json(
-      { error: { code: "forbidden", message: "Actor is not authorized to prepare campaigns for server sending." }, ok: false },
+      { error: { code: "forbidden", message: "Actor is not authorized to view hosted preparation status." }, ok: false },
       { status: 403 }
     );
   }
   if (error instanceof PersistenceError) {
-    const status =
-      error.code === "forbidden" ? 403 : error.code === "not_found" ? 404 : error.code === "duplicate" ? 409 : 400;
+    const status = error.code === "not_found" ? 404 : error.code === "forbidden" ? 403 : 400;
     return Response.json({ error: { code: error.code, message: error.message }, ok: false }, { status });
   }
   return Response.json(
-    { error: { code: "internal_error", message: "Unexpected hosted campaign preparation error." }, ok: false },
+    { error: { code: "internal_error", message: "Unexpected hosted preparation status error." }, ok: false },
     { status: 500 }
   );
 }

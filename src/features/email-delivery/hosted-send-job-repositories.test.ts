@@ -3,6 +3,8 @@ import { buildApprovalContentHash } from "@/application/campaign-approval-servic
 import type { CampaignRecipient, OutreachCampaign } from "@/domain/campaign-types";
 import type { DurableStoreConfig } from "./durable-outreach-store";
 import {
+  buildHostedCampaignProjectionFingerprint,
+  getHostedCampaignPreparationStatus,
   prepareHostedCampaignProjection,
   type HostedCampaignProjectionInput
 } from "./hosted-send-job-repositories";
@@ -139,9 +141,11 @@ describe("hosted campaign projection preparation", () => {
   it("upserts an approved campaign projection and replaces prepared recipients", async () => {
     const fetch = vi
       .fn()
+      .mockResolvedValueOnce(response([]))
       .mockResolvedValueOnce(response([{ campaign_ref: "cmp_hosted_1", tenant_id: "tenant_a" }]))
       .mockResolvedValueOnce(response([]))
-      .mockResolvedValueOnce(response([{ campaign_recipient_ref: "cmr_hosted_1", tenant_id: "tenant_a" }]));
+      .mockResolvedValueOnce(response([{ campaign_recipient_ref: "cmr_hosted_1", tenant_id: "tenant_a" }]))
+      .mockResolvedValueOnce(response([{ id: "activity_1", tenant_id: "tenant_a" }]));
     vi.stubGlobal("fetch", fetch);
 
     const result = await prepareHostedCampaignProjection(
@@ -150,14 +154,91 @@ describe("hosted campaign projection preparation", () => {
       config
     );
 
-    expect(result).toEqual({ campaignId: "cmp_hosted_1", preparedRecipients: 1 });
+    expect(result).toMatchObject({
+      campaignId: "cmp_hosted_1",
+      preparedRecipients: 1,
+      reused: false,
+      snapshotFingerprint: buildHostedCampaignProjectionFingerprint(projection())
+    });
     expect(String(fetch.mock.calls[0][0])).toContain("outreach_hosted_campaigns");
-    expect(String(fetch.mock.calls[1][0])).toContain("outreach_hosted_campaign_recipients");
     expect(String(fetch.mock.calls[2][0])).toContain("outreach_hosted_campaign_recipients");
-    expect(JSON.parse(String(fetch.mock.calls[2][1].body))[0]).toMatchObject({
+    expect(String(fetch.mock.calls[3][0])).toContain("outreach_hosted_campaign_recipients");
+    expect(String(fetch.mock.calls[4][0])).toContain("outreach_hosted_activity_events");
+    expect(JSON.parse(String(fetch.mock.calls[3][1].body))[0]).toMatchObject({
       approval_content_hash: buildApprovalContentHash(recipient()),
       campaign_recipient_ref: "cmr_hosted_1",
       tenant_id: "tenant_a"
     });
+  });
+
+  it("reuses an already prepared hosted snapshot idempotently", async () => {
+    const input = projection();
+    const fingerprint = buildHostedCampaignProjectionFingerprint(input);
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        response([
+          {
+            campaign_ref: "cmp_hosted_1",
+            prepared_at: timestamp,
+            prepared_by: "user_1",
+            recipient_snapshot_count: 1,
+            snapshot_fingerprint: fingerprint,
+            tenant_id: "tenant_a"
+          }
+        ])
+      )
+      .mockResolvedValueOnce(response([{ id: "activity_1", tenant_id: "tenant_a" }]));
+    vi.stubGlobal("fetch", fetch);
+
+    const result = await prepareHostedCampaignProjection(input, { tenantId: "tenant_a", userId: "user_1" }, config);
+
+    expect(result).toMatchObject({
+      campaignId: "cmp_hosted_1",
+      preparedRecipients: 1,
+      reused: true,
+      snapshotFingerprint: fingerprint
+    });
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(String(fetch.mock.calls[1][0])).toContain("outreach_hosted_activity_events");
+  });
+
+  it("reads hosted preparation status and audit entries without sending", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        response([
+          {
+            campaign_ref: "cmp_hosted_1",
+            prepared_at: timestamp,
+            prepared_by: "user_1",
+            recipient_snapshot_count: 1,
+            snapshot_fingerprint: "fingerprint",
+            tenant_id: "tenant_a"
+          }
+        ])
+      )
+      .mockResolvedValueOnce(
+        response([
+          {
+            action: "campaign_server_send_prepared",
+            occurred_at: timestamp,
+            title: "Campaign prepared for server sending"
+          }
+        ])
+      );
+    vi.stubGlobal("fetch", fetch);
+
+    const status = await getHostedCampaignPreparationStatus("cmp_hosted_1", { tenantId: "tenant_a" }, config);
+
+    expect(status).toMatchObject({
+      campaignId: "cmp_hosted_1",
+      preparedBy: "user_1",
+      preparedRecipients: 1,
+      status: "prepared"
+    });
+    expect(status.activity).toHaveLength(1);
+    expect(String(fetch.mock.calls[0][0])).toContain("outreach_hosted_campaigns");
+    expect(String(fetch.mock.calls[1][0])).toContain("outreach_hosted_activity_events");
   });
 });

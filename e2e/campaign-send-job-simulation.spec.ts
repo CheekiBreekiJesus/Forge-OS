@@ -30,6 +30,35 @@ async function prepareApprovedCampaign(page: import("@playwright/test").Page) {
 test.describe("Campaign send job simulation", () => {
   test.beforeEach(async ({ page }) => {
     attachPaidCallGuard(page);
+    await page.route("**/api/outreach/send-jobs/tenant-memberships", async (route) => {
+      await route.fulfill({
+        contentType: "application/json",
+        json: {
+          ok: true,
+          result: {
+            memberships: [],
+            selectedTenantId: null
+          }
+        }
+      });
+    });
+    await page.route("**/api/outreach/send-jobs/prepare-campaign/status?**", async (route) => {
+      await route.fulfill({
+        contentType: "application/json",
+        json: {
+          ok: true,
+          result: {
+            activity: [],
+            campaignId: "campaign_e2e",
+            preparedAt: null,
+            preparedBy: null,
+            preparedRecipients: 0,
+            snapshotFingerprint: null,
+            status: "not_prepared"
+          }
+        }
+      });
+    });
   });
 
   test("queues, batches, pauses, resumes, and cancels a local simulation job in PT", async ({ page }) => {
@@ -88,6 +117,110 @@ test.describe("Campaign send job simulation", () => {
     await expect(page.getByTestId("queue-simulation-job")).toBeVisible();
     await expect(page.getByRole("button", { name: /queue brevo|enviar brevo/i })).toHaveCount(0);
     expect(errors).toEqual([]);
+  });
+
+  test("prepares an approved campaign for hosted durable simulation with trusted tenant selection", async ({ page }) => {
+    let prepared = false;
+    let preparedRecipients = 0;
+    let prepareCalls = 0;
+
+    await page.route("**/api/outreach/send-jobs/tenant-memberships", async (route) => {
+      await route.fulfill({
+        contentType: "application/json",
+        json: {
+          ok: true,
+          result: {
+            memberships: [
+              {
+                permissions: ["send_job:view", "send_job:prepare"],
+                roles: ["marketing_manager"],
+                tenantId: "tenant_demo"
+              },
+              {
+                permissions: ["send_job:view"],
+                roles: ["viewer"],
+                tenantId: "tenant_readonly"
+              }
+            ],
+            selectedTenantId: "tenant_demo"
+          }
+        }
+      });
+    });
+
+    await page.route("**/api/outreach/send-jobs/prepare-campaign/status?**", async (route) => {
+      await route.fulfill({
+        contentType: "application/json",
+        json: {
+          ok: true,
+          result: prepared
+            ? {
+                activity: [
+                  {
+                    action: "campaign_server_send_prepared",
+                    occurredAt: "2026-07-03T12:00:00.000Z",
+                    title: "Campaign prepared for server sending"
+                  }
+                ],
+                campaignId: "campaign_e2e",
+                preparedAt: "2026-07-03T12:00:00.000Z",
+                preparedBy: "user_e2e",
+                preparedRecipients,
+                snapshotFingerprint: "fingerprint",
+                status: "prepared"
+              }
+            : {
+                activity: [],
+                campaignId: "campaign_e2e",
+                preparedAt: null,
+                preparedBy: null,
+                preparedRecipients: 0,
+                snapshotFingerprint: null,
+                status: "not_prepared"
+              }
+        }
+      });
+    });
+
+    await page.route("**/api/outreach/send-jobs/prepare-campaign", async (route) => {
+      if (route.request().method() !== "POST") return route.fallback();
+      prepareCalls += 1;
+      const body = await route.request().postDataJSON();
+      expect(body.campaign.status).toBe("approved");
+      expect(body.campaign.deliveryMode).toBe("simulation");
+      expect(body.recipients.length).toBeGreaterThan(0);
+      expect(route.request().headers()["x-forgeos-selected-tenant-id"]).toBe("tenant_demo");
+      prepared = true;
+      preparedRecipients = body.recipients.length;
+      await route.fulfill({
+        contentType: "application/json",
+        json: {
+          ok: true,
+          result: {
+            campaignId: body.campaign.id,
+            preparedAt: "2026-07-03T12:00:00.000Z",
+            preparedRecipients: body.recipients.length,
+            reused: prepareCalls > 1,
+            snapshotFingerprint: "fingerprint"
+          }
+        }
+      });
+    });
+
+    await prepareApprovedCampaign(page);
+    await expect(page.getByTestId("hosted-preparation-panel")).toBeVisible();
+    await expect(page.getByTestId("hosted-tenant-select")).toHaveValue("tenant_demo");
+    await expect(page.getByTestId("hosted-preparation-stale")).toHaveText("0");
+    await expect(page.getByTestId("prepare-server-send")).toBeEnabled();
+
+    await page.getByTestId("prepare-server-send").click();
+    await expect(page.getByTestId("hosted-preparation-message")).toContainText(/prepared|preparados/i);
+    await expect(page.getByTestId("hosted-preparation-status")).toContainText(/prepared|preparado/i);
+    await expect(page.getByTestId("hosted-preparation-audit")).toBeVisible();
+
+    await page.getByTestId("prepare-server-send").click();
+    await expect(page.getByTestId("hosted-preparation-message")).toContainText(/reused|reutilizada/i);
+    await expect(page.getByRole("button", { name: /queue brevo|enviar brevo/i })).toHaveCount(0);
   });
 
   test("skips suppressed recipients before processing", async ({ page }) => {

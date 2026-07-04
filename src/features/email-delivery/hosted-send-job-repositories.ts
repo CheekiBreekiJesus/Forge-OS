@@ -44,7 +44,24 @@ export type HostedCampaignProjectionInput = {
 
 export type HostedCampaignProjectionResult = {
   campaignId: string;
+  preparedAt: string;
   preparedRecipients: number;
+  reused: boolean;
+  snapshotFingerprint: string;
+};
+
+export type HostedCampaignPreparationStatus = {
+  campaignId: string;
+  preparedAt: string | null;
+  preparedBy: string | null;
+  preparedRecipients: number;
+  snapshotFingerprint: string | null;
+  status: "not_prepared" | "prepared";
+  activity: Array<{
+    action: string;
+    occurredAt: string;
+    title: string;
+  }>;
 };
 
 export function createHostedSendJobServerDependencies(
@@ -91,9 +108,24 @@ export async function prepareHostedCampaignProjection(
   validateHostedProjection(input, actor.tenantId);
   const client = createRestClient(config);
   const timestamp = new Date().toISOString();
+  const snapshotFingerprint = buildHostedCampaignProjectionFingerprint(input);
+  const existing = await loadHostedCampaignPreparation(client, actor.tenantId, input.campaign.id);
+  if (existing?.snapshotFingerprint === snapshotFingerprint) {
+    await appendHostedPreparationActivity(client, actor, input.campaign.id, "campaign_server_send_prepare_reused", {
+      preparedRecipients: existing.preparedRecipients,
+      snapshotFingerprint
+    });
+    return {
+      campaignId: input.campaign.id,
+      preparedAt: existing.preparedAt ?? timestamp,
+      preparedRecipients: existing.preparedRecipients,
+      reused: true,
+      snapshotFingerprint
+    };
+  }
   await client.post(
     "/rest/v1/outreach_hosted_campaigns?on_conflict=tenant_id,campaign_ref",
-    toHostedCampaignRow(input, actor, timestamp),
+    toHostedCampaignRow(input, actor, timestamp, snapshotFingerprint),
     fromHostedCampaignRow,
     "resolution=merge-duplicates,return=representation"
   );
@@ -109,9 +141,55 @@ export async function prepareHostedCampaignProjection(
       "resolution=merge-duplicates,return=representation"
     );
   }
+  await appendHostedPreparationActivity(client, actor, input.campaign.id, "campaign_server_send_prepared", {
+    preparedRecipients: rows.length,
+    snapshotFingerprint
+  });
   return {
     campaignId: input.campaign.id,
-    preparedRecipients: rows.length
+    preparedAt: timestamp,
+    preparedRecipients: rows.length,
+    reused: false,
+    snapshotFingerprint
+  };
+}
+
+export async function getHostedCampaignPreparationStatus(
+  campaignId: string,
+  actor: { tenantId: string },
+  config: DurableStoreConfig | null = readDurableStoreConfig()
+): Promise<HostedCampaignPreparationStatus> {
+  if (!config) throw new PersistenceError("unavailable", "Hosted outreach persistence is not configured.");
+  if (!/^[A-Za-z0-9_:-]{1,128}$/.test(campaignId)) {
+    throw new PersistenceError("invalid_transition", "Campaign id is malformed.");
+  }
+  const client = createRestClient(config);
+  const [campaign, activity] = await Promise.all([
+    loadHostedCampaignPreparation(client, actor.tenantId, campaignId),
+    client.get(
+      `/rest/v1/outreach_hosted_activity_events?tenant_id=eq.${e(actor.tenantId)}&entity_type=eq.campaign&entity_ref=eq.${e(campaignId)}&order=occurred_at.desc&limit=5`,
+      fromHostedActivitySummaryRow
+    )
+  ]);
+  if (!campaign) {
+    return {
+      activity,
+      campaignId,
+      preparedAt: null,
+      preparedBy: null,
+      preparedRecipients: 0,
+      snapshotFingerprint: null,
+      status: "not_prepared"
+    };
+  }
+  return {
+    activity,
+    campaignId,
+    preparedAt: campaign.preparedAt,
+    preparedBy: campaign.preparedBy,
+    preparedRecipients: campaign.preparedRecipients,
+    snapshotFingerprint: campaign.snapshotFingerprint,
+    status: "prepared"
   };
 }
 
@@ -170,6 +248,9 @@ function validateHostedProjection(input: HostedCampaignProjectionInput, tenantId
   if (input.campaign.deliveryMode !== "simulation") {
     throw new PersistenceError("invalid_transition", "Hosted campaign preparation is simulation-only.");
   }
+  if (input.recipients.length === 0) {
+    throw new PersistenceError("invalid_transition", "At least one approved recipient is required.");
+  }
   if (!input.company.tradingName.trim() && !input.company.legalName.trim()) {
     throw new PersistenceError("invalid_transition", "Company sender name is required.");
   }
@@ -192,6 +273,77 @@ function validateHostedProjection(input: HostedCampaignProjectionInput, tenantId
     }
     seen.add(recipient.id);
   }
+}
+
+export function buildHostedCampaignProjectionFingerprint(input: HostedCampaignProjectionInput): string {
+  const payload = {
+    campaign: {
+      deliveryMode: input.campaign.deliveryMode,
+      htmlTemplate: input.campaign.htmlTemplate,
+      id: input.campaign.id,
+      plainTextTemplate: input.campaign.plainTextTemplate,
+      replyTo: input.campaign.replyTo,
+      senderProfileId: input.campaign.senderProfileId,
+      status: input.campaign.status,
+      subjectTemplate: input.campaign.subjectTemplate,
+      templateUpdatedAt: input.campaign.templateUpdatedAt,
+      templateVersion: input.campaign.templateVersion,
+      tenantId: input.campaign.tenantId
+    },
+    company: input.company,
+    recipients: input.recipients
+      .map((recipient) => ({
+        approvalContentHash: recipient.approvalContentHash,
+        draftStatus: recipient.draftStatus,
+        id: recipient.id,
+        leadId: recipient.leadId,
+        sentAt: recipient.sentAt,
+        status: recipient.status,
+        templateVersion: recipient.templateVersion
+      }))
+      .toSorted((a, b) => a.id.localeCompare(b.id)),
+    sender: input.sender
+  };
+  return createHash("sha256").update(JSON.stringify(payload)).digest("hex");
+}
+
+async function loadHostedCampaignPreparation(
+  client: RestClient,
+  tenantId: string,
+  campaignId: string
+): Promise<{
+  campaignId: string;
+  preparedAt: string | null;
+  preparedBy: string | null;
+  preparedRecipients: number;
+  snapshotFingerprint: string | null;
+} | null> {
+  const rows = await client.get(
+    `/rest/v1/outreach_hosted_campaigns?tenant_id=eq.${e(tenantId)}&campaign_ref=eq.${e(campaignId)}&limit=1`,
+    fromHostedPreparationRow
+  );
+  return rows[0] ?? null;
+}
+
+async function appendHostedPreparationActivity(
+  client: RestClient,
+  actor: { tenantId: string; userId: string },
+  campaignId: string,
+  action: "campaign_server_send_prepared" | "campaign_server_send_prepare_reused",
+  metadata: Record<string, string | number | boolean>
+) {
+  await client.post(
+    "/rest/v1/outreach_hosted_activity_events",
+    {
+      action,
+      entity_ref: campaignId,
+      entity_type: "campaign",
+      metadata: { ...metadata, actorId: actor.userId },
+      tenant_id: actor.tenantId,
+      title: action === "campaign_server_send_prepared" ? "Campaign prepared for server sending" : "Campaign preparation reused"
+    },
+    fromActivityRow
+  );
 }
 
 type RestClient = ReturnType<typeof createRestClient>;
@@ -612,6 +764,30 @@ function fromHostedCampaignRow(row: JsonRow): OutreachCampaign {
   };
 }
 
+function fromHostedPreparationRow(row: JsonRow): {
+  campaignId: string;
+  preparedAt: string | null;
+  preparedBy: string | null;
+  preparedRecipients: number;
+  snapshotFingerprint: string | null;
+} {
+  return {
+    campaignId: s(row.campaign_ref),
+    preparedAt: sn(row.prepared_at),
+    preparedBy: sn(row.prepared_by),
+    preparedRecipients: n(row.recipient_snapshot_count),
+    snapshotFingerprint: sn(row.snapshot_fingerprint)
+  };
+}
+
+function fromHostedActivitySummaryRow(row: JsonRow): HostedCampaignPreparationStatus["activity"][number] {
+  return {
+    action: s(row.action),
+    occurredAt: s(row.occurred_at),
+    title: s(row.title)
+  };
+}
+
 function fromHostedRecipientRow(row: JsonRow): CampaignRecipient {
   return {
     approvalContentHash: s(row.approval_content_hash),
@@ -875,7 +1051,8 @@ function toSendJobRow(input: CreateOutreachSendJobInput): JsonRow {
 function toHostedCampaignRow(
   input: HostedCampaignProjectionInput,
   actor: { tenantId: string; userId: string },
-  timestamp: string
+  timestamp: string,
+  snapshotFingerprint: string
 ): JsonRow {
   return {
     campaign_ref: input.campaign.id,
@@ -901,6 +1078,7 @@ function toHostedCampaignRow(
     sender_reply_to_email: input.sender.replyToEmail,
     sender_signature_html: input.sender.signatureHtml,
     sender_signature_text: input.sender.signatureText,
+    snapshot_fingerprint: snapshotFingerprint,
     status: "approved",
     subject_template: input.campaign.subjectTemplate,
     template_updated_at: input.campaign.templateUpdatedAt,

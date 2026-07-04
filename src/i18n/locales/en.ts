@@ -1128,7 +1128,44 @@ export const dictionary: Dictionary = {
       pausedResult: "Paused",
       resumedResult: "Resumed",
       cancelledResult: "Cancelled",
-      result: "Last result"
+      result: "Last result",
+      hostedPreparation: {
+        title: "Server-send preparation",
+        description:
+          "Prepare the approved campaign snapshot for hosted durable simulation. This does not send email or enable Brevo delivery.",
+        prepare: "Prepare for server sending",
+        preparing: "Preparing...",
+        refresh: "Refresh prepared state",
+        tenant: "Tenant",
+        noTenants: "No trusted tenant membership",
+        approvalState: "Approval",
+        approvedRecipients: "Approved recipients",
+        staleApprovals: "Stale approvals",
+        status: "Prepared state",
+        eligibility: "Eligibility",
+        eligible: "Ready to prepare",
+        notEligible: "Not ready",
+        needsApproval: "Campaign must be approved before preparation.",
+        hasStaleApprovals: "Resolve stale recipient approvals before preparation.",
+        emptySnapshot: "At least one approved included recipient is required.",
+        preparedAt: "Prepared at",
+        preparedBy: "Prepared by",
+        audit: "Recent hosted audit",
+        authUnavailable: "Hosted authentication or tenant membership is not available in this local session.",
+        statusFailed: "Prepared status could not be loaded.",
+        prepareFailed: "Campaign preparation failed. No email was sent.",
+        senderIncomplete: "Company or sender identity is incomplete.",
+        createdPrepared: "Prepared {count} recipients for hosted durable simulation.",
+        reusedPrepared: "Already prepared. Reused the existing hosted snapshot.",
+        states: {
+          failed: "Failed",
+          loading: "Loading",
+          not_prepared: "Not prepared",
+          prepared: "Prepared",
+          preparing: "Preparing",
+          stale: "Stale / invalid snapshot"
+        }
+      }
     },
     suppression: {
       title: "Suppression list",

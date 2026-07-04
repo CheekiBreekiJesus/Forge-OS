@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { hasSendJobPermission } from "./send-job-authorization";
 import {
+  resolveTrustedSendJobTenantMemberships,
   resolveTrustedSendJobActorContext,
   SendJobActorContextError
 } from "./send-job-actor-context";
@@ -93,6 +94,7 @@ describe("send job actor context", () => {
       userId: "auth_user_1"
     });
     expect(hasSendJobPermission(actor, "send_job:view")).toBe(true);
+    expect(hasSendJobPermission(actor, "send_job:prepare")).toBe(false);
     expect(hasSendJobPermission(actor, "send_job:queue")).toBe(false);
     expect(String(fetcher.mock.calls[1][0])).toContain("status=eq.active");
   });
@@ -147,5 +149,91 @@ describe("send job actor context", () => {
     ).rejects.toMatchObject({
       code: "tenant_selection_required"
     } satisfies Partial<SendJobActorContextError>);
+  });
+
+  it("selects a requested production tenant only when the membership is active", async () => {
+    const fetcher = mockFetch(
+      jsonResponse({ id: "auth_user_1" }),
+      jsonResponse(
+        [
+          { permissions: ["send_job:prepare"], role: "marketing_manager", status: "active", tenant_id: "tenant_a" },
+          { permissions: [], role: "viewer", status: "active", tenant_id: "tenant_b" }
+        ]
+      )
+    );
+
+    const actor = await resolveTrustedSendJobActorContext(
+      new Request("http://localhost/api/outreach/send-jobs", {
+        headers: {
+          authorization: "Bearer access-token",
+          "x-forgeos-selected-tenant-id": "tenant_b",
+          "x-forgeos-tenant-id": "tenant_spoofed"
+        }
+      }),
+      productionEnv,
+      fetcher
+    );
+
+    expect(actor).toMatchObject({
+      roles: ["viewer"],
+      source: "production_session",
+      tenantId: "tenant_b",
+      userId: "auth_user_1"
+    });
+  });
+
+  it("rejects selected tenants outside the authenticated membership set", async () => {
+    const fetcher = mockFetch(
+      jsonResponse({ id: "auth_user_1" }),
+      jsonResponse(
+        [
+          { permissions: [], role: "marketing_manager", status: "active", tenant_id: "tenant_a" },
+          { permissions: [], role: "viewer", status: "active", tenant_id: "tenant_b" }
+        ]
+      )
+    );
+
+    await expect(
+      resolveTrustedSendJobActorContext(
+        new Request("http://localhost/api/outreach/send-jobs", {
+          headers: {
+            authorization: "Bearer access-token",
+            "x-forgeos-selected-tenant-id": "tenant_attacker"
+          }
+        }),
+        productionEnv,
+        fetcher
+      )
+    ).rejects.toMatchObject({
+      code: "tenant_membership_required"
+    } satisfies Partial<SendJobActorContextError>);
+  });
+
+  it("returns only server-derived active memberships for tenant selection", async () => {
+    const fetcher = mockFetch(
+      jsonResponse({ id: "auth_user_1" }),
+      jsonResponse(
+        [
+          { permissions: ["send_job:prepare"], role: "marketing_manager", status: "active", tenant_id: "tenant_a" },
+          { permissions: [], role: "viewer", status: "disabled", tenant_id: "tenant_disabled" },
+          { permissions: [], role: "viewer", status: "active", tenant_id: "tenant_b" }
+        ]
+      )
+    );
+
+    const result = await resolveTrustedSendJobTenantMemberships(
+      new Request("http://localhost/api/outreach/send-jobs", {
+        headers: {
+          authorization: "Bearer access-token",
+          "x-forgeos-actor-id": "spoofed_user",
+          "x-forgeos-tenant-id": "tenant_spoofed"
+        }
+      }),
+      productionEnv,
+      fetcher
+    );
+
+    expect(result.memberships.map((membership) => membership.tenantId)).toEqual(["tenant_a", "tenant_b"]);
+    expect(result.userId).toBe("auth_user_1");
   });
 });

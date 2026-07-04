@@ -32,4 +32,8 @@ Explicit permissions from membership are honored first, then role-derived defaul
 
 ## Tenant Derivation
 
-For Step 7D1, the tenant is derived from the single active membership. If a user has multiple active memberships, the server returns `tenant_selection_required`.
+For single-membership users, the tenant is derived from the active membership.
+
+For multi-membership users, `GET /api/outreach/send-jobs/tenant-memberships` returns the trusted selector options. Mutating and status routes accept `x-forgeos-selected-tenant-id` only as a server-validated selector. If the selected tenant is missing or outside the active membership set, the route fails closed.
+
+`send_job:prepare` is the explicit permission for preparing approved campaign snapshots for hosted server sending. Role defaults grant it to owners, marketing managers, and outreach operators. View-only users can inspect authorized status but cannot prepare a snapshot.

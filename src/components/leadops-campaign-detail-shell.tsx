@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   refreshCampaignRecipients
 } from "@/application/campaign-segmentation-service";
@@ -13,7 +13,12 @@ import {
 } from "@/application/campaign-send-job-service";
 import { AppFrame, panelClass } from "@/components/app-frame";
 import { CampaignTemplateDraftsPanel } from "@/components/campaign-template-drafts-panel";
-import { computeCampaignProgress, deriveCampaignStatus } from "@/application/campaign-approval-service";
+import {
+  buildApprovalContentHash,
+  computeCampaignProgress,
+  deriveCampaignStatus
+} from "@/application/campaign-approval-service";
+import { loadSenderContext } from "@/application/campaign-sender-context";
 import type { CampaignRecipient, OutreachCampaign } from "@/domain/campaign-types";
 import type {
   EmailDeliveryRequest,
@@ -35,6 +40,24 @@ type LeadOpsCampaignDetailShellProps = {
   campaignId: string;
 };
 
+type HostedTenantMembership = {
+  tenantId: string;
+  roles: string[];
+  permissions: string[];
+};
+
+type HostedPreparationStatus = {
+  activity: Array<{ action: string; occurredAt: string; title: string }>;
+  campaignId: string;
+  preparedAt: string | null;
+  preparedBy: string | null;
+  preparedRecipients: number;
+  snapshotFingerprint: string | null;
+  status: "not_prepared" | "prepared";
+};
+
+type HostedPreparationUiState = "not_prepared" | "loading" | "preparing" | "prepared" | "failed" | "stale";
+
 export function LeadOpsCampaignDetailShell({
   dictionary,
   locale,
@@ -51,6 +74,12 @@ export function LeadOpsCampaignDetailShell({
   const [refreshDiff, setRefreshDiff] = useState<string | null>(null);
   const [confirmRefresh, setConfirmRefresh] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [hostedMemberships, setHostedMemberships] = useState<HostedTenantMembership[]>([]);
+  const [selectedHostedTenantId, setSelectedHostedTenantId] = useState("");
+  const [hostedPreparationStatus, setHostedPreparationStatus] = useState<HostedPreparationStatus | null>(null);
+  const [hostedPreparationUiState, setHostedPreparationUiState] =
+    useState<HostedPreparationUiState>("loading");
+  const [hostedPreparationMessage, setHostedPreparationMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (state.status !== "ready") return;
@@ -93,6 +122,81 @@ export function LeadOpsCampaignDetailShell({
     setSendJobRecipients(jobRecipients);
   };
 
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch("/api/outreach/send-jobs/tenant-memberships");
+        const payload = (await response.json().catch(() => null)) as
+          | { ok: true; result: { memberships: HostedTenantMembership[]; selectedTenantId: string | null } }
+          | { ok: false; error?: { message?: string } }
+          | null;
+        if (cancelled) return;
+        if (!response.ok || !payload || !payload.ok) {
+          setHostedPreparationUiState("failed");
+          setHostedPreparationMessage(hostedErrorMessage(payload) ?? copy.sendJobs.hostedPreparation.authUnavailable);
+          return;
+        }
+        setHostedMemberships(payload.result.memberships);
+        setSelectedHostedTenantId(payload.result.selectedTenantId ?? payload.result.memberships[0]?.tenantId ?? "");
+      } catch {
+        if (!cancelled) {
+          setHostedPreparationUiState("failed");
+          setHostedPreparationMessage(copy.sendJobs.hostedPreparation.authUnavailable);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [copy.sendJobs.hostedPreparation.authUnavailable]);
+
+  const refreshHostedPreparationStatus = useCallback(async (
+    tenantIdForSelection = selectedHostedTenantId,
+    options: { cancelled?: boolean; preserveMessage?: boolean } = {}
+  ) => {
+    if (!campaign || !tenantIdForSelection) return;
+    try {
+      const response = await fetch(
+        `/api/outreach/send-jobs/prepare-campaign/status?campaignId=${encodeURIComponent(campaign.id)}`,
+        { headers: { "x-forgeos-selected-tenant-id": tenantIdForSelection } }
+      );
+      const payload = (await response.json().catch(() => null)) as
+        | { ok: true; result: HostedPreparationStatus }
+        | { ok: false; error?: { message?: string } }
+        | null;
+      if (options.cancelled) return;
+      if (!response.ok || !payload || !payload.ok) {
+        setHostedPreparationStatus(null);
+        setHostedPreparationUiState("failed");
+        setHostedPreparationMessage(hostedErrorMessage(payload) ?? copy.sendJobs.hostedPreparation.statusFailed);
+        return;
+      }
+      setHostedPreparationStatus(payload.result);
+      if (!options.preserveMessage) setHostedPreparationMessage(null);
+      setHostedPreparationUiState(payload.result.status === "prepared" ? "prepared" : "not_prepared");
+    } catch {
+      if (!options.cancelled) {
+        setHostedPreparationStatus(null);
+        setHostedPreparationUiState("failed");
+        setHostedPreparationMessage(copy.sendJobs.hostedPreparation.statusFailed);
+      }
+    }
+  }, [campaign, copy.sendJobs.hostedPreparation.statusFailed, selectedHostedTenantId]);
+
+  useEffect(() => {
+    if (!campaign || !selectedHostedTenantId) return;
+    const cancellation = { cancelled: false };
+    queueMicrotask(() => {
+      if (cancellation.cancelled) return;
+      setHostedPreparationUiState("loading");
+      void refreshHostedPreparationStatus(selectedHostedTenantId, cancellation);
+    });
+    return () => {
+      cancellation.cancelled = true;
+    };
+  }, [campaign, campaignId, selectedHostedTenantId, refreshHostedPreparationStatus]);
+
   const included = useMemo(() => recipients.filter((row) => row.status === "included"), [recipients]);
   const excluded = useMemo(() => recipients.filter((row) => row.status === "excluded"), [recipients]);
   const progress = useMemo(() => computeCampaignProgress(recipients), [recipients]);
@@ -106,6 +210,31 @@ export function LeadOpsCampaignDetailShell({
     () => (campaign ? deriveCampaignStatus(campaign, recipients) : null),
     [campaign, recipients]
   );
+  const approvedIncludedRecipients = useMemo(
+    () => included.filter((recipient) => recipient.draftStatus === "APPROVED"),
+    [included]
+  );
+  const staleApprovedRecipients = useMemo(
+    () =>
+      approvedIncludedRecipients.filter(
+        (recipient) => !recipient.approvalContentHash || buildApprovalContentHash(recipient) !== recipient.approvalContentHash
+      ),
+    [approvedIncludedRecipients]
+  );
+  const hostedPreparationCopy = sendJobCopy.hostedPreparation;
+  const canPrepareForHostedSending =
+    Boolean(campaign) &&
+    campaign?.status === "approved" &&
+    campaign?.deliveryMode === "simulation" &&
+    approvedIncludedRecipients.length > 0 &&
+    staleApprovedRecipients.length === 0 &&
+    Boolean(selectedHostedTenantId);
+  const effectiveHostedPreparationUiState =
+    hostedPreparationUiState === "prepared" &&
+    hostedPreparationStatus &&
+    hostedPreparationStatus.preparedRecipients !== approvedIncludedRecipients.length
+      ? "stale"
+      : hostedPreparationUiState;
 
   async function handleRefresh() {
     if (state.status !== "ready" || !campaign || campaign.status !== "draft") return;
@@ -124,6 +253,72 @@ export function LeadOpsCampaignDetailShell({
       setConfirmRefresh(false);
     } finally {
       setRefreshing(false);
+    }
+  }
+
+  async function handlePrepareForHostedSending() {
+    if (state.status !== "ready" || !campaign || !canPrepareForHostedSending) return;
+    setHostedPreparationUiState("preparing");
+    setHostedPreparationMessage(null);
+    try {
+      const senderContext = await loadSenderContext(state.repos, tenantId, campaign);
+      if (!senderContext.ready) {
+        setHostedPreparationUiState("failed");
+        setHostedPreparationMessage(hostedPreparationCopy.senderIncomplete);
+        return;
+      }
+      const response = await fetch("/api/outreach/send-jobs/prepare-campaign", {
+        body: JSON.stringify({
+          campaign,
+          company: {
+            generalEmail: senderContext.company.generalEmail,
+            legalFooter: senderContext.company.legalFooter,
+            legalName: senderContext.company.legalName,
+            tradingName: senderContext.company.tradingName,
+            websiteUrl: senderContext.company.websiteUrl
+          },
+          recipients: approvedIncludedRecipients,
+          sender: {
+            displayName: senderContext.sender.displayName,
+            fromEmail: senderContext.sender.fromEmail,
+            id: senderContext.sender.id,
+            replyToEmail: senderContext.sender.replyToEmail,
+            signatureHtml: senderContext.sender.signatureHtml,
+            signatureText: senderContext.sender.signatureText
+          }
+        }),
+        headers: {
+          "content-type": "application/json",
+          "x-forgeos-selected-tenant-id": selectedHostedTenantId
+        },
+        method: "POST"
+      });
+      const payload = (await response.json().catch(() => null)) as
+        | {
+            ok: true;
+            result: {
+              preparedAt: string;
+              preparedRecipients: number;
+              reused: boolean;
+            };
+          }
+        | { ok: false; error?: { message?: string } }
+        | null;
+      if (!response.ok || !payload || !payload.ok) {
+        setHostedPreparationUiState("failed");
+        setHostedPreparationMessage(hostedErrorMessage(payload) ?? hostedPreparationCopy.prepareFailed);
+        return;
+      }
+      setHostedPreparationUiState("prepared");
+      setHostedPreparationMessage(
+        payload.result.reused
+          ? hostedPreparationCopy.reusedPrepared
+          : hostedPreparationCopy.createdPrepared.replace("{count}", String(payload.result.preparedRecipients))
+      );
+      await refreshHostedPreparationStatus(selectedHostedTenantId, { preserveMessage: true });
+    } catch {
+      setHostedPreparationUiState("failed");
+      setHostedPreparationMessage(hostedPreparationCopy.prepareFailed);
     }
   }
 
@@ -320,6 +515,127 @@ export function LeadOpsCampaignDetailShell({
             <ProgressItem label={progressCopy.suppressed} value={progress.suppressed} />
             <ProgressItem label={progressCopy.skipped} value={progress.skipped} />
           </div>
+        </section>
+
+        <section className={`${panelClass} p-5 xl:col-span-2`} data-testid="hosted-preparation-panel">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-bold">{hostedPreparationCopy.title}</h2>
+              <p className="mt-2 text-sm text-slate-400">{hostedPreparationCopy.description}</p>
+            </div>
+            <button
+              className="rounded border border-orange-400 px-3 py-1 text-sm font-semibold text-orange-300 disabled:cursor-not-allowed disabled:opacity-50"
+              data-testid="prepare-server-send"
+              disabled={!canPrepareForHostedSending || hostedPreparationUiState === "preparing"}
+              onClick={() => void handlePrepareForHostedSending()}
+              type="button"
+            >
+              {hostedPreparationUiState === "preparing" ? hostedPreparationCopy.preparing : hostedPreparationCopy.prepare}
+            </button>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+            <ProgressItem
+              label={hostedPreparationCopy.approvalState}
+              testId="hosted-preparation-approval"
+              value={copy.campaignStatuses[campaign.status]}
+            />
+            <ProgressItem
+              label={hostedPreparationCopy.approvedRecipients}
+              testId="hosted-preparation-recipients"
+              value={approvedIncludedRecipients.length}
+            />
+            <ProgressItem
+              label={hostedPreparationCopy.staleApprovals}
+              testId="hosted-preparation-stale"
+              value={staleApprovedRecipients.length}
+            />
+            <ProgressItem
+              label={hostedPreparationCopy.status}
+              testId="hosted-preparation-status"
+              value={hostedPreparationCopy.states[effectiveHostedPreparationUiState]}
+            />
+          </div>
+
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+            <label className="block text-sm">
+              <span className="text-slate-400">{hostedPreparationCopy.tenant}</span>
+              <select
+                className="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100"
+                data-testid="hosted-tenant-select"
+                disabled={hostedMemberships.length <= 1}
+                onChange={(event) => setSelectedHostedTenantId(event.target.value)}
+                value={selectedHostedTenantId}
+              >
+                {hostedMemberships.length === 0 ? (
+                  <option value="">{hostedPreparationCopy.noTenants}</option>
+                ) : (
+                  hostedMemberships.map((membership) => (
+                    <option key={membership.tenantId} value={membership.tenantId}>
+                      {membership.tenantId}
+                    </option>
+                  ))
+                )}
+              </select>
+            </label>
+            <div className="rounded border border-slate-800 bg-slate-950 p-3 text-sm text-slate-400">
+              <p>
+                {hostedPreparationCopy.eligibility}:{" "}
+                <span className={canPrepareForHostedSending ? "text-green-300" : "text-orange-300"}>
+                  {canPrepareForHostedSending ? hostedPreparationCopy.eligible : hostedPreparationCopy.notEligible}
+                </span>
+              </p>
+              {campaign.status !== "approved" ? <p>{hostedPreparationCopy.needsApproval}</p> : null}
+              {staleApprovedRecipients.length > 0 ? <p>{hostedPreparationCopy.hasStaleApprovals}</p> : null}
+              {approvedIncludedRecipients.length === 0 ? <p>{hostedPreparationCopy.emptySnapshot}</p> : null}
+            </div>
+          </div>
+
+          {hostedPreparationStatus?.preparedAt ? (
+            <div className="mt-4 grid gap-3 text-sm md:grid-cols-2">
+              <DetailRow
+                label={hostedPreparationCopy.preparedAt}
+                testId="hosted-preparation-prepared-at"
+                value={new Date(hostedPreparationStatus.preparedAt).toLocaleString(locale)}
+              />
+              <DetailRow
+                label={hostedPreparationCopy.preparedBy}
+                testId="hosted-preparation-prepared-by"
+                value={hostedPreparationStatus.preparedBy ?? "-"}
+              />
+            </div>
+          ) : null}
+
+          {hostedPreparationMessage ? (
+            <p
+              className={`mt-3 text-sm ${hostedPreparationUiState === "failed" ? "text-red-300" : "text-green-400"}`}
+              data-testid="hosted-preparation-message"
+            >
+              {hostedPreparationMessage}
+            </p>
+          ) : null}
+
+          {hostedPreparationStatus?.activity.length ? (
+            <div className="mt-4 text-xs text-slate-500" data-testid="hosted-preparation-audit">
+              <p className="font-semibold text-slate-400">{hostedPreparationCopy.audit}</p>
+              <ul className="mt-2 space-y-1">
+                {hostedPreparationStatus.activity.map((event) => (
+                  <li key={`${event.action}:${event.occurredAt}`}>
+                    {new Date(event.occurredAt).toLocaleString(locale)} - {event.title}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          <button
+            className="mt-4 rounded border border-slate-700 px-3 py-1 text-sm text-slate-300"
+            data-testid="refresh-hosted-preparation"
+            onClick={() => void refreshHostedPreparationStatus()}
+            type="button"
+          >
+            {hostedPreparationCopy.refresh}
+          </button>
         </section>
 
         <section className={`${panelClass} p-5 xl:col-span-2`} data-testid="send-job-panel">
@@ -550,4 +866,12 @@ function DetailRow({
       <dd data-testid={testId}>{value}</dd>
     </div>
   );
+}
+
+function hostedErrorMessage(payload: unknown): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const error = (payload as { error?: unknown }).error;
+  if (!error || typeof error !== "object") return null;
+  const message = (error as { message?: unknown }).message;
+  return typeof message === "string" && message.trim() ? message : null;
 }

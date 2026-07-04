@@ -20,6 +20,19 @@ export type TrustedSendJobActorContext = {
   correlationId: string;
 };
 
+export type TrustedSendJobTenantMembership = {
+  tenantId: string;
+  roles: SendJobRole[];
+  permissions: string[];
+};
+
+export type TrustedSendJobTenantMembershipList = {
+  userId: string;
+  memberships: TrustedSendJobTenantMembership[];
+  source: TrustedSendJobActorContext["source"];
+  correlationId: string;
+};
+
 export class SendJobActorContextError extends Error {
   constructor(
     public readonly code:
@@ -104,6 +117,30 @@ export async function resolveTrustedSendJobActorContext(
   };
 }
 
+export async function resolveTrustedSendJobTenantMemberships(
+  request: Request,
+  env: Record<string, string | undefined> = process.env,
+  fetcher: typeof fetch = fetch
+): Promise<TrustedSendJobTenantMembershipList> {
+  if (env.NODE_ENV === "production") {
+    return resolveProductionTenantMemberships(request, env, fetcher);
+  }
+
+  const actor = await resolveTrustedSendJobActorContext(request, env, fetcher);
+  return {
+    correlationId: actor.correlationId,
+    memberships: [
+      {
+        permissions: actor.permissions,
+        roles: actor.roles,
+        tenantId: actor.tenantId
+      }
+    ],
+    source: actor.source,
+    userId: actor.userId
+  };
+}
+
 function readHeader(request: Request, key: string): string {
   return request.headers.get(key)?.trim() ?? "";
 }
@@ -138,20 +175,69 @@ async function resolveProductionActorContext(
       "Active tenant membership is required."
     );
   }
-  if (memberships.length > 1) {
+  const selectedTenantId = readHeader(request, "x-forgeos-selected-tenant-id");
+  if (memberships.length > 1 && !selectedTenantId) {
     throw new SendJobActorContextError(
       "tenant_selection_required",
       "Multiple active tenant memberships require a trusted tenant selector."
     );
   }
 
-  const membership = memberships[0];
+  const membership = selectedTenantId
+    ? memberships.find((row) => row.tenantId === selectedTenantId)
+    : memberships[0];
+  if (!membership) {
+    throw new SendJobActorContextError(
+      "tenant_membership_required",
+      "Selected tenant membership is not active for this user."
+    );
+  }
+
   return {
     correlationId: crypto.randomUUID(),
     permissions: membership.permissions,
     roles: membership.roles,
     source: "production_session",
     tenantId: membership.tenantId,
+    userId
+  };
+}
+
+async function resolveProductionTenantMemberships(
+  request: Request,
+  env: Record<string, string | undefined>,
+  fetcher: typeof fetch
+): Promise<TrustedSendJobTenantMembershipList> {
+  const config = readProductionAuthConfig(env);
+  if (!config) {
+    throw new SendJobActorContextError(
+      "production_auth_not_configured",
+      "Production send-job auth adapter is not configured."
+    );
+  }
+
+  const accessToken = readBearerToken(request);
+  if (!accessToken) {
+    throw new SendJobActorContextError("authentication_required", "Authenticated session is required.");
+  }
+
+  const userId = await fetchSupabaseUserId(config, accessToken, fetcher);
+  if (!userId) {
+    throw new SendJobActorContextError("authentication_required", "Authenticated session is invalid.");
+  }
+
+  const memberships = await fetchActiveMemberships(config, userId, fetcher);
+  if (memberships.length === 0) {
+    throw new SendJobActorContextError(
+      "tenant_membership_required",
+      "Active tenant membership is required."
+    );
+  }
+
+  return {
+    correlationId: crypto.randomUUID(),
+    memberships,
+    source: "production_session",
     userId
   };
 }
@@ -197,7 +283,7 @@ async function fetchActiveMemberships(
   config: AuthConfig,
   userId: string,
   fetcher: typeof fetch
-): Promise<Array<{ tenantId: string; roles: SendJobRole[]; permissions: string[] }>> {
+): Promise<TrustedSendJobTenantMembership[]> {
   const params = new URLSearchParams({
     select: "tenant_id,role,permissions,status",
     status: "eq.active",
@@ -222,7 +308,7 @@ async function fetchActiveMemberships(
 
 function parseMembership(
   row: TenantMembershipRow
-): { tenantId: string; roles: SendJobRole[]; permissions: string[] } | null {
+): TrustedSendJobTenantMembership | null {
   if (row.status !== "active") return null;
   const tenantId = typeof row.tenant_id === "string" ? row.tenant_id.trim() : "";
   const role = typeof row.role === "string" ? row.role.trim() : "";

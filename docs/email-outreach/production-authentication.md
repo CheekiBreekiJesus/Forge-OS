@@ -13,7 +13,8 @@ In production:
 - a `Bearer` access token is required;
 - the token is validated server-side through Supabase Auth `/auth/v1/user`;
 - the authenticated user ID is loaded from the Auth response;
-- active tenant membership is loaded with server-only Supabase credentials.
+- active tenant membership is loaded with server-only Supabase credentials;
+- users with multiple active memberships must select a tenant returned by the trusted server membership endpoint.
 
 In development and test only, trusted headers remain available behind `NODE_ENV !== "production"` for deterministic local tests.
 
@@ -25,8 +26,11 @@ Production route execution fails closed when:
 - no bearer token is present;
 - Supabase Auth rejects the token;
 - no active tenant membership exists;
-- more than one active membership exists and no trusted tenant selector has been implemented.
+- more than one active membership exists and no selected tenant is supplied;
+- the selected tenant is not in the authenticated user's active membership set.
 
-## Remaining Step 7D2 Need
+## Tenant Selection
 
-Multi-tenant users need a trusted tenant selector, probably a server-created session/cookie value tied to a validated membership. Until then, multiple active memberships are rejected rather than guessed.
+`GET /api/outreach/send-jobs/tenant-memberships` returns active memberships derived server-side after token validation. The campaign UI can display those memberships. Follow-up calls may include `x-forgeos-selected-tenant-id`, but production treats that value only as a selector and validates it against the active membership list before deriving tenant, roles, and permissions.
+
+The browser cannot elevate role, permission, actor, or tenant by sending `x-forgeos-actor-id`, `x-forgeos-tenant-id`, or `x-forgeos-roles` in production.

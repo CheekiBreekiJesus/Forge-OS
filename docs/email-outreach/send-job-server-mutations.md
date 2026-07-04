@@ -1,7 +1,7 @@
 # Send Job Server Mutations
 
 Date: 2026-07-03
-Status: Step 7D1 production auth adapter and hosted repository bundle added; staging DB validation pending
+Status: Step 7D2 tenant selection and hosted preparation UI added; staging DB validation pending
 
 ## Routes
 
@@ -15,6 +15,8 @@ The following Next.js route handlers exist under `/api/outreach/send-jobs`:
 - `POST /retry`
 - `POST /status`
 - `POST /prepare-campaign`
+- `GET /prepare-campaign/status?campaignId=...`
+- `GET /tenant-memberships`
 
 Each route uses the shared server wrapper in `src/app/api/outreach/send-jobs/_shared.ts` and the mutation service in `src/application/send-job-server-mutations.ts`.
 
@@ -27,7 +29,7 @@ Routes derive actor and tenant from `resolveTrustedSendJobActorContext`. In deve
 - `x-forgeos-roles`
 - `x-forgeos-correlation-id`
 
-In production, routes require a Supabase Auth bearer token. The server validates the token, loads active tenant membership, and derives tenant, roles, and permissions from hosted persistence. Request bodies must not supply tenant, actor, role, permissions, recipient lists, or approved email content.
+In production, routes require a Supabase Auth bearer token. The server validates the token, loads active tenant membership, and derives tenant, roles, and permissions from hosted persistence. Multi-tenant users select from memberships returned by `GET /tenant-memberships`; the selected tenant is validated server-side before use. Request bodies must not supply tenant, actor, role, permissions, or unapproved email content.
 
 ## Validation
 
@@ -68,4 +70,4 @@ The default runtime dependency provider now uses the hosted send-job repository 
 
 Hosted execution remains simulation-only. Brevo campaign batch delivery is still rejected by request parsing and provider configuration.
 
-`/prepare-campaign` is a preparation boundary only. It accepts an approved campaign snapshot, rechecks tenant ownership and approval hashes server-side, and writes the hosted projection. It does not queue, process, or send email.
+`/prepare-campaign` is a preparation boundary only. It accepts an approved campaign snapshot, requires `send_job:prepare`, rechecks tenant ownership and approval hashes server-side, writes the hosted projection, stores a snapshot fingerprint, and returns whether the prepared snapshot was created or reused. It does not queue, process, or send email.

@@ -36,4 +36,13 @@ describe("outreach hosted runtime migrations", () => {
     expect(sql).toContain("grant select, insert, update, delete on public.outreach_hosted_campaigns to service_role");
     expect(sql).toContain("grant select, insert, update, delete on public.outreach_hosted_campaign_recipients to service_role");
   });
+
+  it("adds hosted campaign preparation status metadata for idempotent snapshots", () => {
+    const sql = migration("202607030002_outreach_hosted_preparation_status.sql");
+
+    expect(sql).toContain("alter table public.outreach_hosted_campaigns");
+    expect(sql).toContain("add column if not exists snapshot_fingerprint text");
+    expect(sql).toContain("create index if not exists outreach_hosted_campaigns_snapshot_idx");
+    expect(sql).toContain("snapshot_fingerprint");
+  });
 });

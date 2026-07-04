@@ -17,6 +17,7 @@
     "test:acceptance:live-ai": "playwright test --config playwright.acceptance.config.ts e2e/acceptance/live-ai.spec.ts",
     "typecheck": "tsc --noEmit",
     "validate": "npm run lint && npm run typecheck && npm test && npm run build",
+    "outreach:hosted:migration:check": "tsx scripts/outreach-hosted-runtime/check-migrations.ts",
     "ai:models": "tsx scripts/ai/models.ts",
     "ai:doctor": "tsx scripts/ai/doctor.ts",
     "ai:compare": "tsx scripts/ai/compare.ts",

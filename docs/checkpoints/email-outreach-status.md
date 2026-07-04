@@ -1,12 +1,12 @@
 # Email Outreach Status - Step 7 Recovery Checkpoint
 
 Date: 2026-07-03
-Branch: `feat/email-outreach-send-jobs`
-Base: `fb82211`
+Branch: `feat/email-outreach-send-jobs-7d2`
+Base: `47af013`
 
 ## Step 7 Checkpoint Status
 
-Local simulation send jobs are working and tested. Step 7D1 adds production Supabase Auth context resolution, active tenant-membership lookup, hosted campaign projection schema, and a hosted server repository bundle. Production email sending is not enabled.
+Local simulation send jobs are working and tested. Step 7D2 adds trusted multi-membership tenant selection, user-facing hosted campaign preparation, idempotent prepared-state tracking, and migration validation tooling. Production email sending is not enabled.
 
 ## Working
 
@@ -30,6 +30,10 @@ Local simulation send jobs are working and tested. Step 7D1 adds production Supa
 - [x] Production auth adapter and tenant membership lookup.
 - [x] Hosted server repository adapter.
 - [x] Hosted campaign and recipient projection schema.
+- [x] Trusted tenant selector for users with multiple active memberships.
+- [x] UI panel for preparing approved campaign snapshots for hosted durable simulation.
+- [x] Idempotent hosted campaign preparation status and audit display.
+- [x] Static migration validation tooling.
 - [ ] Postgres/Supabase integration tests.
 - [ ] Brevo campaign batch sending.
 - [ ] Real campaign email sends.
@@ -38,11 +42,10 @@ Local simulation send jobs are working and tested. Step 7D1 adds production Supa
 
 IndexedDB is extended with send-job tables in `src/persistence/db.ts`.
 
-Supabase migrations `202607020002_outreach_send_jobs.sql` and `202607030001_outreach_hosted_runtime_projection.sql` are present but not applied by this work.
+Supabase migrations `202607020002_outreach_send_jobs.sql`, `202607030001_outreach_hosted_runtime_projection.sql`, and `202607030002_outreach_hosted_preparation_status.sql` are present but not applied by this work.
 
 ## Next Steps
 
-1. Add explicit local-to-hosted approved campaign preparation route and UI.
-2. Run migration/RPC validation against Supabase/Postgres.
-3. Add trusted tenant selection for users with multiple active memberships.
-4. Keep Brevo real-send campaign processing blocked until Step 9 approval.
+1. Run migration/RPC validation against local Supabase or approved non-production Supabase/Postgres.
+2. Run hosted durable simulation with real Supabase Auth bearer sessions and service-role server credentials.
+3. Keep Brevo real-send campaign processing blocked until Step 9 approval.
