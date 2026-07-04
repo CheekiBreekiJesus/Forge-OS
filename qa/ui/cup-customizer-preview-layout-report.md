@@ -1,9 +1,10 @@
 # Cup Customizer Preview Layout — Visual QA Report
 
 **Date:** 2026-07-04  
-**Branch:** `fix/cup-customizer-preview-layout`
+**Branch:** `feat/cup-customizer-integration-ui` @ `34302bb`  
+**Merge:** `origin/fix/cup-customizer-preview-layout` integrated with no conflicts
 
-## Viewports reviewed
+## Post-merge validation
 
 | Viewport | Canvas | Upload overlay | Upload works | Mockup visible | Horizontal overflow | Save visible |
 |----------|--------|----------------|--------------|----------------|---------------------|--------------|
@@ -12,6 +13,8 @@
 | 1920×1080 | Yes | Yes | Yes | Yes | No | Yes |
 | 390×844 | Yes (preview step) | Yes | Yes | Yes | No | Yes (sticky nav) |
 | 768×1024 | Yes | Yes | Yes | Yes | No | Yes |
+
+**E2E:** 25/25 passed on merged branch (`e2e/cup-customizer.spec.ts`).
 
 ## PT-PT / EN
 

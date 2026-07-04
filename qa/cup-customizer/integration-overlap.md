@@ -1,49 +1,48 @@
 # Cup Customizer Integration Overlap
 
 Date: 2026-07-04  
-Branch: `feat/cup-customizer-integration-ui`  
-Comparison base: `160675a` (outreach MVP integration checkpoint)
+Branch: `feat/cup-customizer-integration-ui` @ `34302bb`  
+Preview UX source: `origin/fix/cup-customizer-preview-layout` (`1529a9d`)
 
-## Files changed on this branch (cup customizer scope)
+## Merge completed
 
-Primary customizer-only paths:
+```
+302c15a (feat/cup-customizer-integration-ui)
+    └── 34302bb merge(cups): integrate preview UX repair
+            └── 1529a9d (fix/cup-customizer-preview-layout)
+```
+
+**Conflicts:** none  
+**Worktree:** `Forge-OS-cup-customizer-integration`
+
+## Files on feature branch after merge
+
+Primary customizer paths:
 
 - `src/components/cup-customizer-shell.tsx`
+- `src/components/cup-customizer-preview-panel.tsx`
 - `src/components/cup-customizer-workflow-nav.tsx`
 - `src/features/cup-customizer/**`
+- `packages/cup-customizer/**` (includes `cup-design-canvas.tsx`)
 - `src/domain/customizer-types.ts`
 - `src/persistence/indexeddb/customizer-repositories.ts`
 - `src/persistence/customizer-integration.test.ts`
-- `src/app/[locale]/products/cup-customizer/page.tsx`
-- `src/app/[locale]/quotations/customizer/page.tsx`
-- `packages/cup-customizer/**`
-- `public/demo/products/*.svg`
 - `e2e/cup-customizer.spec.ts`
 - `docs/product/cup-customizer*.md`
-- `qa/cup-customizer/**`
-- `scripts/qa/cup-customizer-private-acceptance.ts`
+- `qa/cup-customizer/**`, `qa/ui/cup-customizer-preview-layout-report.md`
 
-## Files changed on concurrent integration branch
+## Concurrent branch overlap (unchanged)
 
-`origin/feat/email-outreach-mvp-integration` since `160675a` focuses on:
+`origin/feat/email-outreach-mvp-integration` since `160675a`:
 
-- Draft personalization (`src/features/leadops/*`)
-- Campaign approval/draft services
-- Sender profiles and settings UI
-- Outreach i18n additions
-- Campaign repository updates
+| File | Risk | Mitigation |
+|------|------|------------|
+| `src/i18n/dictionaries.ts` | Medium | Keep both outreach and customizer sections |
+| `src/i18n/locales/en.ts` | Medium | Cherry-pick customizer `customizerModule` block |
+| `src/i18n/locales/pt-PT.ts` | Medium | Same |
+| `src/persistence/db.ts` | High | Customizer uses optional fields; avoid unrelated Dexie bumps |
 
-## Overlapping files
-
-| File | Reason | Risk | Mitigation |
-|------|--------|------|------------|
-| `src/i18n/dictionaries.ts` | Both add module strings | Medium | Merge customizer `workflow` / `mockup` blocks only |
-| `src/i18n/locales/en.ts` | Same | Medium | Cherry-pick customizer section |
-| `src/i18n/locales/pt-PT.ts` | Same | Medium | Cherry-pick customizer section |
-| `src/persistence/db.ts` | Both may bump schema | High | Customizer uses optional fields; avoid new Dexie version unless required |
-| `src/persistence/indexeddb/repositories.ts` | Shared quote repo | Low | Customizer changes isolated to `customizer-repositories.ts` |
-
-## Non-overlapping protected areas (do not merge from this branch)
+## Protected areas (do not merge from other branches into customizer pass)
 
 - Send-job routes and mutations
 - Supabase outreach migrations
@@ -52,19 +51,16 @@ Primary customizer-only paths:
 - Authentication session handling
 - Inventory ledger
 
-## Recommended merge order
+## Recommended later integration order
 
-1. Merge `origin/feat/email-outreach-mvp-integration` into integration line first (or rebase cup branch onto it).
-2. Cherry-pick / merge `feat/cup-customizer-integration-ui` customizer commits.
-3. Resolve i18n conflicts by keeping both outreach and customizer dictionary sections.
-4. Run `npm run validate` and `e2e/cup-customizer.spec.ts` after merge.
-5. Do not merge inventory or table-density branches in the same pass.
+1. Merge `origin/feat/email-outreach-mvp-integration` first (or rebase outreach onto this line).
+2. Merge `feat/cup-customizer-integration-ui` (`34302bb`) — preview UX already included.
+3. Resolve i18n conflicts by keeping both dictionary sections.
+4. Run `npm run validate` and `e2e/cup-customizer.spec.ts`.
+5. Do **not** merge inventory or table-density branches in the same pass.
 
-## Cherry-pick friendly commits (this task)
+## Outreach requirements after customizer merge
 
-1. `docs(cups): recovery plan and specification`
-2. `feat(cups): products route and workflow navigation`
-3. `feat(cups): gated photorealistic mockup workflow`
-4. `feat(cups): idempotent draft quotation updates`
-5. `test(cups): workflow, mockup, and quotation idempotency`
-6. `docs(cups): product docs and checkpoint`
+- Marketing visualization meta keys (`cup-customizer:marketing-visualization:*`) available for future attachment workflows
+- No direct coupling to campaign-send services in this branch
+- Customizer mockup remains local IndexedDB only

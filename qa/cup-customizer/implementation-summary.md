@@ -1,15 +1,16 @@
 # Cup Customizer Implementation Summary
 
-Date: 2026-07-04
+Date: 2026-07-04  
+Branch: `feat/cup-customizer-integration-ui` @ `34302bb`
 
 ## What was reused
 
-- `packages/cup-customizer` pricing engine and `CupPreview`
+- `packages/cup-customizer` pricing engine
 - `cup-customizer-shell.tsx` (extended, not replaced)
-- IndexedDB `customizerSimulations` repository
-- Existing e2e customizer spec (extended)
+- IndexedDB `customizerSimulations` repository and idempotent quotation conversion
+- Existing e2e customizer spec (extended with viewport matrix)
 
-## What was added
+## Original feature branch (`302c15a`)
 
 | Area | Change |
 |------|--------|
@@ -19,24 +20,28 @@ Date: 2026-07-04
 | Quotations | Draft quote update on re-convert |
 | Domain | `mockupGeneration`, `workflowStatus` optional fields |
 | Tests | `workflow.test.ts`, idempotent quote integration test |
-| Docs | Full `docs/product/cup-customizer*` set |
-| QA | `baseline.md`, `integration-overlap.md`, private acceptance script |
 
-## Files touched (this session)
+## Preview UX merge (`1529a9d` → `34302bb`)
 
-- `src/components/cup-customizer-shell.tsx`
-- `src/components/cup-customizer-workflow-nav.tsx`
-- `src/features/cup-customizer/workflow.ts`
-- `src/features/cup-customizer/mockup-generation.ts`
-- `src/features/cup-customizer/workflow-status.ts`
-- `src/domain/customizer-types.ts`
-- `src/persistence/indexeddb/customizer-repositories.ts`
-- `src/i18n/*` (customizer module strings only)
-- `src/app/[locale]/products/cup-customizer/page.tsx`
+| Area | Change |
+|------|--------|
+| Canvas | `CupDesignCanvas` with blank cup + upload overlay |
+| Pipeline | `artwork-pipeline.ts`, object-URL lifecycle |
+| Preview panel | Design/mockup tabs, compact pricing, save actions |
+| Mockup display | `cup-mockup-image` renders persisted SVG asset |
+| Logos | Customer meta registry, company logo, provider boundaries |
+| Marketing | `saveMarketingVisualization` local export boundary |
+| Layout | 56/44 desktop grid, collapsible simulations |
+| Tests | `preview-ux.integration.test.ts`, viewport e2e (25 tests) |
+
+## Merge conflicts
+
+None — automatic merge succeeded.
 
 ## Safety verified
 
 - No email send paths modified
 - No inventory mutation
-- No paid AI in unit tests
+- No paid AI in unit/e2e tests
 - No private artwork in repo
+- Pricing formulas unchanged
