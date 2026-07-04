@@ -16,20 +16,21 @@ update public.tenant_memberships
  where status is null;
 
 alter table public.tenant_memberships
+  drop constraint if exists tenant_memberships_status_check;
+
+update public.tenant_memberships
+   set status = 'suspended'
+ where status = 'disabled';
+
+alter table public.tenant_memberships
   alter column status set default 'pending',
   alter column status set not null;
 
 do $$
 begin
-  if not exists (
-    select 1 from pg_constraint
-     where conname = 'tenant_memberships_status_check'
-       and conrelid = 'public.tenant_memberships'::regclass
-  ) then
-    alter table public.tenant_memberships
-      add constraint tenant_memberships_status_check
-      check (status in ('pending', 'active', 'suspended', 'revoked'));
-  end if;
+  alter table public.tenant_memberships
+    add constraint tenant_memberships_status_check
+    check (status in ('pending', 'active', 'suspended', 'revoked'));
 
   if not exists (
     select 1 from pg_constraint

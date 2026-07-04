@@ -19,6 +19,8 @@ The hosted schema stores tenant access in `public.tenant_memberships`.
 
 Existing rows without a status are marked `active` to preserve prior behavior. New rows default to `pending`.
 
+Legacy rows with the older `disabled` status are converted to `suspended` before the canonical status constraint is recreated. This preserves denial semantics while keeping the post-auth status set to `pending`, `active`, `suspended`, and `revoked`.
+
 ## Administration
 
 Membership activation must be performed by a trusted administrator or service-side bootstrap process. Anonymous users and pending members must not activate themselves.

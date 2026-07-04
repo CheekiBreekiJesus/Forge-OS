@@ -11,6 +11,9 @@ describe("auth membership migration", () => {
   it("adds required membership status and permission fields", () => {
     expect(migration).toContain("add column if not exists status text");
     expect(migration).toContain("add column if not exists permissions text[]");
+    expect(migration).toContain("drop constraint if exists tenant_memberships_status_check");
+    expect(migration).toContain("set status = 'suspended'");
+    expect(migration).toContain("where status = 'disabled'");
     expect(migration).toContain("tenant_memberships_status_check");
     expect(migration).toContain("'pending', 'active', 'suspended', 'revoked'");
   });

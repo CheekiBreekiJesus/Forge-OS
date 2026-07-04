@@ -22,6 +22,37 @@ OAuth proves identity only. Tenant access still depends on an active ForgeOS ten
 
 Configure equivalent localhost callback URLs for development, for example `http://localhost:3000/auth/callback`.
 
+## External Provider Setup
+
+Supabase:
+
+- Site URL: `https://<forgeos-host>`.
+- Redirect allow-list: `https://<forgeos-host>/auth/callback`, `http://localhost:3000/auth/callback`, and any explicit staging callback host.
+- Google provider: enable the `google` provider and paste the Google OAuth client ID and secret only into Supabase/provider secret storage.
+- Microsoft provider: enable the `azure` provider and paste the Microsoft client ID and secret only into Supabase/provider secret storage.
+- Do not store provider client secrets in `.env.example`, screenshots, docs, tickets, or chat logs.
+
+Google Cloud:
+
+- Application type: Web application.
+- Authorized JavaScript origins: `https://<forgeos-host>` and local/staging origins used for OAuth testing.
+- Authorized redirect URI: the Supabase provider callback URL shown in the Supabase Google provider settings.
+- Configure consent screen and test users for non-production validation before broad access.
+
+Microsoft Entra:
+
+- Platform: Web.
+- Redirect URI: the Supabase provider callback URL shown in the Supabase Azure provider settings.
+- Supported account type: choose the tenant policy deliberately; do not broaden account access by default.
+- Scopes: `openid`, `email`, and `profile`.
+- Store the client secret only in Supabase/provider secret storage.
+
+ForgeOS:
+
+- Local callback URL: `http://localhost:3000/auth/callback`.
+- Hosted callback URL: `https://<forgeos-host>/auth/callback`.
+- OAuth `next` is sanitized to internal paths only. External URLs, protocol-relative values, and auth-loop paths are rejected.
+
 ## Environment
 
 Use placeholders in committed files only. Real values belong in local or hosted environment settings.
