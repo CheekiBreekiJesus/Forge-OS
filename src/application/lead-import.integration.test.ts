@@ -8,7 +8,7 @@ import {
 import { getDatabase } from "@/persistence/db";
 import { destroyDatabaseForTests } from "@/persistence/registry";
 import { createLocalRepositoryBundle, seedDatabase } from "@/persistence/indexeddb/repositories";
-import * as XLSX from "xlsx";
+import { buildSyntheticXlsxFile } from "@/features/shared/spreadsheet/spreadsheet-fixtures";
 
 const TEST_DB = "forgeos:test:lead-import";
 
@@ -92,27 +92,22 @@ describe("lead import integration", () => {
     );
     expect(profile).toBeDefined();
 
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(
-      workbook,
-      XLSX.utils.aoa_to_sheet([
-        ["Nombre", "Email"],
-        ["Cafe One", "cafe@example.invalid"]
-      ]),
-      "Hospitality"
-    );
-    XLSX.utils.book_append_sheet(
-      workbook,
-      XLSX.utils.aoa_to_sheet([
-        ["Name", "Email"],
-        ["Municipality One", "mun@example.invalid"]
-      ]),
-      "Municipalities"
-    );
-    const buffer = XLSX.write(workbook, { type: "array", bookType: "xlsx" });
-    const file = new File([buffer], "multi-header-spellings.xlsx", {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    });
+    const file = await buildSyntheticXlsxFile("multi-header-spellings.xlsx", [
+      {
+        name: "Hospitality",
+        rows: [
+          ["Nombre", "Email"],
+          ["Cafe One", "cafe@example.invalid"]
+        ]
+      },
+      {
+        name: "Municipalities",
+        rows: [
+          ["Name", "Email"],
+          ["Municipality One", "mun@example.invalid"]
+        ]
+      }
+    ]);
 
     const hospitalityPreview = await buildImportPreview(repos, DEFAULT_TENANT_ID, file, {
       sheetName: "Hospitality"
@@ -126,5 +121,40 @@ describe("lead import integration", () => {
     });
     expect(municipalitiesPreview.counts.validRows).toBe(1);
     expect(municipalitiesPreview.counts.invalidRows).toBe(0);
+  });
+
+  it("imports synthetic multi-sheet XLSX through preview and persists after reload", async () => {
+    const repos = createLocalRepositoryBundle(getDatabase(TEST_DB));
+    const file = await buildSyntheticXlsxFile("integration-flow.xlsx", [
+      {
+        name: "Events",
+        rows: [
+          ["company", "email", "region", "industry"],
+          ["Flow Org", "flow.org@example.invalid", "Lisbon", "Events"]
+        ]
+      },
+      {
+        name: "Municipalities",
+        rows: [
+          ["Name", "Email", "Region", "Industry"],
+          ["Municipality Flow", "mun.flow@example.invalid", "Porto", "Public"]
+        ]
+      }
+    ]);
+
+    const preview = await buildImportPreview(repos, DEFAULT_TENANT_ID, file, {
+      sheetName: "Municipalities"
+    });
+    expect(preview.availableSheets).toContain("Events");
+    expect(preview.selectedSheet).toBe("Municipalities");
+    expect(preview.counts.validRows).toBe(1);
+
+    const imported = await confirmLeadImport(repos, DEFAULT_TENANT_ID, preview.batchId, {
+      allowRepeatImport: true
+    });
+    expect(imported.importedOrganizations).toBe(1);
+
+    const leads = await repos.leads.list(DEFAULT_TENANT_ID);
+    expect(leads.some((lead) => lead.companyName === "Municipality Flow")).toBe(true);
   });
 });
