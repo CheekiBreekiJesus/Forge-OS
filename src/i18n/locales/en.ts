@@ -1893,7 +1893,10 @@ export const dictionary: Dictionary = {
       logoApplied: "Company logo applied to preview.",
       productImageApplied: "Product image applied to preview.",
       noLogo: "Upload a company logo in Settings first.",
-      noProductImage: "This product has no image URL."
+      noProductImage: "This product has no image URL.",
+      fileTooLarge: "File exceeds the 2 MB artwork limit.",
+      unsupportedType: "Unsupported file type. Use PNG, JPEG, WebP, GIF, or SVG.",
+      unsafeFile: "Executable or unsafe file types are not allowed."
     },
     preview: {
       label: "Cup preview",

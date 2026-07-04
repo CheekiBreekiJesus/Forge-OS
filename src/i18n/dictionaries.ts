@@ -1457,6 +1457,9 @@ export type Dictionary = {
       productImageApplied: string;
       noLogo: string;
       noProductImage: string;
+      fileTooLarge: string;
+      unsupportedType: string;
+      unsafeFile: string;
     };
     preview: {
       label: string;

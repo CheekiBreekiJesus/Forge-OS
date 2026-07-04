@@ -1893,7 +1893,10 @@ export const dictionary: Dictionary = {
       logoApplied: "Logótipo aplicado à pré-visualização.",
       productImageApplied: "Imagem do produto aplicada à pré-visualização.",
       noLogo: "Carregue primeiro o logótipo em Definições.",
-      noProductImage: "Este produto não tem URL de imagem."
+      noProductImage: "Este produto não tem URL de imagem.",
+      fileTooLarge: "O ficheiro excede o limite de 2 MB para arte.",
+      unsupportedType: "Tipo de ficheiro não suportado. Use PNG, JPEG, WebP, GIF ou SVG.",
+      unsafeFile: "Ficheiros executáveis ou inseguros não são permitidos."
     },
     preview: {
       label: "Pré-visualização do copo",
