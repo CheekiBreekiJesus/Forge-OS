@@ -15,6 +15,7 @@ ForgeOS therefore reuses the existing **operational pricing rules** from `src/de
 | `packages/cup-customizer/pricing/engine.ts` | `estimateCupPricing`, `resolveQuotationRuleForProduct` |
 | `packages/cup-customizer/rendering/cup-preview.tsx` | Local-only `CupPreview` React component |
 | `packages/cup-customizer/adapters/forgeos.ts` | `createForgeOSCustomizerBridge` facade |
+| `src/features/cup-customizer/` | ForgeOS feature module: configuration, pricing, mockup export, upload validation |
 
 Import alias: `@cup-customizer` → `packages/cup-customizer/index.ts`.
 
@@ -60,6 +61,9 @@ All customizer output is labelled **Estimate** (`isEstimate: true`). Assumptions
 ## Tests
 
 - `src/persistence/customizer-integration.test.ts`
+- `src/features/cup-customizer/configuration.test.ts`
+- `src/features/cup-customizer/pricing.test.ts`
+- `src/features/cup-customizer/artwork-upload.test.ts`
 - `src/features/onboarding/checklist.test.ts`
 - `src/features/notifications/local-notifications.test.ts`
 - `e2e/cup-customizer.spec.ts`
@@ -68,7 +72,7 @@ All customizer output is labelled **Estimate** (`isEstimate: true`). Assumptions
 
 - The generated SVG mockup is a local operational reference, not a print-ready production proof.
 - Real uploaded artwork remains private in IndexedDB `LocalAsset`; outbound email must not embed blob URLs or local paths.
-- Demo product rows can contain relative image paths that are not backed by files under `public/`; the preview must tolerate this and use the fallback cup shell.
+- Demo product preview assets live under `public/demo/products/`; missing files still fall back to the built-in cup shell with a visible message.
 - There is still no external JH Gomes customizer API contract in the repository.
 
 ## Future hosted integration
