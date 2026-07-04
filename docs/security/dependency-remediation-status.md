@@ -1,7 +1,7 @@
 # Dependency Remediation Status
 
 **Last updated:** 2026-07-05  
-**Active branch:** `integration/dependency-security-cursor`
+**Active branch:** `integration/jh-gomes-cursor-convergence` (merged from `integration/dependency-security-cursor` @ `bd3f477`)
 
 ## Resolved
 
@@ -35,6 +35,6 @@
 
 OAuth foundation, login UI, auth callback, tenant membership, Supabase browser client, `proxy.ts`, auth migrations.
 
-## Merge target
+## Merge status
 
-Merge `integration/dependency-security-cursor` into `integration/jh-gomes-outreach-supabase-7d2` after review — **not** into OAuth remediation branches.
+Merged into `integration/jh-gomes-cursor-convergence` @ `c09c124` (2026-07-05). Pending auth activation merge before production integration — **not** into OAuth remediation branches directly.
