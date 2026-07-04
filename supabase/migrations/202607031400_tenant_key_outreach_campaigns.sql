@@ -36,6 +36,10 @@ alter table public.outreach_campaigns
     check (delivery_mode in ('simulation', 'provider_handoff')),
   add column if not exists created_by uuid;
 
+-- Composite unique on outreach_campaigns for tenant-safe FK from recipients.
+create unique index if not exists outreach_campaigns_tenant_id_id_idx
+  on public.outreach_campaigns (tenant_id, id);
+
 -- Campaign recipients (server-owned message versions for outreach send path).
 create table if not exists public.outreach_campaign_recipients (
   id uuid primary key default gen_random_uuid(),
@@ -86,10 +90,6 @@ create table if not exists public.outreach_campaign_recipients (
     references public.outreach_campaigns (tenant_id, id)
     deferrable initially deferred
 );
-
--- Composite unique on outreach_campaigns for tenant-safe FK from recipients.
-create unique index if not exists outreach_campaigns_tenant_id_id_idx
-  on public.outreach_campaigns (tenant_id, id);
 
 create index if not exists outreach_campaign_recipients_tenant_campaign_idx
   on public.outreach_campaign_recipients (tenant_id, campaign_id);
