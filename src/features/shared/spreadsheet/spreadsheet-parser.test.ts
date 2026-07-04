@@ -166,6 +166,28 @@ describe("spreadsheet parser security boundary", () => {
     expect(warnings.some((warning) => warning.code === "excessive_columns_truncated")).toBe(true);
   });
 
+  it("lazy-loads ExcelJS only when workbook parsing is requested", async () => {
+    const buffer = await buildSyntheticXlsxBuffer([
+      { name: "Deferred", rows: [["A"], ["1"]] }
+    ]);
+
+    let excelJsRequested = false;
+    vi.doMock("exceljs", async () => {
+      excelJsRequested = true;
+      return vi.importActual<typeof import("exceljs")>("exceljs");
+    });
+
+    vi.resetModules();
+    const parserModule = await import("@/features/shared/spreadsheet/spreadsheet-parser");
+    expect(excelJsRequested).toBe(false);
+
+    await parserModule.loadSpreadsheetWorkbook(buffer);
+    expect(excelJsRequested).toBe(true);
+
+    vi.doUnmock("exceljs");
+    vi.resetModules();
+  });
+
   it("parses representative row counts within practical bounds", async () => {
     const timings: Record<string, number> = {};
     for (const [label, count] of [

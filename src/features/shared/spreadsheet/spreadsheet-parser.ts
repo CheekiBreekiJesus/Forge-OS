@@ -1,4 +1,4 @@
-import ExcelJS from "exceljs";
+import type ExcelJS from "exceljs";
 
 export const MAX_SPREADSHEET_BYTES = 5 * 1024 * 1024;
 export const MAX_SPREADSHEET_ROWS = 5000;
@@ -19,11 +19,14 @@ export type SpreadsheetWarning = {
   sheetName?: string;
 };
 
+type ExcelJSModule = typeof import("exceljs");
+
 export type LoadedSpreadsheetWorkbook = {
   format: SpreadsheetFormat;
   sheetNames: string[];
   warnings: SpreadsheetWarning[];
   _workbook: ExcelJS.Workbook;
+  _excelJs: ExcelJSModule;
 };
 
 export type SpreadsheetSheetMatrix = {
@@ -54,6 +57,18 @@ export class SpreadsheetParseError extends Error {
   }
 }
 
+let excelJsModulePromise: Promise<ExcelJSModule> | null = null;
+
+export async function loadExcelJsModule(): Promise<ExcelJSModule> {
+  if (!excelJsModulePromise) {
+    excelJsModulePromise = import("exceljs").catch((error: unknown) => {
+      excelJsModulePromise = null;
+      throw error instanceof Error ? error : new Error("Failed to load spreadsheet parser.");
+    });
+  }
+  return excelJsModulePromise;
+}
+
 export function assertSpreadsheetByteLimit(byteLength: number): void {
   if (byteLength > MAX_SPREADSHEET_BYTES) {
     throw new SpreadsheetParseError("file_too_large", "File exceeds 5 MB limit.");
@@ -69,7 +84,8 @@ export async function loadSpreadsheetWorkbook(
     throw new SpreadsheetParseError("unsupported_format", "Only XLSX workbooks are supported.");
   }
 
-  const workbook = new ExcelJS.Workbook();
+  const ExcelJSImport = await loadExcelJsModule();
+  const workbook = new ExcelJSImport.Workbook();
   const warnings: SpreadsheetWarning[] = [];
 
   try {
@@ -122,7 +138,8 @@ export async function loadSpreadsheetWorkbook(
     format,
     sheetNames,
     warnings,
-    _workbook: workbook
+    _workbook: workbook,
+    _excelJs: ExcelJSImport
   };
 }
 
@@ -172,6 +189,7 @@ export function extractSheetMatrix(
   const matrix: string[][] = [];
   let formulaCount = 0;
   let maxColumnCount = 0;
+  const { ValueType } = workbook._excelJs;
 
   worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
     if (rowNumber > rowLimit + 1) {
@@ -188,8 +206,8 @@ export function extractSheetMatrix(
     const values: string[] = [];
     for (let columnIndex = 1; columnIndex <= boundedColumns; columnIndex += 1) {
       const cell = row.getCell(columnIndex);
-      const display = formatCellForDisplay(cell);
-      if (cell.type === ExcelJS.ValueType.Formula) {
+      const display = formatCellForDisplay(cell, workbook._excelJs);
+      if (cell.type === ValueType.Formula) {
         formulaCount += 1;
       }
       values.push(display);
@@ -229,39 +247,41 @@ export function extractSheetMatrix(
   };
 }
 
-function formatCellForDisplay(cell: ExcelJS.Cell): string {
+function formatCellForDisplay(cell: ExcelJS.Cell, excelJs: ExcelJSModule): string {
   if (cell.value === null || cell.value === undefined) {
     return "";
   }
 
+  const { ValueType } = excelJs;
+
   switch (cell.type) {
-    case ExcelJS.ValueType.Null:
+    case ValueType.Null:
       return "";
-    case ExcelJS.ValueType.Merge:
+    case ValueType.Merge:
       return cell.text?.trim() ?? "";
-    case ExcelJS.ValueType.Formula: {
+    case ValueType.Formula: {
       const displayed = cell.text?.trim();
       if (displayed && displayed.length > 0) {
         return displayed;
       }
       return formatPrimitiveValue(cell.result);
     }
-    case ExcelJS.ValueType.Hyperlink: {
+    case ValueType.Hyperlink: {
       const hyperlink = cell.value as ExcelJS.CellHyperlinkValue;
       return String(hyperlink.text ?? hyperlink.hyperlink ?? "").trim();
     }
-    case ExcelJS.ValueType.RichText: {
+    case ValueType.RichText: {
       const richText = cell.value as ExcelJS.CellRichTextValue;
       return richText.richText.map((part) => part.text).join("").trim();
     }
-    case ExcelJS.ValueType.Date:
+    case ValueType.Date:
       return cell.text?.trim() ?? formatPrimitiveValue(cell.value);
-    case ExcelJS.ValueType.Error:
+    case ValueType.Error:
       return "";
-    case ExcelJS.ValueType.String:
-    case ExcelJS.ValueType.Number:
-    case ExcelJS.ValueType.Boolean:
-    case ExcelJS.ValueType.SharedString:
+    case ValueType.String:
+    case ValueType.Number:
+    case ValueType.Boolean:
+    case ValueType.SharedString:
     default:
       if (cell.text && cell.text.trim().length > 0) {
         return cell.text.trim();
