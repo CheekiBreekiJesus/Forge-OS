@@ -1465,6 +1465,36 @@ export type Dictionary = {
       label: string;
       brokenProductImage: string;
     };
+    workflow: {
+      navLabel: string;
+      previous: string;
+      next: string;
+      steps: Record<"product" | "printing" | "artwork" | "preview" | "quotation", string>;
+    };
+    mockup: {
+      generateRealistic: string;
+      generating: string;
+      generated: string;
+      stale: string;
+      failed: string;
+      unavailable: string;
+      disclaimer: string;
+      providerDeterministic: string;
+      summaryTitle: string;
+    };
+    commercialDataRequired: string;
+    unsavedChanges: string;
+    summary: {
+      title: string;
+      customer: string;
+      cup: string;
+      quantity: string;
+      printing: string;
+      artwork: string;
+      pricing: string;
+      quotation: string;
+      warnings: string;
+    };
     pricing: {
       estimateBadge: string;
       unitPrice: string;
@@ -1489,7 +1519,20 @@ export type Dictionary = {
       customize: string;
       openForCustomer: string;
     };
-    statuses: Record<"draft" | "saved" | "converted" | "archived", string>;
+    statuses: Record<
+      | "draft"
+      | "saved"
+      | "converted"
+      | "archived"
+      | "DRAFT"
+      | "ARTWORK_REVIEW"
+      | "PRICING_REQUIRED"
+      | "READY_FOR_QUOTATION"
+      | "QUOTED"
+      | "APPROVED"
+      | "ARCHIVED",
+      string
+    >;
     leadopsMedia: {
       title: string;
       description: string;

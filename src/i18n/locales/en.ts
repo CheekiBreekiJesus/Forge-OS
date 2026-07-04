@@ -1902,6 +1902,42 @@ export const dictionary: Dictionary = {
       label: "Cup preview",
       brokenProductImage: "Product image unavailable; using fallback preview."
     },
+    workflow: {
+      navLabel: "Customizer steps",
+      previous: "Previous",
+      next: "Next",
+      steps: {
+        product: "Product",
+        printing: "Printing",
+        artwork: "Artwork",
+        preview: "Preview",
+        quotation: "Price and quotation"
+      }
+    },
+    mockup: {
+      generateRealistic: "Generate realistic mockup",
+      generating: "Generating visualization…",
+      generated: "Realistic visualization generated.",
+      stale: "Visualization is stale — regenerate after changing artwork or configuration.",
+      failed: "Could not generate visualization.",
+      unavailable: "Image provider unavailable in the current environment.",
+      disclaimer: "AI-generated visualization — final production appearance may vary.",
+      providerDeterministic: "Deterministic provider (development)",
+      summaryTitle: "Summary before generating"
+    },
+    commercialDataRequired: "Commercial data required — enter a temporary manual price or configure the product.",
+    unsavedChanges: "Unsaved changes",
+    summary: {
+      title: "Customization summary",
+      customer: "Customer",
+      cup: "Cup",
+      quantity: "Quantity",
+      printing: "Printing",
+      artwork: "Artwork",
+      pricing: "Pricing",
+      quotation: "Quotation",
+      warnings: "Warnings"
+    },
     pricing: {
       estimateBadge: "Estimate",
       unitPrice: "Unit price",
@@ -1930,7 +1966,14 @@ export const dictionary: Dictionary = {
       draft: "Draft",
       saved: "Saved",
       converted: "Converted",
-      archived: "Archived"
+      archived: "Archived",
+      DRAFT: "Draft",
+      ARTWORK_REVIEW: "Artwork review",
+      PRICING_REQUIRED: "Pricing required",
+      READY_FOR_QUOTATION: "Ready for quotation",
+      QUOTED: "Quoted",
+      APPROVED: "Approved",
+      ARCHIVED: "Archived"
     },
     leadopsMedia: {
       title: "Customizer mockup",

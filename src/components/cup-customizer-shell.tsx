@@ -21,7 +21,26 @@ import {
   validateCustomizerArtwork,
   validateQuantity
 } from "@/features/cup-customizer";
+import {
+  buildConfigurationFingerprint,
+  generateDeterministicPhotorealisticMockup,
+  buildPhotorealisticMockupFileName,
+  resolveMockupGenerationStatus,
+  type MockupGenerationMeta
+} from "@/features/cup-customizer";
+import {
+  getNextStep,
+  getPreviousStep,
+  isStepComplete,
+  validatePrintConfiguration,
+  type CustomizerWorkflowStep
+} from "@/features/cup-customizer";
+import { deriveWorkflowStatus } from "@/features/cup-customizer";
 import { AppFrame, panelClass } from "@/components/app-frame";
+import {
+  CupCustomizerWorkflowNav,
+  shouldShowWorkflowSection
+} from "@/components/cup-customizer-workflow-nav";
 import {
   ArchiveConfirmationDialog,
   FormField,
@@ -57,10 +76,15 @@ import { getLocalizedModuleHref } from "@/modules/config";
 
 type CupCustomizerShellProps = {
   dictionary: Dictionary;
+  entryRoute?: string;
   locale: Locale;
 };
 
-export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellProps) {
+export function CupCustomizerShell({
+  dictionary,
+  entryRoute = "quotations/customizer",
+  locale
+}: CupCustomizerShellProps) {
   const copy = dictionary.customizerModule;
   const shared = dictionary.crudModule;
   const router = useRouter();
@@ -87,6 +111,11 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
   const [artworkAssetId, setArtworkAssetId] = useState<string | null>(null);
   const [artworkAssetIsOwned, setArtworkAssetIsOwned] = useState(false);
   const [mockupAssetId, setMockupAssetId] = useState<string | null>(null);
+  const [mockupGeneration, setMockupGeneration] = useState<MockupGenerationMeta | null>(null);
+  const [generatingMockup, setGeneratingMockup] = useState(false);
+  const [activeStep, setActiveStep] = useState<CustomizerWorkflowStep>("product");
+  const [isDesktop, setIsDesktop] = useState(true);
+  const [isDirty, setIsDirty] = useState(false);
   const [artworkPreviewUrl, setArtworkPreviewUrl] = useState<string | null>(null);
   const [cupImageUrl, setCupImageUrl] = useState<string | null>(null);
   const [manualUnitPriceOverride, setManualUnitPriceOverride] = useState<number | null>(null);
@@ -114,6 +143,37 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
     );
   }, [configuration, manualUnitPriceOverride, notes, overrideReason, quantity, selectedProduct]);
 
+  const printValidation = useMemo(() => validatePrintConfiguration(configuration), [configuration]);
+
+  const configurationFingerprint = useMemo(() => {
+    if (!selectedProduct) return "";
+    return buildConfigurationFingerprint(selectedProduct.id, configuration, quantity, artworkAssetId);
+  }, [artworkAssetId, configuration, quantity, selectedProduct]);
+
+  const mockupStatus = useMemo(
+    () => resolveMockupGenerationStatus(mockupGeneration, configurationFingerprint),
+    [configurationFingerprint, mockupGeneration]
+  );
+
+  const workflowContext = useMemo(
+    () => ({
+      hasArtwork: Boolean(artworkAssetId || artworkPreviewUrl),
+      hasPreview: Boolean(selectedProduct),
+      hasPricing: Boolean(pricing && (pricing.ruleId || pricing.manualUnitPriceOverride)),
+      hasProduct: Boolean(selectedProduct),
+      hasValidPrinting: printValidation.ok
+    }),
+    [artworkAssetId, artworkPreviewUrl, pricing, printValidation.ok, selectedProduct]
+  );
+
+  const completedSteps = useMemo(() => {
+    const completed = new Set<CustomizerWorkflowStep>();
+    for (const step of ["product", "printing", "artwork", "preview", "quotation"] as const) {
+      if (isStepComplete(step, workflowContext)) completed.add(step);
+    }
+    return completed;
+  }, [workflowContext]);
+
   const resetForm = useCallback(
     (product: Product | null) => {
       setActiveSimulationId(null);
@@ -126,6 +186,9 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
       setArtworkAssetId(null);
       setArtworkAssetIsOwned(false);
       setMockupAssetId(null);
+      setMockupGeneration(null);
+      setGeneratingMockup(false);
+      setIsDirty(false);
       setArtworkPreviewUrl(null);
       setCupImageUrl(resolveProductPreviewUrl(product));
       setManualUnitPriceOverride(null);
@@ -155,6 +218,7 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
       setArtworkAssetId(simulation.artworkAssetId);
       setArtworkAssetIsOwned(false);
       setMockupAssetId(simulation.mockupAssetId);
+      setMockupGeneration(simulation.mockupGeneration ?? null);
       setManualUnitPriceOverride(simulation.pricing.manualUnitPriceOverride);
       setOverrideReason(simulation.pricing.overrideReason ?? "");
       setCupImageUrl(resolveProductPreviewUrl(product));
@@ -169,6 +233,14 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
     },
     [cupProducts, state, tenantId]
   );
+
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1280px)");
+    const update = () => setIsDesktop(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
 
   useEffect(() => {
     const paramProductId = searchParams.get("productId");
@@ -300,6 +372,61 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
     return asset.id;
   }
 
+  async function handleGeneratePhotorealisticMockup() {
+    if (state.status !== "ready" || !selectedProduct || !pricing) {
+      setFormError(copy.form.required);
+      return;
+    }
+    setGeneratingMockup(true);
+    setFormError(null);
+    setMockupGeneration((current) => ({
+      configurationFingerprint: configurationFingerprint,
+      generatedAt: current?.generatedAt ?? null,
+      promptVersion: current?.promptVersion ?? null,
+      provider: current?.provider ?? null,
+      realisticMockupAssetId: current?.realisticMockupAssetId ?? null,
+      status: "generating"
+    }));
+    try {
+      const { blob, meta } = await generateDeterministicPhotorealisticMockup({
+        artworkAssetId,
+        configuration,
+        existingMeta: mockupGeneration,
+        pricing,
+        product: selectedProduct,
+        quantity
+      });
+      if (mockupGeneration?.realisticMockupAssetId && artworkAssetIsOwned) {
+        await state.repos.localAssets
+          .delete(tenantId, mockupGeneration.realisticMockupAssetId)
+          .catch(() => {});
+      }
+      const asset = await state.repos.localAssets.create(tenantId, {
+        assetType: "product-image",
+        blob,
+        fileName: buildPhotorealisticMockupFileName(selectedProduct.sku),
+        mimeType: "image/svg+xml",
+        size: blob.size
+      });
+      const nextMeta: MockupGenerationMeta = { ...meta, realisticMockupAssetId: asset.id };
+      setMockupGeneration(nextMeta);
+      setFeedback(copy.mockup.generated);
+      notifyDataChanged();
+    } catch {
+      setMockupGeneration((current) => ({
+        configurationFingerprint: configurationFingerprint,
+        generatedAt: current?.generatedAt ?? null,
+        promptVersion: current?.promptVersion ?? null,
+        provider: "deterministic",
+        realisticMockupAssetId: current?.realisticMockupAssetId ?? null,
+        status: "failed"
+      }));
+      setFormError(copy.mockup.failed);
+    } finally {
+      setGeneratingMockup(false);
+    }
+  }
+
   async function handleSave() {
     if (state.status !== "ready" || !selectedProduct || !pricing) {
       setFormError(copy.form.required);
@@ -309,9 +436,16 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
     setFormError(null);
     try {
       const nextMockupAssetId = await ensureMockupAsset();
+      const workflowStatus = deriveWorkflowStatus({
+        artworkAssetId,
+        pricing,
+        quoteId: activeSimulationId ? simulations.find((row) => row.id === activeSimulationId)?.quoteId ?? null : null,
+        status: "saved"
+      });
       const input = {
         artworkAssetId,
         mockupAssetId: nextMockupAssetId,
+        mockupGeneration,
         configuration,
         customerId: customerId || null,
         leadId: leadId || null,
@@ -320,7 +454,8 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
         productId: selectedProduct.id,
         productName: selectedProduct.name,
         quantity,
-        status: "saved" as const
+        status: "saved" as const,
+        workflowStatus
       };
       if (activeSimulationId) {
         await state.repos.customizerSimulations.update(tenantId, activeSimulationId, input);
@@ -330,6 +465,7 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
         setActiveSimulationId(created.id);
         setFeedback(copy.actions.saved);
       }
+      setIsDirty(false);
       notifyDataChanged();
       await reloadSimulations();
     } catch (error) {
@@ -422,7 +558,7 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
       activeModule="orders"
       dictionary={dictionary}
       locale={locale}
-      supplementalRoute="quotations/customizer"
+      supplementalRoute={entryRoute}
     >
       <PageHeader
         actions={
@@ -447,8 +583,30 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
 
       <QuotationsSubnav dictionary={dictionary} locale={locale} />
 
-      {feedback ? <p className="mb-4 text-sm text-emerald-300">{feedback}</p> : null}
+      {isDirty ? <p className="mb-2 text-xs font-semibold text-amber-200">{copy.unsavedChanges}</p> : null}
+      {feedback ? (
+        <p aria-live="polite" className="mb-4 text-sm text-emerald-300">
+          {feedback}
+        </p>
+      ) : null}
       <FormFieldError message={formError} />
+
+      <CupCustomizerWorkflowNav
+        activeStep={activeStep}
+        canGoNext={Boolean(getNextStep(activeStep))}
+        canGoPrevious={Boolean(getPreviousStep(activeStep))}
+        completedSteps={completedSteps}
+        copy={copy.workflow}
+        onNext={() => {
+          const next = getNextStep(activeStep);
+          if (next) setActiveStep(next);
+        }}
+        onPrevious={() => {
+          const previous = getPreviousStep(activeStep);
+          if (previous) setActiveStep(previous);
+        }}
+        onStepChange={setActiveStep}
+      />
 
       {loading || productsLoading || simulationsLoading ? (
         <LoadingState message={copy.loading} />
@@ -457,6 +615,7 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
       ) : (
         <div className="grid gap-5 xl:grid-cols-[1.4fr_1fr]">
           <div className="space-y-5">
+            {shouldShowWorkflowSection("product", activeStep, isDesktop) ? (
             <section className={`${panelClass} p-5`}>
               <h2 className="text-sm font-bold uppercase tracking-wide text-slate-400">{copy.sections.context}</h2>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -512,9 +671,18 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
                 </FormField>
               </div>
             </section>
+            ) : null}
 
+            {shouldShowWorkflowSection("printing", activeStep, isDesktop) ? (
             <section className={`${panelClass} p-5`}>
               <h2 className="text-sm font-bold uppercase tracking-wide text-slate-400">{copy.sections.configuration}</h2>
+              {!printValidation.ok ? (
+                <p className="mt-2 text-sm text-rose-300">
+                  {printValidation.errorKey === "tooManyColors"
+                    ? copy.commercialDataRequired
+                    : copy.commercialDataRequired}
+                </p>
+              ) : null}
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <FormField label={copy.form.material}>
                   <select
@@ -676,7 +844,9 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
                 </FormField>
               </div>
             </section>
+            ) : null}
 
+            {shouldShowWorkflowSection("artwork", activeStep, isDesktop) ? (
             <section className={`${panelClass} p-5`}>
               <h2 className="text-sm font-bold uppercase tracking-wide text-slate-400">{copy.sections.artwork}</h2>
               <div className="mt-4 flex flex-wrap gap-2">
@@ -729,7 +899,9 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
                 </button>
               </div>
             </section>
+            ) : null}
 
+            {isDesktop ? (
             <section className={`${panelClass} p-5`}>
               <div className="mb-4 flex items-center justify-between gap-3">
                 <h2 className="text-sm font-bold uppercase tracking-wide text-slate-400">{copy.sections.simulations}</h2>
@@ -795,9 +967,11 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
                 )}
               </ul>
             </section>
+            ) : null}
           </div>
 
           <div className="space-y-5">
+            {shouldShowWorkflowSection("preview", activeStep, isDesktop) ? (
             <section className={`${panelClass} p-5`}>
               <CupPreview
                 artworkDataUrl={artworkPreviewUrl}
@@ -811,8 +985,31 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
                 label={copy.preview.label}
                 printArea={configuration.printArea}
               />
+              <div className="mt-4 space-y-2 border-t border-slate-800 pt-4">
+                <p className="text-xs font-semibold uppercase text-slate-500">{copy.mockup.summaryTitle}</p>
+                <p className="text-xs text-slate-400">
+                  {selectedProduct?.name} · {quantity.toLocaleString(locale)} · {configuration.printColorCount}{" "}
+                  {copy.form.printColors.toLowerCase()}
+                </p>
+                {mockupStatus === "stale" ? (
+                  <p className="text-xs text-amber-200">{copy.mockup.stale}</p>
+                ) : null}
+                <p className="text-[11px] text-slate-500">{copy.mockup.disclaimer}</p>
+                <p className="text-[11px] text-slate-500">{copy.mockup.providerDeterministic}</p>
+                <button
+                  aria-busy={generatingMockup}
+                  className="w-full rounded-lg border border-orange-500/40 bg-orange-500/10 px-3 py-2 text-sm font-semibold text-orange-100 hover:bg-orange-500/20 disabled:opacity-50"
+                  disabled={generatingMockup || !selectedProduct || !pricing}
+                  onClick={() => void handleGeneratePhotorealisticMockup()}
+                  type="button"
+                >
+                  {generatingMockup ? copy.mockup.generating : copy.mockup.generateRealistic}
+                </button>
+              </div>
             </section>
+            ) : null}
 
+            {shouldShowWorkflowSection("quotation", activeStep, isDesktop) ? (
             <section className={`${panelClass} p-5`}>
               <div className="flex items-center justify-between gap-2">
                 <h2 className="text-sm font-bold uppercase tracking-wide text-slate-400">{copy.sections.pricing}</h2>
@@ -885,7 +1082,11 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
               ) : (
                 <p className="mt-4 text-sm text-slate-500">{copy.pricing.selectProduct}</p>
               )}
+              {!pricing?.ruleId && !pricing?.manualUnitPriceOverride ? (
+                <p className="mt-3 text-sm text-amber-200">{copy.commercialDataRequired}</p>
+              ) : null}
             </section>
+            ) : null}
           </div>
         </div>
       )}

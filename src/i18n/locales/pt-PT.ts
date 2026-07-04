@@ -1902,6 +1902,42 @@ export const dictionary: Dictionary = {
       label: "Pré-visualização do copo",
       brokenProductImage: "Imagem do produto indisponível; a usar pré-visualização base."
     },
+    workflow: {
+      navLabel: "Passos do personalizador",
+      previous: "Anterior",
+      next: "Seguinte",
+      steps: {
+        product: "Produto",
+        printing: "Impressão",
+        artwork: "Arte",
+        preview: "Pré-visualização",
+        quotation: "Preço e orçamento"
+      }
+    },
+    mockup: {
+      generateRealistic: "Gerar mockup realista",
+      generating: "A gerar visualização…",
+      generated: "Visualização realista gerada.",
+      stale: "A visualização está desatualizada — regenere após alterar a arte ou configuração.",
+      failed: "Não foi possível gerar a visualização.",
+      unavailable: "Fornecedor de imagem indisponível no ambiente atual.",
+      disclaimer: "Visualização gerada por IA — o aspeto final de produção pode variar.",
+      providerDeterministic: "Fornecedor determinístico (desenvolvimento)",
+      summaryTitle: "Resumo antes de gerar"
+    },
+    commercialDataRequired: "Dados comerciais necessários — introduza um preço manual temporário ou configure o produto.",
+    unsavedChanges: "Alterações por guardar",
+    summary: {
+      title: "Resumo da personalização",
+      customer: "Cliente",
+      cup: "Copo",
+      quantity: "Quantidade",
+      printing: "Impressão",
+      artwork: "Arte",
+      pricing: "Preço",
+      quotation: "Orçamento",
+      warnings: "Avisos"
+    },
     pricing: {
       estimateBadge: "Estimativa",
       unitPrice: "Preço unitário",
@@ -1930,7 +1966,14 @@ export const dictionary: Dictionary = {
       draft: "Rascunho",
       saved: "Guardada",
       converted: "Convertida",
-      archived: "Arquivada"
+      archived: "Arquivada",
+      DRAFT: "Rascunho",
+      ARTWORK_REVIEW: "Revisão de arte",
+      PRICING_REQUIRED: "Preço necessário",
+      READY_FOR_QUOTATION: "Pronta para orçamento",
+      QUOTED: "Orçamentada",
+      APPROVED: "Aprovada",
+      ARCHIVED: "Arquivada"
     },
     leadopsMedia: {
       title: "Mockup do personalizador",
