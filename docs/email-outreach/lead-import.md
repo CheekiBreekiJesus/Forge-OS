@@ -5,7 +5,8 @@
 | Format | Notes |
 |--------|-------|
 | CSV | Comma or semicolon delimiter (auto-detected); UTF-8 with Windows-1252 fallback |
-| XLSX | Sheet selection when multiple worksheets exist; formulas/macros not executed |
+| XLSX | Sheet selection when multiple worksheets exist; parsed via ForgeOS `spreadsheet-parser` adapter (`exceljs` engine); formulas not executed; HTML not rendered |
+| XLS | **Not supported** in the lead import wizard — export to XLSX or CSV |
 
 Max file size: 5 MB. Max rows: 5,000.
 
@@ -40,7 +41,8 @@ Max file size: 5 MB. Max rows: 5,000.
 ## Privacy
 
 - Files never leave the browser except explicit error-report download initiated by the operator.
-- Real databases stay outside Git (`scripts/data-preparation/local/`, `JH Gomes/Databases/...`).
+- Real databases stay outside Git (`scripts/data-preparation/local/`, customer-local paths).
+- Spreadsheet parsing uses `src/features/shared/spreadsheet/spreadsheet-parser.ts` — see `docs/security/spreadsheet-parser-decision.md`.
 
 ## Backup / reset
 

@@ -15,6 +15,8 @@ Install: `npm ci` (468 packages audited)
 | 2 | `@playwright/test@1.53.1` | GHSA-7mvr-c777-76hp (via `playwright`) | High | Low (test harness only) | Medium |
 | 3 | `xlsx@0.18.5` | GHSA-4r6h-8v6p-xvw6, GHSA-5pgg-2g8v-p4x9 | High | **Elevated** (client-side parsing of user uploads) | **High** |
 
+> **Remediation updates (2026-07-04):** Playwright — branch `fix/playwright-audit-remediation`. `xlsx` — review candidate `fix/xlsx-security-remediation` (`qa/security/xlsx-remediation-result.md`).
+
 Audit severity and application risk diverge most for `xlsx`: it is a **production dependency** parsing **untrusted `.xlsx` uploads** in the browser. Playwright findings affect **development and CI** only and do not ship in production artifacts.
 
 Sanitized machine output: `qa/security/npm-audit-sanitized.json`  
@@ -217,7 +219,7 @@ Detailed options, version targets, and agent handoff prompts are in `docs/securi
 | Finding | Recommended action | Owner |
 |---------|-------------------|-------|
 | Playwright SSL (×2 audit nodes) | Bump `@playwright/test` to `>=1.55.1` (target `1.61.1`); re-run e2e + CI browser install | **Composer** |
-| `xlsx` advisories | Replace or upgrade via vetted alternate (`@e965/xlsx@0.20.3` or `exceljs`); regression-test import wizard | **Codex** (architecture + import parser) |
+| `xlsx` advisories | ~~Replace via vetted alternate~~ **Review candidate** on `fix/xlsx-security-remediation` (`exceljs` + adapter) | **Codex** (merge review) |
 
 ---
 
