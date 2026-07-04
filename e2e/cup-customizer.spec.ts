@@ -29,6 +29,12 @@ test.describe("Cup Customizer workflows", () => {
     await waitForPersistence(page);
   });
 
+  test("products cup-customizer alias route loads shell", async ({ page }) => {
+    await page.goto("/pt-PT/products/cup-customizer");
+    await waitForPersistence(page);
+    await expect(page.getByRole("heading", { name: "Personalizador de Copos" })).toBeVisible();
+  });
+
   test("customizer page loads with tabs", async ({ page }) => {
     await page.goto("/pt-PT/quotations/customizer");
     await waitForPersistence(page);
@@ -131,6 +137,15 @@ test.describe("Cup Customizer workflows", () => {
     await page.getByRole("button", { name: /Criar or/i }).click();
     await expect(page).toHaveURL(/\/pt-PT\/quotations$/);
     await expect(page.getByText(/QT-/).first()).toBeVisible({ timeout: 10000 });
+  });
+
+  test("can generate deterministic realistic mockup on demand", async ({ page }) => {
+    await page.goto("/pt-PT/quotations/customizer");
+    await waitForPersistence(page);
+    await page.locator('input[type="file"]').setInputFiles("e2e/fixtures/logo.png");
+    await expect(page.getByText(/Arte carregada/i)).toBeVisible({ timeout: 10000 });
+    await page.getByRole("button", { name: /Gerar mockup realista/i }).click();
+    await expect(page.getByText(/Visualização realista gerada/i)).toBeVisible({ timeout: 10000 });
   });
 
   test("onboarding checklist shows customizer step", async ({ page }) => {
