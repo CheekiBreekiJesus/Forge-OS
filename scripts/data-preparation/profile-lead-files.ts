@@ -1,111 +1,121 @@
 /**
  * Sanitized aggregate profiler for local lead files (never prints emails or row data).
- * Usage: node scripts/data-preparation/profile-lead-files.mjs <directory>
+ * Usage: npx tsx scripts/data-preparation/profile-lead-files.ts <directory>
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
-import * as XLSX from "xlsx";
+import {
+  extractSheetMatrix,
+  loadSpreadsheetWorkbook
+} from "../../src/features/shared/spreadsheet/spreadsheet-parser";
 
 const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
-const EXTENSIONS = new Set([".csv", ".xlsx", ".xls"]);
+const EXTENSIONS = new Set([".csv", ".xlsx"]);
+const LEGACY_XLS = ".xls";
 
-function sanitizeLabel(filePath) {
+function sanitizeLabel(filePath: string): string {
   const base = path.basename(filePath);
   return base.replace(EMAIL_RE, "[email]").slice(0, 120);
 }
 
-function countEmails(text) {
-  const matches = text.match(EMAIL_RE) ?? [];
-  return matches.length;
-}
-
-function isValidEmailSyntax(value) {
+function isValidEmailSyntax(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim().toLowerCase());
 }
 
-function detectDelimiter(line) {
+function detectDelimiter(line: string): "," | ";" {
   const semicolons = (line.match(/;/g) ?? []).length;
   const commas = (line.match(/,/g) ?? []).length;
   if (semicolons > commas) return ";";
   return ",";
 }
 
-function parseCsvLine(line, delimiter) {
-  const cells = [];
+function parseCsvLine(line: string, delimiter: string): string[] {
+  const cells: string[] = [];
   let cell = "";
   let inQuotes = false;
-  for (let i = 0; i < line.length; i += 1) {
-    const ch = line[i];
-    const next = line[i + 1];
-    if (ch === '"' && inQuotes && next === '"') {
-      cell += '"';
-      i += 1;
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
+    const next = line[index + 1];
+    if (character === "\"" && inQuotes && next === "\"") {
+      cell += "\"";
+      index += 1;
       continue;
     }
-    if (ch === '"') {
+    if (character === "\"") {
       inQuotes = !inQuotes;
       continue;
     }
-    if (ch === delimiter && !inQuotes) {
+    if (character === delimiter && !inQuotes) {
       cells.push(cell.trim());
       cell = "";
       continue;
     }
-    cell += ch;
+    cell += character;
   }
   cells.push(cell.trim());
   return cells;
 }
 
-function profileCsv(filePath, buffer) {
+function profileCsv(buffer: Buffer) {
   let text = buffer.toString("utf8");
   if (text.includes("\uFFFD")) {
     text = buffer.toString("latin1");
   }
-  const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+  const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0);
   const delimiter = lines[0] ? detectDelimiter(lines[0]) : ",";
   const headers = lines[0] ? parseCsvLine(lines[0], delimiter) : [];
   const rows = lines.slice(1).map((line) => parseCsvLine(line, delimiter));
   return { sheets: [{ name: "csv", headers, rows }], delimiter, encoding: text.includes("\uFFFD") ? "latin1-fallback" : "utf-8" };
 }
 
-function profileXlsx(filePath, buffer) {
-  const workbook = XLSX.read(buffer, { type: "buffer", cellFormula: false, cellHTML: false });
-  const sheets = workbook.SheetNames.map((name) => {
-    const sheet = workbook.Sheets[name];
-    const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: "" });
-    const headers = (matrix[0] ?? []).map((c) => String(c ?? "").trim());
-    const rows = matrix.slice(1).filter((row) => row.some((c) => String(c ?? "").trim()));
+async function profileXlsx(buffer: ArrayBuffer) {
+  const workbook = await loadSpreadsheetWorkbook(buffer);
+  const sheets = workbook.sheetNames.map((name) => {
+    const { matrix } = extractSheetMatrix(workbook, name);
+    const headers = (matrix[0] ?? []).map((cell) => cell.trim());
+    const rows = matrix.slice(1).filter((row) => row.some((cell) => cell.trim().length > 0));
     return { name, headers, rows };
   });
   return { sheets, delimiter: null, encoding: "binary" };
 }
 
-function findEmailColumn(headers) {
-  const normalized = headers.map((h) =>
-    h
+function findEmailColumn(headers: string[]): number {
+  const normalized = headers.map((header) =>
+    header
       .normalize("NFD")
       .replace(/\p{M}/gu, "")
       .toLowerCase()
       .trim()
   );
   const aliases = ["email", "e-mail", "correio eletronico", "mail"];
-  return normalized.findIndex((h) => aliases.some((a) => h.includes(a)));
+  return normalized.findIndex((header) => aliases.some((alias) => header.includes(alias)));
 }
 
-function profileFile(filePath) {
+async function profileFile(filePath: string) {
   const ext = path.extname(filePath).toLowerCase();
+  if (ext === LEGACY_XLS) {
+    return {
+      sourceLabel: sanitizeLabel(filePath),
+      format: "xls",
+      skipped: true,
+      reason: "Legacy XLS is not supported by the ForgeOS spreadsheet adapter."
+    };
+  }
+
   const buffer = fs.readFileSync(filePath);
-  const parsed = ext === ".csv" ? profileCsv(filePath, buffer) : profileXlsx(filePath, buffer);
+  const parsed =
+    ext === ".csv"
+      ? profileCsv(buffer)
+      : await profileXlsx(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer);
 
   const sheetProfiles = parsed.sheets.map((sheet) => {
     const emailCol = findEmailColumn(sheet.headers);
     let missingEmail = 0;
     let invalidEmail = 0;
     let withEmail = 0;
-    const emailsSeen = new Set();
+    const emailsSeen = new Set<string>();
     let possibleDupes = 0;
-    const categories = {};
+    const categories: Record<string, number> = {};
 
     for (const row of sheet.rows) {
       const emailRaw = emailCol >= 0 ? String(row[emailCol] ?? "").trim() : "";
@@ -114,22 +124,22 @@ function profileFile(filePath) {
         missingEmail += 1;
       } else {
         withEmail += 1;
-        const primary = emails[0].toLowerCase();
-        if (!isValidEmailSyntax(primary)) invalidEmail += 1;
-        if (emailsSeen.has(primary)) possibleDupes += 1;
-        emailsSeen.add(primary);
+        const primary = emails[0]?.toLowerCase() ?? "";
+        if (primary && !isValidEmailSyntax(primary)) invalidEmail += 1;
+        if (primary && emailsSeen.has(primary)) possibleDupes += 1;
+        if (primary) emailsSeen.add(primary);
       }
-      const catCol = sheet.headers.findIndex((h) =>
-        /categoria|category|tipo|setor|sector/i.test(h)
+      const categoryColumn = sheet.headers.findIndex((header) =>
+        /categoria|category|tipo|setor|sector/i.test(header)
       );
-      if (catCol >= 0) {
-        const cat = String(row[catCol] ?? "").trim() || "(blank)";
-        categories[cat] = (categories[cat] ?? 0) + 1;
+      if (categoryColumn >= 0) {
+        const category = String(row[categoryColumn] ?? "").trim() || "(blank)";
+        categories[category] = (categories[category] ?? 0) + 1;
       }
     }
 
     const topCategories = Object.entries(categories)
-      .sort((a, b) => b[1] - a[1])
+      .sort((left, right) => right[1] - left[1])
       .slice(0, 8)
       .map(([name, count]) => ({ name: name.slice(0, 60), count }));
 
@@ -137,7 +147,7 @@ function profileFile(filePath) {
       sheetName: sheet.name,
       rowCount: sheet.rows.length,
       headerCount: sheet.headers.length,
-      headers: sheet.headers.map((h) => h.slice(0, 80)),
+      headers: sheet.headers.map((header) => header.slice(0, 80)),
       missingEmailCount: missingEmail,
       invalidEmailCount: invalidEmail,
       rowsWithEmail: withEmail,
@@ -158,13 +168,14 @@ function profileFile(filePath) {
   };
 }
 
-function main() {
+async function main(): Promise<void> {
   const target = process.argv[2];
   if (!target) {
-    console.error("Usage: node profile-lead-files.mjs <directory-or-file>");
+    console.error("Usage: npx tsx scripts/data-preparation/profile-lead-files.ts <directory-or-file>");
     process.exit(1);
   }
-  const files = [];
+
+  const files: string[] = [];
   const stat = fs.statSync(target);
   if (stat.isDirectory()) {
     for (const entry of fs.readdirSync(target, { withFileTypes: true })) {
@@ -184,8 +195,14 @@ function main() {
     files.push(target);
   }
 
-  const profiles = files.map(profileFile);
-  console.log(JSON.stringify({ generatedAt: new Date().toISOString(), fileCount: profiles.length, profiles }, null, 2));
+  const profiles = [];
+  for (const filePath of files) {
+    profiles.push(await profileFile(filePath));
+  }
+
+  console.log(
+    JSON.stringify({ generatedAt: new Date().toISOString(), fileCount: profiles.length, profiles }, null, 2)
+  );
 }
 
-main();
+void main();
