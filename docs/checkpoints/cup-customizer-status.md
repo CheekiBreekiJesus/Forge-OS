@@ -1,47 +1,37 @@
 # Cup Customizer Status Checkpoint
 
 Date: 2026-07-04  
-Branch: `feat/cup-customizer-integration-ui`  
-Worktree: `Forge-OS-cup-customizer-integration`
+Branch: `fix/cup-customizer-preview-layout`  
+Worktree: `Forge-OS-cup-customizer-preview-ux`  
+Base: `302c15a`
 
-## Completed
+## Preview UX repair (this branch)
 
-- [x] Recovery audit and specification
-- [x] Primary route `/quotations/customizer` functional
-- [x] Products alias `/products/cup-customizer`
-- [x] Cup product selection (250/330/500 ml demo)
-- [x] Printing configuration and validation
-- [x] Artwork upload and transforms
-- [x] Deterministic `CupPreview`
-- [x] Simulation persistence and reopen
-- [x] Gated photorealistic mockup (deterministic dev provider)
-- [x] Idempotent draft quotation update
-- [x] Mobile step workflow navigation
-- [x] PT-PT and English strings (customizer module)
-- [x] Unit and integration tests
-- [x] E2E coverage (`e2e/cup-customizer.spec.ts`)
-- [x] Private acceptance script (local-only)
-- [x] Product documentation set
+- [x] `CupDesignCanvas` — always-visible cup silhouette + upload overlay
+- [x] Artwork pipeline with decode validation and object-URL lifecycle
+- [x] Mockup display in design/mockup tabs (`cup-mockup-image`)
+- [x] Stored customer logo lookup (meta registry)
+- [x] Company logo from settings (explicit)
+- [x] Logo search/generation provider boundaries (no auto-run)
+- [x] Marketing visualization save boundary
+- [x] Compact laptop layout (56/44 grid, collapsible simulations)
+- [x] Viewport E2E tests (1366–1920, mobile, tablet)
+- [x] Unit + integration tests for pipeline and canvas
 
-## Validation commands
+## Validation
 
 ```bash
-npm run lint
-npm run typecheck
-npm test
+npm run lint && npm run typecheck && npm test && npm run build
 npm run test:e2e -- e2e/cup-customizer.spec.ts
-npm run build
-npm run ai:doctor -- --provider abacus
 ```
 
 ## Remaining limitations
 
-- Photorealistic mockup is deterministic SVG in dev, not print-proof
-- No external JH Gomes website customizer API
-- Artwork not synced to cloud storage
-- Full multi-line quotation model not implemented (single-line quote)
-- Customer portal customizer not in scope
+- Customer logo registry requires explicit registration (no CRM UI yet)
+- Logo search/generation disabled outside test/mock provider
+- Deterministic mockup is SVG, not print-proof
+- No cloud artwork sync
 
 ## Merge recommendation
 
-Integrate after `feat/email-outreach-mvp-integration`; resolve i18n overlap per `qa/cup-customizer/integration-overlap.md`.
+Merge into `feat/cup-customizer-integration-ui` before outreach send integration.

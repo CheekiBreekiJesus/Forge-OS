@@ -2,7 +2,20 @@
 
 ## Deterministic preview (required)
 
-`CupPreview` component renders immediately from:
+## Display
+
+After explicit generation:
+
+1. Asset saved to `mockupGeneration.realisticMockupAssetId`
+2. Preview URL loaded into preview panel
+3. UI switches to **Mockup realista** tab
+4. `cup-mockup-image` renders the SVG
+
+State machine: `none → generating → complete | failed`; `stale` when fingerprint changes.
+
+## Deterministic preview
+
+`CupDesignCanvas` — source of truth for transforms (design tab).
 
 - Product image or silhouette fallback
 - Artwork blob/data URL

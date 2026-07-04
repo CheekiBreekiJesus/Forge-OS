@@ -49,7 +49,8 @@ export function buildPhotorealisticMockupBlob(
   product: Product,
   configuration: CustomizerConfiguration,
   quantity: number,
-  pricing: CustomizerPricingSnapshot
+  pricing: CustomizerPricingSnapshot,
+  artworkDataUrl?: string | null
 ): Blob {
   const artworkX =
     configuration.artworkPosition === "left" ? 168 : configuration.artworkPosition === "right" ? 312 : 240;
@@ -59,7 +60,15 @@ export function buildPhotorealisticMockupBlob(
   const safeProductName = escapeSvgText(product.name);
   const safeSku = escapeSvgText(product.sku);
   const total = pricing.total.toFixed(2);
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="960" height="720" viewBox="0 0 960 720" role="img" aria-label="Photorealistic cup visualization">
+  const cupFill =
+    product.color?.toLowerCase().includes("black") || product.color?.toLowerCase().includes("pret")
+      ? "#1e293b"
+      : "#f1f5f9";
+  const artworkInner = artworkDataUrl
+    ? `<image href="${artworkDataUrl}" x="${-artworkWidth / 2}" y="${-artworkHeight / 2}" width="${artworkWidth}" height="${artworkHeight}" preserveAspectRatio="xMidYMid meet"/>`
+    : `<rect x="${-artworkWidth / 2}" y="${-artworkHeight / 2}" width="${artworkWidth}" height="${artworkHeight}" rx="10" fill="#ea580c" opacity="0.92"/>
+      <text x="0" y="5" text-anchor="middle" fill="#fff7ed" font-family="Arial, sans-serif" font-size="20" font-weight="700">${escapeSvgText(configuration.printArea)}</text>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="960" height="720" viewBox="0 0 960 720" role="img" aria-label="Photorealistic cup visualization">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#1e293b"/>
@@ -76,11 +85,10 @@ export function buildPhotorealisticMockupBlob(
   <rect width="960" height="720" fill="url(#bg)"/>
   <ellipse cx="480" cy="620" rx="220" ry="28" fill="#000" opacity="0.35"/>
   <g filter="url(#shadow)">
-    <path d="M330 120h300l-48 420H378z" fill="#f1f5f9" stroke="#94a3b8" stroke-width="3"/>
+    <path d="M330 120h300l-48 420H378z" fill="${cupFill}" stroke="#94a3b8" stroke-width="3"/>
     <path d="M350 150h260l-28 340H378z" fill="url(#cupShine)"/>
     <g transform="translate(${artworkX + configuration.artworkOffsetX * 2} ${artworkY}) rotate(${configuration.artworkRotation})">
-      <rect x="${-artworkWidth / 2}" y="${-artworkHeight / 2}" width="${artworkWidth}" height="${artworkHeight}" rx="10" fill="#ea580c" opacity="0.92"/>
-      <text x="0" y="5" text-anchor="middle" fill="#fff7ed" font-family="Arial, sans-serif" font-size="20" font-weight="700">${escapeSvgText(configuration.printArea)}</text>
+      ${artworkInner}
     </g>
   </g>
   <text x="48" y="56" fill="#f8fafc" font-family="Arial, sans-serif" font-size="22" font-weight="700">${safeProductName}</text>
@@ -102,6 +110,7 @@ export async function generateDeterministicPhotorealisticMockup(input: {
   quantity: number;
   pricing: CustomizerPricingSnapshot;
   artworkAssetId: string | null;
+  artworkDataUrl?: string | null;
   existingMeta?: MockupGenerationMeta | null;
 }): Promise<{ blob: Blob; meta: MockupGenerationMeta }> {
   const fingerprint = buildConfigurationFingerprint(
@@ -114,7 +123,8 @@ export async function generateDeterministicPhotorealisticMockup(input: {
     input.product,
     input.configuration,
     input.quantity,
-    input.pricing
+    input.pricing,
+    input.artworkDataUrl
   );
   return {
     blob,

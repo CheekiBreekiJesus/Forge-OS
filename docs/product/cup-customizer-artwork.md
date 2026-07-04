@@ -33,7 +33,20 @@
 
 SVG uploads must pass the shared local asset validator. Raw unsanitized SVG must never be injected into the DOM.
 
-## Replace / remove
+## Pipeline (repaired)
 
-- Upload again to replace (previous owned asset deleted)
-- Reset view restores default transforms (does not delete asset)
+```
+File input → validateCustomizerArtwork → decode dimensions → LocalAsset.create
+→ preview URL (blob/data) → CupDesignCanvas → simulation.artworkAssetId
+```
+
+Object URLs are revoked on replace/unmount via `revokeObjectUrlIfBlob`.
+
+## UI feedback
+
+| State | Visible message |
+|-------|-----------------|
+| validating | A validar ficheiro… |
+| loaded | Arte carregada. |
+| invalid | Format/size/decode error |
+| failed | Persistence failure |

@@ -38,3 +38,19 @@ export {
 } from "./workflow";
 export { deriveWorkflowStatus, mapPersistenceStatusForSave } from "./workflow-status";
 export { validateCustomizerArtwork } from "./artwork-upload";
+export {
+  createPreviewUrlFromAssetBlob,
+  processArtworkUpload,
+  validateArtworkFile,
+  type ArtworkMetadata,
+  type ArtworkUploadStatus
+} from "./artwork-pipeline";
+export { lookupStoredCustomerLogo, registerCustomerLogoAssetId } from "./customer-logos";
+export {
+  resolveLogoGenerationProvider,
+  resolveLogoSearchProvider,
+  type LogoGenerationProvider,
+  type LogoSearchProvider
+} from "./logo-providers";
+export { saveMarketingVisualization, MARKETING_VISUALIZATION_META_PREFIX } from "./marketing-assets";
+export { revokeObjectUrlIfBlob } from "./use-managed-object-url";
