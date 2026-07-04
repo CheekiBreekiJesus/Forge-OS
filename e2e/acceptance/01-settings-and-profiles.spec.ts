@@ -69,14 +69,13 @@ test.describe("Settings and profiles", () => {
     await expect(page.getByText(/utilizador de pré-visualização local/i).first()).toBeVisible();
   });
 
-  test("auth placeholders explain Google and Microsoft without success", async ({ page }) => {
+  test("auth buttons stay local when Supabase public config is missing", async ({ page }) => {
     await gotoAndWait(page, "/pt-PT/login");
     await page.getByRole("button", { name: /continuar com google/i }).click();
-    await expect(page.getByRole("heading", { name: /google/i })).toBeVisible();
+    await expect(page.getByText(/configuracao publica de autenticacao supabase/i)).toBeVisible();
     await expect(page).not.toHaveURL(/accounts\.google\.com/);
-    await page.getByRole("button", { name: /fechar/i }).click();
     await page.getByRole("button", { name: /continuar com microsoft/i }).click();
-    await expect(page.getByRole("heading", { name: /microsoft/i })).toBeVisible();
+    await expect(page.getByText(/configuracao publica de autenticacao supabase/i)).toBeVisible();
     await expect(page).not.toHaveURL(/login\.microsoftonline\.com/);
   });
 });

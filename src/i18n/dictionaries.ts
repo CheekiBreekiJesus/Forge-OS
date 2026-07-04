@@ -374,7 +374,15 @@ export type Dictionary = {
     note: string;
     googleSignIn: string;
     microsoftSignIn: string;
+    loadingGoogle: string;
+    loadingMicrosoft: string;
     orContinueLocal: string;
+    hostedOnlyNote: string;
+    membershipNote: string;
+    errors: Record<
+      import("@/lib/auth/safe-redirect").LoginErrorCode,
+      string
+    >;
     googleDialogTitle: string;
     googleDialogBody: string;
     microsoftDialogTitle: string;
