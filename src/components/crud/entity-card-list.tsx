@@ -1,7 +1,14 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { panelClass } from "@/components/app-frame";
+import { CollapsibleTableViewport } from "@/components/ui/collapsible-table-viewport";
+import {
+  sliceRowsForViewport,
+  totalPagesForViewport,
+  useCollapsibleRows
+} from "@/features/ui/use-collapsible-rows";
+import type { Locale } from "@/i18n/config";
 
 type EntityCardListProps<T> = {
   rows: T[];
@@ -11,6 +18,8 @@ type EntityCardListProps<T> = {
   meta?: (row: T) => ReactNode;
   actions?: (row: T) => ReactNode;
   archivedRowClass?: (row: T) => boolean;
+  locale: Locale;
+  enableCollapsibleViewport?: boolean;
 };
 
 export function EntityCardList<T>({
@@ -20,11 +29,29 @@ export function EntityCardList<T>({
   subtitle,
   meta,
   actions,
-  archivedRowClass
+  archivedRowClass,
+  locale,
+  enableCollapsibleViewport = true
 }: EntityCardListProps<T>) {
-  return (
+  const [page, setPage] = useState(1);
+  const collapsible = useCollapsibleRows({
+    totalRows: rows.length,
+    locale
+  });
+
+  const pages = totalPagesForViewport(rows.length, collapsible.visibleRowCount);
+  const effectivePage = Math.min(page, pages);
+  const showPagination =
+    enableCollapsibleViewport && rows.length > collapsible.visibleRowCount;
+
+  const visibleRows = useMemo(() => {
+    if (!enableCollapsibleViewport || rows.length <= 10) return rows;
+    return sliceRowsForViewport(rows, effectivePage, collapsible.visibleRowCount);
+  }, [collapsible.visibleRowCount, effectivePage, enableCollapsibleViewport, rows]);
+
+  const cards = (
     <div className="space-y-3 md:hidden">
-      {rows.map((row) => {
+      {visibleRows.map((row) => {
         const archived = archivedRowClass?.(row) ?? false;
         return (
           <article
@@ -43,6 +70,50 @@ export function EntityCardList<T>({
           </article>
         );
       })}
+    </div>
+  );
+
+  if (!enableCollapsibleViewport || rows.length <= 10) {
+    return cards;
+  }
+
+  return (
+    <div className="md:hidden">
+      <CollapsibleTableViewport
+        controlsId={`${collapsible.controlsId}-cards`}
+        expanded={collapsible.expanded}
+        labels={collapsible.labels}
+        onToggleExpanded={collapsible.toggleExpanded}
+        showExpandControl={collapsible.showExpandControl}
+        showingTotal={collapsible.showingTotal}
+        showingVisible={visibleRows.length}
+        tableId="entity-card-viewport"
+      >
+        {cards}
+      </CollapsibleTableViewport>
+      {showPagination ? (
+        <div className="mt-3 flex items-center justify-between text-sm text-slate-400">
+          <span>{effectivePage} / {pages}</span>
+          <div className="flex gap-2">
+            <button
+              className="rounded border border-slate-700 px-3 py-1 disabled:opacity-50"
+              disabled={effectivePage <= 1}
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+              type="button"
+            >
+              ←
+            </button>
+            <button
+              className="rounded border border-slate-700 px-3 py-1 disabled:opacity-50"
+              disabled={effectivePage >= pages}
+              onClick={() => setPage((current) => Math.min(pages, current + 1))}
+              type="button"
+            >
+              →
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

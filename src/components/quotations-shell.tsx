@@ -270,6 +270,7 @@ export function QuotationsShell({ dictionary, locale }: QuotationsShellProps) {
             }}
             columns={columns}
             rowKey={(q) => q.id}
+            locale={locale}
             rows={filtered}
           />
           <EntityCardList
@@ -305,6 +306,7 @@ export function QuotationsShell({ dictionary, locale }: QuotationsShellProps) {
             }}
             meta={(q) => copy.statuses[q.status]}
             rowKey={(q) => q.id}
+            locale={locale}
             rows={filtered}
             subtitle={(q) => q.customerName}
             title={(q) => q.quoteNumber}

@@ -12,7 +12,10 @@ import {
 import { isValidEmailSyntax, normalizeEmail } from "@/features/leadops/import-normalization";
 import type { LeadOpsFilters } from "@/features/leadops/types";
 
-export const LEAD_PAGE_SIZE = 25;
+export const LEAD_COLLAPSED_PAGE_SIZE = 10;
+export const LEAD_EXPANDED_PAGE_SIZE = 25;
+/** @deprecated Use LEAD_COLLAPSED_PAGE_SIZE / LEAD_EXPANDED_PAGE_SIZE */
+export const LEAD_PAGE_SIZE = LEAD_EXPANDED_PAGE_SIZE;
 export const LEAD_FILTER_STORAGE_KEY = "forgeos:leadops:filter-state";
 
 export type EmailValidityFilter = "" | "valid" | "missing" | "invalid";
