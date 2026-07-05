@@ -48,7 +48,14 @@ Synthetic, tenant-scoped dataset for `tenant_jh_gomes` (JH Gomes-style demo). No
 
 ## Deterministic IDs
 
-Managed IDs are declared in `src/demo/local-demo-dataset.ts` (`LOCAL_DEMO_*_IDS`). Reseed uses `bulkPut` only for missing or wrong-tenant rows.
+Managed IDs are declared in `src/demo/local-demo-dataset.ts` (`LOCAL_DEMO_*_IDS`).
+
+Reseed behaviour:
+
+- **Same seed version, complete dataset:** no-op.
+- **Missing managed rows:** `bulkPut` missing IDs only.
+- **Seed version changed or `force`:** overwrite all managed demo rows via `bulkPut`.
+- **Demo-only reset:** delete managed IDs, then reseed missing rows; user-created records preserved.
 
 ## Email domain policy
 

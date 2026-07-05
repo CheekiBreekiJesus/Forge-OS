@@ -27,13 +27,28 @@ Implemented idempotent demo seeding (`SEED_VERSION=5`), three confirmed reset pa
 |---------|--------|
 | `npm run lint` | Pass (14 pre-existing warnings) |
 | `npm run typecheck` | Pass |
-| `npm test` | Pass — 421 tests |
+| `npm test` | Pass — **428 tests** (second-pass persistence review) |
 | `npm run build` | Pass |
 | `npm run demo:smoke` | Blocked — system Node v25.1.0; demo requires Node 22.x |
 
+## Second-pass persistence review (2026-07-05)
+
+| Fix | Detail |
+|-----|--------|
+| Backup `customerContacts` | Export/import round-trip |
+| Atomic restore | Clear+import in single Dexie transaction |
+| Seed version bump | Overwrite managed demo rows when `SEED_VERSION` changes |
+| Dexie v12/v13 chain | Split `importMappingProfiles` (12) from recipient fields (13) |
+| Backup metadata | `applicationVersion`, `databaseName`, `recordCounts` |
+| Object URL cleanup | Settings logo preview revoke |
+
+**Gate:** `qa/demo/composer-persistence-review.md` — **GO WITH CONDITIONS**
+
 ## Test coverage added
 
-- `src/demo/local-demo-lifecycle.test.ts` — seed, idempotency, reset, restore, backup, guards, tenant isolation
+- `src/demo/local-demo-lifecycle.test.ts` — seed, idempotency, reset, restore, backup, guards, tenant isolation, customer contacts, seed version overwrite
+- `src/features/backup/backup-coverage.test.ts` — Dexie table ↔ backup coverage
+- `src/persistence/schema-upgrade.test.ts` — schema version and user-record survival
 
 ## Files touched (primary)
 

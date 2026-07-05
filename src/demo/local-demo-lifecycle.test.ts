@@ -5,6 +5,7 @@ import {
   getLocalDemoDatasetManifest,
   LOCAL_DEMO_CUSTOMER_IDS,
   LOCAL_DEMO_CUSTOMIZER_IDS,
+  LOCAL_DEMO_QUOTE_IDS,
   LOCAL_DEMO_SEED_LEAD_IDS
 } from "@/demo/local-demo-dataset";
 import {
@@ -134,6 +135,66 @@ describe("local demo data lifecycle", () => {
   it("rejects malformed backup files", () => {
     expect(validateBackup(null)).toBe(false);
     expect(validateBackup({ version: 9, tenantId: DEFAULT_TENANT_ID })).toBe(false);
+  });
+
+  it("rejects backup objects with prototype pollution keys", () => {
+    expect(
+      validateBackup({
+        version: 9,
+        schemaVersion: SCHEMA_VERSION,
+        tenantId: DEFAULT_TENANT_ID,
+        tables: {
+          constructor: [],
+          leads: [],
+          customers: [],
+          companyProfiles: [],
+          userProfiles: [],
+          senderIdentities: [],
+          products: []
+        }
+      })
+    ).toBe(false);
+  });
+
+  it("exports and restores customer contacts", async () => {
+    const repos = getTestRepos();
+    const db = getDatabase(TEST_DB);
+    await seedDatabase(db, DEFAULT_TENANT_ID, true);
+    const customer = (await repos.customers.list(DEFAULT_TENANT_ID))[0];
+    expect(customer).toBeTruthy();
+    await repos.customerContacts.create(DEFAULT_TENANT_ID, {
+      customerId: customer!.id,
+      name: "Backup Contact",
+      email: "contact.backup@example.invalid",
+      phone: "+351 244 000 111",
+      role: "Buyer",
+      isPrimary: true,
+      active: true,
+      archivedAt: null,
+      archivedBy: null,
+      archiveReason: null
+    });
+    const backup = await exportBackup(repos, DEFAULT_TENANT_ID, false);
+    expect(backup.tables.customerContacts.length).toBeGreaterThan(0);
+    expect(backup.applicationVersion).toBeTruthy();
+    expect(backup.recordCounts?.customerContacts).toBeGreaterThan(0);
+    await repos.reset();
+    await importBackup(repos, backup);
+    const restored = await repos.customerContacts.listForCustomer(DEFAULT_TENANT_ID, customer!.id);
+    expect(restored.some((row) => row.name === "Backup Contact")).toBe(true);
+  });
+
+  it("overwrites managed demo records when seed version changes", async () => {
+    const db = getDatabase(TEST_DB);
+    await seedDatabase(db, DEFAULT_TENANT_ID, true);
+    const managedQuoteId = LOCAL_DEMO_QUOTE_IDS[0];
+    const before = await db.quotes.get(managedQuoteId);
+    expect(before).toBeTruthy();
+    await db.quotes.update(managedQuoteId, { notes: "stale demo mutation" });
+    await db.meta.put({ key: "seedVersion", value: "4" });
+    await applyLocalDemoDataset(db, DEFAULT_TENANT_ID, { force: false });
+    const after = await db.quotes.get(managedQuoteId);
+    expect(after?.notes).not.toBe("stale demo mutation");
   });
 
   it("rejects incompatible schema versions", () => {

@@ -26,8 +26,8 @@ import type {
 import type { EmailSuppression } from "@/domain/suppression-types";
 import type { ImportBatch, ImportRow, LeadContact, ImportMappingProfile } from "@/domain/import-types";
 import type { CustomizerSimulation } from "@/domain/customizer-types";
-import type { Machine, InventoryItem, StockMovement } from "@/domain/operations-types";
-import { SCHEMA_VERSION } from "@/domain/constants";
+import type { Machine, InventoryItem, StockMovement, CustomerContact } from "@/domain/operations-types";
+import { APP_VERSION, LOCAL_DB_NAME, SCHEMA_VERSION } from "@/domain/constants";
 import type { LocalRepositoryBundle } from "@/persistence/interfaces";
 import {
   normalizeBackupTables,
@@ -39,14 +39,53 @@ export const BACKUP_VERSION = 9 as const;
 export const SUPPORTED_BACKUP_VERSIONS = [4, 5, 6, 7, 8, 9] as const;
 export const MIN_SCHEMA_VERSION = 13 as const;
 
+/** Every IndexedDB data table (except meta/localAssets) must appear here. */
+export const BACKUP_TABLE_KEYS = [
+  "leads",
+  "customers",
+  "customerContacts",
+  "opportunities",
+  "quotes",
+  "productionOrders",
+  "outreachMessages",
+  "campaigns",
+  "campaignRecipients",
+  "activities",
+  "companyProfiles",
+  "userProfiles",
+  "senderIdentities",
+  "products",
+  "machines",
+  "inventoryItems",
+  "stockMovements",
+  "customizerSimulations",
+  "importBatches",
+  "importRows",
+  "importMappingProfiles",
+  "leadContacts",
+  "emailSuppressions",
+  "outreachSendAttempts",
+  "outreachProviderEvents",
+  "outreachSendJobs",
+  "outreachSendJobRecipients",
+  "outreachSendJobAttempts",
+  "outreachSendJobDailyUsage"
+] as const;
+
+export const INDEXEDDB_DATA_TABLE_KEYS = [...BACKUP_TABLE_KEYS, "localAssets"] as const;
+
 export type ForgeOSBackup = {
   version: typeof BACKUP_VERSION | 4 | 5 | 6 | 7 | 8;
   schemaVersion?: number;
+  applicationVersion?: string;
+  databaseName?: string;
   exportedAt: string;
   tenantId: string;
+  recordCounts?: Record<string, number>;
   tables: {
     leads: Lead[];
     customers: Customer[];
+    customerContacts: CustomerContact[];
     opportunities: Opportunity[];
     quotes: Quote[];
     productionOrders: ProductionOrder[];
@@ -76,6 +115,27 @@ export type ForgeOSBackup = {
   };
   localAssets?: Array<Omit<LocalAsset, "blob"> & { blobBase64: string }>;
 };
+
+const DANGEROUS_BACKUP_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
+export function hasDangerousBackupKeys(value: unknown): boolean {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const record = value as Record<string, unknown>;
+  return Object.getOwnPropertyNames(record).some((key) => DANGEROUS_BACKUP_KEYS.has(key));
+}
+
+async function listCustomerContactsForTenant(
+  repos: LocalRepositoryBundle,
+  tenantId: string,
+  customers: Customer[]
+): Promise<CustomerContact[]> {
+  const rows = await Promise.all(
+    customers.map((customer) => repos.customerContacts.listForCustomer(tenantId, customer.id))
+  );
+  return rows.flat();
+}
 
 export async function exportBackup(
   repos: LocalRepositoryBundle,
@@ -176,39 +236,51 @@ export async function exportBackup(
     includeAssets ? repos.localAssets.list(tenantId) : Promise.resolve([])
   ]);
 
+  const customerContacts = await listCustomerContactsForTenant(repos, tenantId, customers);
+
+  const tables = {
+    activities,
+    campaigns,
+    companyProfiles: companyProfile ? [companyProfile] : [],
+    customerContacts,
+    customers,
+    leads,
+    opportunities,
+    outreachMessages,
+    productionOrders,
+    products,
+    quotes,
+    senderIdentities,
+    userProfiles,
+    machines,
+    inventoryItems,
+    stockMovements,
+    customizerSimulations,
+    importBatches,
+    importRows,
+    importMappingProfiles,
+    leadContacts,
+    campaignRecipients,
+    emailSuppressions,
+    outreachSendAttempts,
+    outreachProviderEvents,
+    outreachSendJobs,
+    outreachSendJobRecipients,
+    outreachSendJobAttempts,
+    outreachSendJobDailyUsage
+  };
+
+  const recordCounts = Object.fromEntries(
+    Object.entries(tables).map(([key, rows]) => [key, rows.length])
+  );
+
   const backup: ForgeOSBackup = {
+    applicationVersion: APP_VERSION,
+    databaseName: LOCAL_DB_NAME,
     exportedAt: new Date().toISOString(),
+    recordCounts,
     schemaVersion: SCHEMA_VERSION,
-    tables: {
-      activities,
-      campaigns,
-      companyProfiles: companyProfile ? [companyProfile] : [],
-      customers,
-      leads,
-      opportunities,
-      outreachMessages,
-      productionOrders,
-      products,
-      quotes,
-      senderIdentities,
-      userProfiles,
-      machines,
-      inventoryItems,
-      stockMovements,
-      customizerSimulations,
-      importBatches,
-      importRows,
-      importMappingProfiles,
-      leadContacts,
-      campaignRecipients,
-      emailSuppressions,
-      outreachSendAttempts,
-      outreachProviderEvents,
-      outreachSendJobs,
-      outreachSendJobRecipients,
-      outreachSendJobAttempts,
-      outreachSendJobDailyUsage
-    },
+    tables,
     tenantId,
     version: BACKUP_VERSION
   };
@@ -234,10 +306,12 @@ export async function exportBackup(
 
 export function validateBackup(data: unknown): data is ForgeOSBackup {
   if (!data || typeof data !== "object") return false;
+  if (hasDangerousBackupKeys(data)) return false;
   const record = data as Record<string, unknown>;
   if (!SUPPORTED_BACKUP_VERSIONS.includes(record.version as 4 | 5 | 6 | 7 | 8 | 9)) return false;
   if (typeof record.tenantId !== "string") return false;
   if (!record.tables || typeof record.tables !== "object") return false;
+  if (hasDangerousBackupKeys(record.tables)) return false;
   const tables = record.tables as Record<string, unknown>;
   const required = [
     "leads",
@@ -285,6 +359,7 @@ export async function importBackup(
     schemaVersion: backup.schemaVersion ?? SCHEMA_VERSION,
     tables: {
       ...backup.tables,
+      customerContacts: backup.tables.customerContacts ?? [],
       machines: backup.tables.machines ?? [],
       inventoryItems: backup.tables.inventoryItems ?? [],
       stockMovements: backup.tables.stockMovements ?? [],
@@ -299,7 +374,6 @@ export async function importBackup(
     }
   });
   const report = validateBackupRestoreIntegrity(normalized);
-  await repos.reset();
   if (repos.importBackupData) {
     await repos.importBackupData(normalized);
   }

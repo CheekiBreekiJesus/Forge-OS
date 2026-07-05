@@ -1247,13 +1247,12 @@ export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
 
 async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Promise<void> {
   const { tables, localAssets, tenantId } = backup;
-  await db.transaction(
-    "rw",
-    [
-      db.meta,
-      db.leads,
-      db.customers,
-      db.opportunities,
+  const writableTables = [
+    db.meta,
+    db.leads,
+    db.customers,
+    db.customerContacts,
+    db.opportunities,
       db.quotes,
       db.productionOrders,
       db.outreachMessages,
@@ -1280,11 +1279,45 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
       db.outreachSendJobRecipients,
       db.outreachSendJobAttempts,
       db.outreachSendJobDailyUsage
-    ],
-    async () => {
-      await db.leads.bulkPut(tables.leads);
-      await db.customers.bulkPut(tables.customers);
-      await db.opportunities.bulkPut(tables.opportunities);
+  ] as const;
+
+  await db.transaction("rw", writableTables, async () => {
+    await db.meta.clear();
+    await db.leads.clear();
+    await db.customers.clear();
+    await db.customerContacts.clear();
+    await db.opportunities.clear();
+    await db.quotes.clear();
+    await db.productionOrders.clear();
+    await db.outreachMessages.clear();
+    await db.campaigns.clear();
+    await db.activities.clear();
+    await db.companyProfiles.clear();
+    await db.userProfiles.clear();
+    await db.senderIdentities.clear();
+    await db.localAssets.clear();
+    await db.products.clear();
+    await db.machines.clear();
+    await db.inventoryItems.clear();
+    await db.stockMovements.clear();
+    await db.customizerSimulations.clear();
+    await db.importBatches.clear();
+    await db.importRows.clear();
+    await db.importMappingProfiles.clear();
+    await db.leadContacts.clear();
+    await db.campaignRecipients.clear();
+    await db.emailSuppressions.clear();
+    await db.outreachSendAttempts.clear();
+    await db.outreachProviderEvents.clear();
+    await db.outreachSendJobs.clear();
+    await db.outreachSendJobRecipients.clear();
+    await db.outreachSendJobAttempts.clear();
+    await db.outreachSendJobDailyUsage.clear();
+
+    await db.leads.bulkPut(tables.leads);
+    await db.customers.bulkPut(tables.customers);
+    await db.customerContacts.bulkPut(tables.customerContacts ?? []);
+    await db.opportunities.bulkPut(tables.opportunities);
       await db.quotes.bulkPut(tables.quotes);
       await db.productionOrders.bulkPut(tables.productionOrders ?? []);
       await db.outreachMessages.bulkPut(tables.outreachMessages);
@@ -1326,8 +1359,7 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
       if (backup.schemaVersion != null) {
         await db.meta.put({ key: "schemaVersion", value: String(backup.schemaVersion) });
       }
-    }
-  );
+    });
   const productRows = await db.products.where("tenantId").equals(tenantId).toArray();
   const machineCount = await db.machines.where("tenantId").equals(tenantId).count();
   if (machineCount === 0 && productRows.length > 0) {

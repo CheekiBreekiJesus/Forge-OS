@@ -7,6 +7,7 @@ import { getClientIntegrationCards, type IntegrationCard } from "@/features/inte
 import { HostedFeaturesDialog } from "@/components/hosted-features";
 import { renderSignature } from "@/features/email-composition/signature";
 import { validateLocalAsset } from "@/features/email-composition/local-asset";
+import { revokeObjectUrlIfBlob } from "@/features/cup-customizer/use-managed-object-url";
 import { isValidPublicUrl, normalizeUrl } from "@/features/email-composition/url-utils";
 import type { CompanyProfile, SenderIdentity, UserProfile } from "@/domain/profile-types";
 import type { Locale } from "@/i18n/config";
@@ -107,11 +108,25 @@ function CompanySection({ s }: { s: Dictionary["settings"] }) {
 
   useEffect(() => {
     if (!profile?.logoLocalAssetId || state.status !== "ready") return;
+    let cancelled = false;
     void (async () => {
       const asset = await state.repos.localAssets.getById(tenantId, profile.logoLocalAssetId!);
-      if (asset) setLogoPreview(URL.createObjectURL(asset.blob));
+      if (!asset || cancelled) return;
+      setLogoPreview((previous) => {
+        revokeObjectUrlIfBlob(previous);
+        return URL.createObjectURL(asset.blob);
+      });
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [profile?.logoLocalAssetId, state, tenantId]);
+
+  useEffect(() => {
+    return () => {
+      revokeObjectUrlIfBlob(logoPreview);
+    };
+  }, [logoPreview]);
 
   async function save(e: FormEvent) {
     e.preventDefault();
@@ -153,7 +168,10 @@ function CompanySection({ s }: { s: Dictionary["settings"] }) {
       logoLocalAssetId: asset.id
     });
     setForm(updated);
-    setLogoPreview(URL.createObjectURL(file));
+    setLogoPreview((previous) => {
+      revokeObjectUrlIfBlob(previous);
+      return URL.createObjectURL(file);
+    });
     notifyDataChanged();
     setFeedback(s.company.logoUploaded);
   }

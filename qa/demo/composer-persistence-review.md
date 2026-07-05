@@ -1,111 +1,80 @@
-# Composer persistence review — ForgeOS 0.2.0 local demo
+# Composer persistence review — second pass
 
 **Date:** 2026-07-05  
 **Branch:** `release/forgeos-0.2.0-local-demo`  
-**Reviewer:** Composer (substitute for unavailable independent Codex review)  
-**Entry gate for:** UI stabilization and integrated workflow work (not visual polish)
+**HEAD at review start:** `a1acf5cb8c44e54654fc8fad3ea1fbef81e7996e`  
+**Reviewer:** Composer (evidence-driven second pass; Codex unavailable)  
+**Baseline:** `qa/demo/composer-persistence-review-baseline.md`
 
 ## Decision
 
-| Gate | Status |
-|------|--------|
-| **Persistence GO** | **GO** — functional UI and integration work may proceed |
-| **Visual polish** | **HOLD** — pt-PT diacritics and cosmetic i18n remain deferred (not data-lifecycle) |
+**GO WITH CONDITIONS**
 
-No **BLOCKER** or unresolved **HIGH** data-lifecycle defect blocks functional demo work on this branch.
+Persistence and data lifecycle are safe enough to continue UI stabilization. Remaining conditions are operational (Node 22 CLI) and documented restore-warning behavior — no open BLOCKER or HIGH data-loss defects after fixes in this review.
 
 ---
 
-## Sources reviewed
+## Finding table
 
-| Document | Status |
-|----------|--------|
-| `qa/demo/demo-data-lifecycle-result.md` | Read — Prompt 2 implementation summary |
-| `docs/demo/demo-reset-backup-restore.md` | Read — reset/backup contract |
-| `docs/demo/demo-data-reference.md` | Read — SEED_VERSION 5, SCHEMA_VERSION 13 |
-| `src/demo/local-demo-lifecycle.test.ts` | Executed — 11 lifecycle tests pass (via `npm test`) |
-| `src/features/demo/local-demo-guard.ts` | Read — fail-closed guards |
-| Prior UI fix `leadops-dashboard-shell.tsx` (`dataVersion` reload) | Verified in commit `0b1bfbe` |
+| ID | Severity | File | Behavior | Risk | Fix | Test | Status |
+|----|----------|------|----------|------|-----|------|--------|
+| PERS-2-001 | **HIGH** | `backup/service.ts` | `customerContacts` omitted from backup | Contact loss on restore | Export/import `customerContacts` | `local-demo-lifecycle.test.ts` | **RESOLVED** |
+| PERS-2-002 | **HIGH** | `backup/service.ts` | `importBackup` reset outside import transaction | Empty DB on partial failure | Atomic clear+import in `importBackupToDb` | lifecycle tests | **RESOLVED** |
+| PERS-2-003 | **HIGH** | `local-demo-seed-service.ts` | Seed version bump did not overwrite managed rows | Stale demo after upgrade | `bulkPut` when seed version changes | `local-demo-lifecycle.test.ts` | **RESOLVED** |
+| PERS-2-004 | **MEDIUM** | `persistence/db.ts` | Duplicate Dexie `version(13)` registration | Skipped v12 migration chain | Split `version(12)` + `version(13)` | `schema-upgrade.test.ts` | **RESOLVED** |
+| PERS-2-005 | **MEDIUM** | `backup/service.ts` | Backup lacked provenance metadata | Operator verification harder | `applicationVersion`, `databaseName`, `recordCounts` | lifecycle test | **RESOLVED** |
+| PERS-2-006 | **MEDIUM** | `settings-shell.tsx` | Logo blob URLs not revoked | Memory leak | `revokeObjectUrlIfBlob` on replace/unmount | Manual | **RESOLVED** |
+| PERS-2-007 | **LOW** | `backup/service.ts` | `validateBackup` accepted dangerous keys | Pollution surface | `hasDangerousBackupKeys` | lifecycle test | **RESOLVED** |
+| PERS-2-008 | **LOW** | `demo-data-reference.md` | Doc drift on reseed strategy | Confusion | Updated documentation | N/A | **RESOLVED** |
 
----
+### Verified safe (no fix required)
 
-## Persistence GO conditions (from Prompt 2 / lifecycle contract)
+| Area | Evidence |
+|------|----------|
+| Demo-only reset preserves user leads | `resetDemoData` + lifecycle test |
+| Full restore clears all data (explicit) | `restoreDeterministicDemoState` + confirm UI |
+| `seedDatabase(force=true)` wipes tenant scope | By design for full restore; documented |
+| Supabase / production guards | `local-demo-guard.ts` tests |
+| Tenant isolation | lifecycle isolation test |
+| No GET-triggered destructive ops | Settings button + confirm only |
+| Referential integrity on seed data | Builders use stable cross-refs |
 
-| # | Condition | Severity if open | Status | Evidence |
-|---|-----------|------------------|--------|----------|
-| 1 | Local persistence only for demo lifecycle | BLOCKER | **Met** | `local-demo-guard.ts`; Supabase throws `LocalDemoLifecycleError` |
-| 2 | No Supabase/OAuth/Brevo in demo contract | BLOCKER | **Met** | `scripts/demo/contract.mjs` clears hosted keys; simulation providers |
-| 3 | Demo scripts do not edit `.env.local` | HIGH | **Met** | `buildDemoProcessEnv()` injects env at runtime only |
-| 4 | Deterministic idempotent seed (`SEED_VERSION`) | HIGH | **Met** | `SEED_VERSION = 5`; `local-demo-lifecycle.test.ts` repeat-seed case |
-| 5 | Tenant isolation (`tenant_jh_gomes`) | HIGH | **Met** | Lifecycle isolation test; backup exports correct `tenantId` |
-| 6 | Synthetic emails only (`*.example` / `*.invalid`) | HIGH | **Met** | `local-demo-dataset.ts` policy; demo-data-reference.md |
-| 7 | Explicit confirmation for destructive reset | HIGH | **Met** | Settings + demo page `window.confirm`; acceptance `06-backup-reset` |
-| 8 | Backup v9 with `schemaVersion` | HIGH | **Met** | `exportBackup` test; incompatible schema rejected |
-| 9 | Three reset paths (demo-only / clear all / full restore) | HIGH | **Met** | Settings UI + `resetDemoData` / `clearAllLocalData` / `restoreDeterministicDemoState` tests |
-| 10 | No duplicate rows on backup re-import | HIGH | **Met** | `exports and restores backup without duplicating records` test |
-| 11 | User-created records preserved on demo-only reset | HIGH | **Met** | `reset demo data then reseed restores managed records only` test |
-| 12 | UI reflects persistence after demo reset (LeadOps campaigns) | HIGH | **Met** | `leadops-dashboard-shell.tsx` reload on `dataVersion` (`0b1bfbe`) |
-| 13 | Footer shows local demo environment (not “Produção”) | MEDIUM | **Met** | `app-frame.tsx` + `dashboard.status.localDemo` (`0b1bfbe`) |
-| 14 | Node 22.x for `demo:*` CLI scripts | HIGH (ops) | **Environmental** | Machine has Node v25; scripts fail fast per design. Playwright harness validates equivalent persistence on Node 25. |
-| 15 | `npm run demo:smoke` green on Node 22 CI/customer PC | HIGH (ops) | **Pending ops** | Not a code defect; blocked locally on Node 25 only |
+### Conditions (non-blocking)
 
----
-
-## Findings
-
-### BLOCKER — none open
-
-### HIGH (data-lifecycle) — none open
-
-| ID | Issue | Resolution |
-|----|-------|------------|
-| PERS-H-001 | Stale LeadOps campaign data after demo reset/restore | Fixed `0b1bfbe` — campaign `useEffect` depends on `dataVersion` |
-| PERS-H-002 | Footer mislabeled production in local demo | Fixed `0b1bfbe` — `resolveEffectivePersistenceMode()` |
-
-### MEDIUM — open (non-blocking for functional UI)
-
-| ID | Issue | Notes |
-|----|-------|-------|
-| PERS-M-001 | `docs/demo/forgeos-0.2.0-demo-plan.md` cites `SEED_VERSION` **4**; code uses **5** | Doc drift only |
-| PERS-M-002 | `demo:reset` / `demo:seed` / `demo:smoke` require Node 22 on operator machine | Documented; use Playwright walkthrough or Node 22 runtime for CLI |
-| PERS-M-003 | FORGE-QA-001 pt-PT missing diacritics | **Visual/i18n polish** — not data-lifecycle; do not conflate |
-
-### LOW
-
-| ID | Issue |
-|----|-------|
-| PERS-L-001 | Integrated workflow spec + quotation→production action uncommitted in working tree (Prompt 4 in progress) |
+| # | Condition |
+|---|-----------|
+| 1 | `demo:reset` / `demo:seed` / `demo:smoke` CLI requires **Node 22.x**; use `validate:release` or CI on Node 25 dev machines |
+| 2 | `restoreDeterministicDemoState` and `seedDatabase(..., force=true)` intentionally delete **all tenant rows** — distinct from demo-only reset |
+| 3 | `validateBackupRestoreIntegrity` reports orphan warnings but does not block import (soft validation) |
+| 4 | pt-PT diacritics (FORGE-QA-001) remain visual polish, not persistence |
 
 ---
 
-## Validation run (this review)
+## Dexie schema chain (post-fix)
+
+| Ver | Change |
+|-----|--------|
+| 1–8 | CRM, profiles, operations, imports, campaigns (unchanged) |
+| 11 | Suppressions, send jobs, provider events |
+| **12** | `importMappingProfiles` + import batch metadata upgrade |
+| **13** | Campaign recipient greeting override fields |
+
+Downgrade: not supported (Dexie). Forward upgrade from v11 databases preserves rows via incremental `.upgrade()` patches.
+
+---
+
+## Validation (this review)
 
 | Command | Result |
 |---------|--------|
-| `npm test` (includes `local-demo-lifecycle.test.ts`) | **421 passed**, 3 skipped |
-| `npm run demo:reset` | **Blocked** — Node v25.1.0 (expected gate) |
-| Playwright `forgeos-0.2.0-demo.spec.ts` (prior run) | **4/4 passed** on demo DB via `playwright.demo-walkthrough.config.ts` |
-
----
-
-## Gate rules applied
-
-1. **Do not start visual polish** while a BLOCKER or unresolved HIGH **data-lifecycle** issue exists → **no such issue open**.
-2. **Functional UI fixes** tied to persistence integration (reset reload, environment label, quotation→production link) are **in scope** and aligned with GO.
-3. **Independent Codex review** was unavailable; this document is the **required Composer substitute** until Codex re-runs.
-
----
-
-## Recommended next steps (post-GO)
-
-1. Complete and commit integrated workflow work (`e2e/forgeos-0.2.0-demo.spec.ts`, quotation production action) if not yet landed.
-2. Fix PERS-M-001 doc drift (`SEED_VERSION` 4 → 5 in demo plan).
-3. Run `demo:smoke` on Node 22 (CI or customer PC) before release tag.
-4. Defer FORGE-QA-001 diacritics pass until after functional 0.2.0 checkpoint.
+| `npm run typecheck` | Pass |
+| `npm run lint` | Pass (14 pre-existing warnings) |
+| `npm test` | **428 passed**, 3 skipped |
+| `npm run build` | Pass |
+| `demo:reset/seed/smoke` CLI | Blocked on Node v25 (environmental; not code defect) |
 
 ---
 
 ## Sign-off
 
-**Composer persistence gate:** **GO** for functional demo/UI integration work.  
-**Visual polish:** remain deferred per FORGE-QA-001 and user scope.
+**Composer persistence gate (second pass):** **GO WITH CONDITIONS** for UI stabilization.

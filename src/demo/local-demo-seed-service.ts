@@ -72,8 +72,15 @@ async function upsertMissingRows<T extends { id: string; tenantId: string }>(
   bulkGet: (ids: string[]) => Promise<(T | undefined)[]>,
   bulkPut: (rows: T[]) => Promise<unknown>,
   rows: T[],
-  tenantId: string
+  tenantId: string,
+  overwrite = false
 ): Promise<void> {
+  if (overwrite) {
+    if (rows.length > 0) {
+      await bulkPut(rows);
+    }
+    return;
+  }
   const existing = await bulkGet(rows.map((row) => row.id));
   const missing = rows.filter((row, index) => {
     const current = existing[index];
@@ -93,8 +100,11 @@ export async function applyLocalDemoDataset(
   const existingSeedRow = await db.meta.get(LOCAL_DEMO_META_SEED_KEY);
   const existingVersion = existingSeedRow?.value ?? null;
   const complete = await isLocalDemoDatasetComplete(db, tenantId);
+  const seedVersionChanged =
+    existingVersion !== null && existingVersion !== String(SEED_VERSION);
+  const overwriteManaged = Boolean(options.force || seedVersionChanged);
 
-  if (!options.force && existingVersion === String(SEED_VERSION) && complete) {
+  if (!options.force && !seedVersionChanged && existingVersion === String(SEED_VERSION) && complete) {
     return false;
   }
 
@@ -131,67 +141,78 @@ export async function applyLocalDemoDataset(
         (ids) => db.customers.bulkGet(ids),
         (rows) => db.customers.bulkPut(rows),
         customers,
-        tenantId
+        tenantId,
+        overwriteManaged
       );
       await upsertMissingRows(
         (ids) => db.opportunities.bulkGet(ids),
         (rows) => db.opportunities.bulkPut(rows),
         opportunities,
-        tenantId
+        tenantId,
+        overwriteManaged
       );
       await upsertMissingRows(
         (ids) => db.quotes.bulkGet(ids),
         (rows) => db.quotes.bulkPut(rows),
         quotes,
-        tenantId
+        tenantId,
+        overwriteManaged
       );
       await upsertMissingRows(
         (ids) => db.productionOrders.bulkGet(ids),
         (rows) => db.productionOrders.bulkPut(rows),
         productionOrders,
-        tenantId
+        tenantId,
+        overwriteManaged
       );
       await upsertMissingRows(
         (ids) => db.campaignRecipients.bulkGet(ids),
         (rows) => db.campaignRecipients.bulkPut(rows),
         campaignRecipients,
-        tenantId
+        tenantId,
+        overwriteManaged
       );
       await upsertMissingRows(
         (ids) => db.outreachMessages.bulkGet(ids),
         (rows) => db.outreachMessages.bulkPut(rows),
         outreachMessages,
-        tenantId
+        tenantId,
+        overwriteManaged
       );
       await upsertMissingRows(
         (ids) => db.outreachSendJobs.bulkGet(ids),
         (rows) => db.outreachSendJobs.bulkPut(rows),
         sendJobs,
-        tenantId
+        tenantId,
+        overwriteManaged
       );
       await upsertMissingRows(
         (ids) => db.outreachSendJobRecipients.bulkGet(ids),
         (rows) => db.outreachSendJobRecipients.bulkPut(rows),
         sendJobRecipients,
-        tenantId
+        tenantId,
+        overwriteManaged
       );
       await upsertMissingRows(
         (ids) => db.outreachSendJobAttempts.bulkGet(ids),
         (rows) => db.outreachSendJobAttempts.bulkPut(rows),
         sendJobAttempts,
-        tenantId
+        tenantId,
+        overwriteManaged
       );
       await upsertMissingRows(
         (ids) => db.customizerSimulations.bulkGet(ids),
         (rows) => db.customizerSimulations.bulkPut(rows),
         customizerSimulations,
-        tenantId
+        tenantId,
+        overwriteManaged
       );
       await upsertMissingRows(
         (ids) => db.emailSuppressions.bulkGet(ids),
         (rows) => db.emailSuppressions.bulkPut(rows),
         suppressions,
-        tenantId
+        tenantId,
+        overwriteManaged
       );
 
       await db.meta.put({ key: LOCAL_DEMO_META_SEED_KEY, value: String(SEED_VERSION) });

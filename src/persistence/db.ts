@@ -503,7 +503,7 @@ export class ForgeOSDatabase extends Dexie {
         await tx.table("meta").put({ key: "schemaVersion", value: "11" });
       });
 
-    this.version(SCHEMA_VERSION)
+    this.version(12)
       .stores({
         meta: "key",
         leads:
@@ -559,10 +559,10 @@ export class ForgeOSDatabase extends Dexie {
           if (row.csvDelimiter === undefined) row.csvDelimiter = null;
           if (row.importedBy === undefined) row.importedBy = null;
         });
-        await tx.table("meta").put({ key: "schemaVersion", value: String(SCHEMA_VERSION) });
+        await tx.table("meta").put({ key: "schemaVersion", value: "12" });
       });
 
-    this.version(13)
+    this.version(SCHEMA_VERSION)
       .stores({
         meta: "key",
         leads:

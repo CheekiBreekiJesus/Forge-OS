@@ -126,6 +126,7 @@ export function normalizeBackupTables(backup: ForgeOSBackup): ForgeOSBackup {
       importRows: backup.tables.importRows ?? [],
       importMappingProfiles: backup.tables.importMappingProfiles ?? [],
       leadContacts: backup.tables.leadContacts ?? [],
+      customerContacts: backup.tables.customerContacts ?? [],
       campaignRecipients: backup.tables.campaignRecipients ?? [],
       emailSuppressions: backup.tables.emailSuppressions ?? [],
       outreachSendAttempts: backup.tables.outreachSendAttempts ?? [],
