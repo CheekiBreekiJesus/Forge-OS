@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { Dictionary } from "@/i18n/dictionaries";
 import type { Locale } from "@/i18n/config";
 import { moduleRoutes, type ModuleKey } from "@/modules/config";
+import { resolveEffectivePersistenceMode } from "@/persistence/mode";
 import { AppFrameClient } from "@/components/app-frame-client";
 import { AppFrameNav } from "@/components/app-frame-nav";
 import { MobileNavDrawer } from "@/components/mobile-nav-drawer";
@@ -26,6 +27,7 @@ export function AppFrame({
   const activeRoute = supplementalRoute ?? moduleRoutes[activeModule];
   const leadOpsHref = `/${locale}/leadops`;
   const isLeadOpsActive = activeRoute.startsWith("leadops");
+  const environmentLabel = resolveFooterEnvironmentLabel(dictionary);
 
   return (
     <main className="min-h-screen min-w-0 overflow-x-clip bg-[var(--forge-page-bg)] text-[var(--forge-text-primary)]">
@@ -113,14 +115,35 @@ export function AppFrame({
 
           <div className="px-4 py-6 sm:px-6">{children}</div>
 
-          <StatusFooter dictionary={dictionary} locale={locale} />
+          <StatusFooter dictionary={dictionary} environmentLabel={environmentLabel} locale={locale} />
         </section>
       </div>
     </main>
   );
 }
 
-function StatusFooter({ dictionary, locale }: { dictionary: Dictionary; locale: Locale }) {
+function resolveFooterEnvironmentLabel(dictionary: Dictionary): string {
+  const mode = resolveEffectivePersistenceMode({
+    FORGEOS_PERSISTENCE_MODE: process.env.FORGEOS_PERSISTENCE_MODE,
+    NEXT_PUBLIC_FORGEOS_PERSISTENCE_MODE: process.env.NEXT_PUBLIC_FORGEOS_PERSISTENCE_MODE,
+    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    SUPABASE_URL: process.env.SUPABASE_URL
+  });
+  return mode === "local"
+    ? dictionary.dashboard.status.localDemo
+    : dictionary.dashboard.status.production;
+}
+
+function StatusFooter({
+  dictionary,
+  environmentLabel,
+  locale
+}: {
+  dictionary: Dictionary;
+  environmentLabel: string;
+  locale: Locale;
+}) {
   return (
     <footer className="mx-4 mb-6 grid max-w-full gap-3 overflow-x-auto border-t border-[var(--forge-border)] pt-5 text-sm text-[var(--forge-text-muted)] sm:mx-6 md:grid-cols-[1.2fr_repeat(4,minmax(0,1fr))_auto]">
       <div>
@@ -137,7 +160,7 @@ function StatusFooter({ dictionary, locale }: { dictionary: Dictionary; locale: 
       <FooterStatus label={dictionary.dashboard.footer.backup} value={dictionary.dashboard.footer.backupDemo} />
       <FooterStatus
         label={dictionary.dashboard.footer.environment}
-        value={dictionary.dashboard.status.production}
+        value={environmentLabel}
       />
       <Link
         className="inline-flex h-fit items-center justify-center gap-2 self-start rounded-lg border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-2 text-xs font-semibold text-[var(--forge-text-secondary)] hover:bg-[var(--forge-hover-bg)]"

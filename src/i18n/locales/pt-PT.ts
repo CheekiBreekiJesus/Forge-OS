@@ -66,7 +66,8 @@ export const dictionary: Dictionary = {
       planned: "Planeado",
       online: "Online",
       operational: "Operacional",
-      production: "Produção"
+      production: "Produção",
+      localDemo: "Demo local"
     },
     metrics: [
       {

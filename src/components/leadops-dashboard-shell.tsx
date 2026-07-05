@@ -53,7 +53,7 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
   const persistenceLoading = usePersistenceLoading();
   const { leads: domainLeads, loading: leadsLoading, reload: reloadLeads } = useTenantLeads(showArchived);
   const { activities: domainActivities } = useActivities();
-  const { state, tenantId, notifyDataChanged } = usePersistence();
+  const { state, tenantId, notifyDataChanged, dataVersion } = usePersistence();
   const [campaigns, setCampaigns] = useState<LeadOpsCampaign[]>([]);
 
   const tenantLeads = useMemo(
@@ -78,7 +78,7 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
     void state.repos.campaigns.list(state.tenantId).then((rows) => {
       setCampaigns(rows.map(toLeadOpsCampaign));
     });
-  }, [state]);
+  }, [state, dataVersion]);
 
   const [leadDrawerOpen, setLeadDrawerOpen] = useState(false);
   const [leadForm, setLeadForm] = useState({ companyName: "", contactName: "", email: "" });

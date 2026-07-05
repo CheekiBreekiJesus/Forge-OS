@@ -42,6 +42,7 @@ export type Dictionary = {
       online: string;
       operational: string;
       production: string;
+      localDemo: string;
     };
     metrics: Array<{
       label: string;
