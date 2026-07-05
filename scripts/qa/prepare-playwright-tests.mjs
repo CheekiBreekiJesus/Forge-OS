@@ -6,21 +6,21 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-function readPort(argv: string[]): number {
+function readPort(argv) {
   const flagIndex = argv.indexOf("--port");
   if (flagIndex >= 0 && argv[flagIndex + 1]) {
-    return Number.parseInt(argv[flagIndex + 1]!, 10);
+    return Number.parseInt(argv[flagIndex + 1], 10);
   }
 
   const legacyIndex = argv.indexOf("-TestPort");
   if (legacyIndex >= 0 && argv[legacyIndex + 1]) {
-    return Number.parseInt(argv[legacyIndex + 1]!, 10);
+    return Number.parseInt(argv[legacyIndex + 1], 10);
   }
 
   return 3012;
 }
 
-function isPortFree(port: number): Promise<boolean> {
+function isPortFree(port) {
   return new Promise((resolve) => {
     const server = net.createServer();
 
@@ -33,7 +33,7 @@ function isPortFree(port: number): Promise<boolean> {
   });
 }
 
-async function main(): Promise<void> {
+async function main() {
   const port = readPort(process.argv.slice(2));
   const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 
