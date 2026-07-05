@@ -859,7 +859,21 @@ export const dictionary: Dictionary = {
       import: "Importar cópia JSON",
       exported: "Cópia de segurança descarregada.",
       imported: "Cópia de segurança restaurada.",
-      invalid: "Ficheiro de cópia inválido."
+      invalid: "Ficheiro de cópia inválido.",
+      incompatible: "A versão de esquema da cópia é incompatível com esta compilação do ForgeOS.",
+      activeDbName: "Base de dados IndexedDB ativa",
+      resetDemo: "Repor apenas dados demo",
+      resetDemoConfirm:
+        "Repor apenas os registos demo determinísticos? Leads criados pelo utilizador e importações operacionais serão preservados.",
+      resetDemoDone: "Dados demo repostos e reseed aplicado.",
+      clearAll: "Limpar todos os dados locais",
+      clearAllConfirm:
+        "Eliminar TODOS os dados locais do ForgeOS nesta base de dados do browser? Isto não pode ser anulado sem cópia de segurança.",
+      clearAllDone: "Todos os dados locais foram limpos.",
+      restoreDemo: "Restaurar estado demo original",
+      restoreDemoConfirm:
+        "Substituir todos os dados locais pelo conjunto demo determinístico original? As alterações do utilizador serão perdidas.",
+      restoreDemoDone: "Estado demo determinístico restaurado."
     }
   },
   leadops: {

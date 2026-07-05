@@ -118,6 +118,10 @@ export function normalizeBackupTables(backup: ForgeOSBackup): ForgeOSBackup {
     ...backup,
     tables: {
       ...backup.tables,
+      machines: backup.tables.machines ?? [],
+      inventoryItems: backup.tables.inventoryItems ?? [],
+      stockMovements: backup.tables.stockMovements ?? [],
+      customizerSimulations: backup.tables.customizerSimulations ?? [],
       importBatches: backup.tables.importBatches ?? [],
       importRows: backup.tables.importRows ?? [],
       importMappingProfiles: backup.tables.importMappingProfiles ?? [],

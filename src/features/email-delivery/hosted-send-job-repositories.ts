@@ -95,6 +95,7 @@ export function createHostedSendJobRepositoryBundle(config: DurableStoreConfig):
     senderIdentities: createHostedSenderIdentityRepository(client),
     reset: unsupportedAsync("reset"),
     resetDemoData: unsupportedAsync("resetDemoData"),
+    restoreDeterministicDemoState: unsupportedAsync("restoreDeterministicDemoState"),
     seed: unsupportedAsync("seed")
   } as unknown as LocalRepositoryBundle;
 }

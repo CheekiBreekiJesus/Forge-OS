@@ -853,7 +853,21 @@ export const dictionary: Dictionary = {
       import: "Import JSON backup",
       exported: "Backup downloaded.",
       imported: "Backup restored.",
-      invalid: "Invalid backup file."
+      invalid: "Invalid backup file.",
+      incompatible: "Backup schema version is incompatible with this ForgeOS build.",
+      activeDbName: "Active IndexedDB database",
+      resetDemo: "Reset demo data only",
+      resetDemoConfirm:
+        "Reset only deterministic demo records? User-created leads and operational imports will be preserved.",
+      resetDemoDone: "Demo data reset and reseeded.",
+      clearAll: "Clear all local data",
+      clearAllConfirm:
+        "Delete ALL local ForgeOS data in this browser database? This cannot be undone without a backup.",
+      clearAllDone: "All local data cleared.",
+      restoreDemo: "Restore original demo state",
+      restoreDemoConfirm:
+        "Replace all local data with the original deterministic demo dataset? User changes will be lost.",
+      restoreDemoDone: "Deterministic demo state restored."
     }
   },
   leadops: {

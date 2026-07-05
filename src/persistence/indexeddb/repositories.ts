@@ -74,6 +74,12 @@ import {
   seedOperationsDefaults
 } from "./operations-repositories";
 import type { ForgeOSBackup } from "@/features/backup/service";
+import { assertLocalDemoLifecycleAllowed } from "@/features/demo/local-demo-guard";
+import {
+  applyLocalDemoDataset,
+  isLocalDemoDatasetComplete,
+  resetLocalDemoDatasetRecords
+} from "@/demo/local-demo-seed-service";
 import {
   PersistenceError,
   type ActivityRepository,
@@ -1051,6 +1057,11 @@ export async function seedDatabase(
         if (machineCount === 0 && productRows.length > 0) {
           await seedOperationsDefaults(db, tenantId, productRows);
         }
+        const datasetComplete = await isLocalDemoDatasetComplete(db, tenantId);
+        if (datasetComplete) {
+          return false;
+        }
+        await applyLocalDemoDataset(db, tenantId, { force: false });
         return false;
       }
     }
@@ -1143,102 +1154,23 @@ export async function seedDatabase(
     await seedOperationsDefaults(db, tenantId, productRows);
   }
 
+  await applyLocalDemoDataset(db, tenantId, { force });
+
   return true;
 }
 
 export async function resetDemoRecords(db: ForgeOSDatabase, tenantId: string): Promise<void> {
-  const seedLeadIds = leadOpsLeads
-    .filter((lead) => lead.tenantId === tenantId)
-    .map((lead) => lead.id);
-  const seedCampaignIds = leadOpsCampaigns
-    .filter((campaign) => campaign.tenantId === tenantId)
-    .map((campaign) => campaign.id);
-
-  await db.transaction(
-    "rw",
-    [
-      db.leads,
-      db.leadContacts,
-      db.customers,
-      db.opportunities,
-      db.quotes,
-      db.productionOrders,
-      db.outreachMessages,
-      db.campaigns,
-      db.campaignRecipients,
-      db.activities,
-      db.customizerSimulations
-    ],
-    async () => {
-      const seedCustomers = await db.customers
-        .where("tenantId")
-        .equals(tenantId)
-        .filter((customer) => Boolean(customer.leadId && seedLeadIds.includes(customer.leadId)))
-        .toArray();
-      const seedCustomerIds = seedCustomers.map((customer) => customer.id);
-
-      const seedQuotes = await db.quotes
-        .where("tenantId")
-        .equals(tenantId)
-        .filter(
-          (quote) =>
-            Boolean(quote.leadId && seedLeadIds.includes(quote.leadId)) ||
-            Boolean(quote.customerId && seedCustomerIds.includes(quote.customerId))
-        )
-        .toArray();
-      const seedQuoteIds = seedQuotes.map((quote) => quote.id);
-
-      const seedProductionOrders = await db.productionOrders
-        .where("tenantId")
-        .equals(tenantId)
-        .filter((order) => seedQuoteIds.includes(order.quoteId))
-        .toArray();
-      const seedProductionOrderIds = seedProductionOrders.map((order) => order.id);
-
-      await Promise.all([
-        db.outreachMessages.bulkDelete(seedLeadIds),
-        db.leads.bulkDelete(seedLeadIds),
-        db.leadContacts.where("tenantId").equals(tenantId).filter((contact) => seedLeadIds.includes(contact.leadId)).delete(),
-        db.campaigns.bulkDelete(seedCampaignIds),
-        db.campaignRecipients
-          .where("tenantId")
-          .equals(tenantId)
-          .filter((recipient) => seedCampaignIds.includes(recipient.campaignId))
-          .delete(),
-        db.customers.bulkDelete(seedCustomerIds),
-        db.opportunities
-          .where("tenantId")
-          .equals(tenantId)
-          .filter((opportunity) => seedLeadIds.includes(opportunity.leadId))
-          .delete(),
-        db.quotes.bulkDelete(seedQuoteIds),
-        db.productionOrders.bulkDelete(seedProductionOrderIds),
-        db.customizerSimulations
-          .where("tenantId")
-          .equals(tenantId)
-          .filter(
-            (simulation) =>
-              Boolean(simulation.leadId && seedLeadIds.includes(simulation.leadId)) ||
-              Boolean(simulation.quoteId && seedQuoteIds.includes(simulation.quoteId))
-          )
-          .delete(),
-        db.activities
-          .where("tenantId")
-          .equals(tenantId)
-          .filter(
-            (activity) =>
-              seedLeadIds.includes(activity.entityId) ||
-              seedCampaignIds.includes(activity.entityId) ||
-              seedCustomerIds.includes(activity.entityId) ||
-              seedQuoteIds.includes(activity.entityId) ||
-              seedProductionOrderIds.includes(activity.entityId)
-          )
-          .delete()
-      ]);
-    }
-  );
-
+  await resetLocalDemoDatasetRecords(db, tenantId);
   await seedDatabase(db, tenantId, false);
+}
+
+export async function restoreDeterministicDemoState(
+  db: ForgeOSDatabase,
+  tenantId: string = DEFAULT_TENANT_ID
+): Promise<void> {
+  assertLocalDemoLifecycleAllowed();
+  await resetDatabase(db);
+  await seedDatabase(db, tenantId, true);
 }
 
 export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
@@ -1362,6 +1294,10 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
       await db.userProfiles.bulkPut(tables.userProfiles);
       await db.senderIdentities.bulkPut(tables.senderIdentities);
       await db.products.bulkPut(tables.products);
+      await db.machines.bulkPut(tables.machines ?? []);
+      await db.inventoryItems.bulkPut(tables.inventoryItems ?? []);
+      await db.stockMovements.bulkPut(tables.stockMovements ?? []);
+      await db.customizerSimulations.bulkPut(tables.customizerSimulations ?? []);
       await db.importBatches.bulkPut(tables.importBatches ?? []);
       await db.importRows.bulkPut(tables.importRows ?? []);
       await db.importMappingProfiles.bulkPut(tables.importMappingProfiles ?? []);
@@ -1387,6 +1323,9 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
       }
       await db.meta.put({ key: "tenantId", value: tenantId });
       await db.meta.put({ key: "seedVersion", value: String(SEED_VERSION) });
+      if (backup.schemaVersion != null) {
+        await db.meta.put({ key: "schemaVersion", value: String(backup.schemaVersion) });
+      }
     }
   );
   const productRows = await db.products.where("tenantId").equals(tenantId).toArray();
@@ -1466,15 +1405,22 @@ export function createLocalRepositoryBundle(db: ForgeOSDatabase) {
     outreachSendJobAttempts,
     outreachSendJobDailyUsage,
     async reset() {
+      assertLocalDemoLifecycleAllowed();
       await resetDatabase(db);
     },
     async resetDemoData(tenantId: string) {
+      assertLocalDemoLifecycleAllowed();
       await resetDemoRecords(db, tenantId);
     },
+    async restoreDeterministicDemoState(tenantId: string) {
+      await restoreDeterministicDemoState(db, tenantId);
+    },
     async seed(tenantId: string) {
+      assertLocalDemoLifecycleAllowed();
       await seedDatabase(db, tenantId, true);
     },
     async importBackupData(backup: ForgeOSBackup) {
+      assertLocalDemoLifecycleAllowed();
       await importBackupToDb(db, backup);
     }
   };

@@ -32,6 +32,9 @@ export function createSupabaseRepositoryBundle(): LocalRepositoryBundle {
     async resetDemoData() {
       throw new Error("Supabase resetDemoData is not supported from application code.");
     },
+    async restoreDeterministicDemoState() {
+      throw new Error("Supabase restoreDeterministicDemoState is not supported from application code.");
+    },
     async seed() {
       throw new Error("Supabase seed is not supported from application code.");
     }

@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { AppFrame, panelClass } from "@/components/app-frame";
-import { exportBackup, validateBackup } from "@/features/backup/service";
+import { exportBackup, importBackup, isBackupSchemaCompatible, validateBackup } from "@/features/backup/service";
 import { getClientIntegrationCards, type IntegrationCard } from "@/features/integrations/status";
 import { HostedFeaturesDialog } from "@/components/hosted-features";
 import { renderSignature } from "@/features/email-composition/signature";
@@ -697,7 +697,16 @@ function IntegrationCardView({
 }
 
 function BackupSection({ s }: { s: Dictionary["settings"] }) {
-  const { state, tenantId, notifyDataChanged, refresh } = usePersistence();
+  const {
+    state,
+    tenantId,
+    notifyDataChanged,
+    refresh,
+    resetDemoData,
+    clearAllLocalData,
+    restoreDeterministicDemoState,
+    localDbName
+  } = usePersistence();
   const [feedback, setFeedback] = useState<string | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
 
@@ -719,21 +728,41 @@ function BackupSection({ s }: { s: Dictionary["settings"] }) {
   async function handleImport(file: File) {
     if (state.status !== "ready") return;
     const text = await file.text();
-    const data = JSON.parse(text) as unknown;
+    let data: unknown;
+    try {
+      data = JSON.parse(text) as unknown;
+    } catch {
+      setFeedback(s.backup.invalid);
+      return;
+    }
     if (!validateBackup(data)) {
       setFeedback(s.backup.invalid);
       return;
     }
-    await state.repos.reset();
-    await state.repos.importBackupData?.(data);
+    if (!isBackupSchemaCompatible(data)) {
+      setFeedback(s.backup.incompatible);
+      return;
+    }
+    await importBackup(state.repos, data);
     await refresh();
     notifyDataChanged();
     setFeedback(s.backup.imported);
   }
 
+  async function runConfirmed(action: () => Promise<void>, confirmMessage: string, doneMessage: string) {
+    if (!window.confirm(confirmMessage)) return;
+    await action();
+    await refresh();
+    notifyDataChanged();
+    setFeedback(doneMessage);
+  }
+
   return (
     <Panel title={s.sections.backup}>
-      <p className="mb-4 text-sm text-slate-400">{s.backup.description}</p>
+      <p className="mb-2 text-sm text-slate-400">{s.backup.description}</p>
+      <p className="mb-4 text-xs text-slate-500">
+        {s.backup.activeDbName}: <code className="text-slate-300">{localDbName}</code>
+      </p>
       <div className="flex flex-wrap gap-3">
         <button className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-bold text-white" onClick={() => void downloadBackup()} type="button">
           {s.backup.export}
@@ -741,6 +770,41 @@ function BackupSection({ s }: { s: Dictionary["settings"] }) {
         <input accept="application/json" className="hidden" onChange={(e) => e.target.files?.[0] && void handleImport(e.target.files[0])} ref={importRef} type="file" />
         <button className="rounded-lg border border-slate-700 px-4 py-2 text-sm" onClick={() => importRef.current?.click()} type="button">
           {s.backup.import}
+        </button>
+        <button
+          className="rounded-lg border border-amber-700 px-4 py-2 text-sm text-amber-200"
+          onClick={() =>
+            void runConfirmed(
+              () => resetDemoData(),
+              s.backup.resetDemoConfirm,
+              s.backup.resetDemoDone
+            )
+          }
+          type="button"
+        >
+          {s.backup.resetDemo}
+        </button>
+        <button
+          className="rounded-lg border border-red-800 px-4 py-2 text-sm text-red-200"
+          onClick={() =>
+            void runConfirmed(() => clearAllLocalData(), s.backup.clearAllConfirm, s.backup.clearAllDone)
+          }
+          type="button"
+        >
+          {s.backup.clearAll}
+        </button>
+        <button
+          className="rounded-lg border border-blue-800 px-4 py-2 text-sm text-blue-200"
+          onClick={() =>
+            void runConfirmed(
+              () => restoreDeterministicDemoState(),
+              s.backup.restoreDemoConfirm,
+              s.backup.restoreDemoDone
+            )
+          }
+          type="button"
+        >
+          {s.backup.restoreDemo}
         </button>
       </div>
       {feedback ? <p className="mt-3 text-sm text-emerald-300">{feedback}</p> : null}

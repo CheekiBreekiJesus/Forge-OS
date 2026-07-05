@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode
 } from "react";
-import { DEFAULT_TENANT_ID } from "@/domain/constants";
+import { DEFAULT_TENANT_ID, LOCAL_DB_NAME } from "@/domain/constants";
 import {
   destroyRepositories,
   initializeRepositories,
@@ -29,6 +29,9 @@ type PersistenceContextValue = {
   notifyDataChanged: () => void;
   resetDemoData: () => Promise<void>;
   reseedDemoData: () => Promise<void>;
+  clearAllLocalData: () => Promise<void>;
+  restoreDeterministicDemoState: () => Promise<void>;
+  localDbName: string;
 };
 
 const PersistenceContext = createContext<PersistenceContextValue | null>(null);
@@ -85,6 +88,18 @@ export function PersistenceProvider({
     setVersion((v) => v + 1);
   }, [state, tenantId]);
 
+  const clearAllLocalData = useCallback(async () => {
+    if (state.status !== "ready") return;
+    await state.repos.reset();
+    setVersion((v) => v + 1);
+  }, [state]);
+
+  const restoreDeterministicDemoState = useCallback(async () => {
+    if (state.status !== "ready") return;
+    await state.repos.restoreDeterministicDemoState(tenantId);
+    setVersion((v) => v + 1);
+  }, [state, tenantId]);
+
   const value = useMemo(
     () => ({
       state,
@@ -93,9 +108,22 @@ export function PersistenceProvider({
       refresh,
       notifyDataChanged,
       resetDemoData,
-      reseedDemoData
+      reseedDemoData,
+      clearAllLocalData,
+      restoreDeterministicDemoState,
+      localDbName: LOCAL_DB_NAME
     }),
-    [state, tenantId, dataVersion, refresh, notifyDataChanged, resetDemoData, reseedDemoData]
+    [
+      state,
+      tenantId,
+      dataVersion,
+      refresh,
+      notifyDataChanged,
+      resetDemoData,
+      reseedDemoData,
+      clearAllLocalData,
+      restoreDeterministicDemoState
+    ]
   );
 
   return (

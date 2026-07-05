@@ -507,6 +507,17 @@ export type Dictionary = {
       exported: string;
       imported: string;
       invalid: string;
+      incompatible: string;
+      activeDbName: string;
+      resetDemo: string;
+      resetDemoConfirm: string;
+      resetDemoDone: string;
+      clearAll: string;
+      clearAllConfirm: string;
+      clearAllDone: string;
+      restoreDemo: string;
+      restoreDemoConfirm: string;
+      restoreDemoDone: string;
     };
   };
   leadops: {

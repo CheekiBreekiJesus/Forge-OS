@@ -27,6 +27,8 @@ describe("onboarding checklist", () => {
 
   it("marks customizer_tested when a simulation exists", async () => {
     const repos = getTestRepos();
+    const db = getDatabase(TEST_DB);
+    await db.customizerSimulations.clear();
     const products = await repos.products.list(DEFAULT_TENANT_ID);
     const cup = products.find((product) => product.sku.includes("CUP"));
     expect(cup).toBeTruthy();

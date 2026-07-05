@@ -25,6 +25,9 @@ import type {
 } from "@/domain/send-job-types";
 import type { EmailSuppression } from "@/domain/suppression-types";
 import type { ImportBatch, ImportRow, LeadContact, ImportMappingProfile } from "@/domain/import-types";
+import type { CustomizerSimulation } from "@/domain/customizer-types";
+import type { Machine, InventoryItem, StockMovement } from "@/domain/operations-types";
+import { SCHEMA_VERSION } from "@/domain/constants";
 import type { LocalRepositoryBundle } from "@/persistence/interfaces";
 import {
   normalizeBackupTables,
@@ -32,11 +35,13 @@ import {
   type BackupRestoreReport
 } from "@/features/backup/restore-validation";
 
-export const BACKUP_VERSION = 8 as const;
-export const SUPPORTED_BACKUP_VERSIONS = [4, 5, 6, 7, 8] as const;
+export const BACKUP_VERSION = 9 as const;
+export const SUPPORTED_BACKUP_VERSIONS = [4, 5, 6, 7, 8, 9] as const;
+export const MIN_SCHEMA_VERSION = 13 as const;
 
 export type ForgeOSBackup = {
-  version: typeof BACKUP_VERSION;
+  version: typeof BACKUP_VERSION | 4 | 5 | 6 | 7 | 8;
+  schemaVersion?: number;
   exportedAt: string;
   tenantId: string;
   tables: {
@@ -52,6 +57,10 @@ export type ForgeOSBackup = {
     userProfiles: UserProfile[];
     senderIdentities: SenderIdentity[];
     products: Product[];
+    machines: Machine[];
+    inventoryItems: InventoryItem[];
+    stockMovements: StockMovement[];
+    customizerSimulations: CustomizerSimulation[];
     importBatches: ImportBatch[];
     importRows: ImportRow[];
     importMappingProfiles: ImportMappingProfile[];
@@ -86,6 +95,10 @@ export async function exportBackup(
     userProfiles,
     senderIdentities,
     products,
+    machines,
+    inventoryItems,
+    stockMovements,
+    customizerSimulations,
     importBatches,
     importRows,
     importMappingProfiles,
@@ -112,6 +125,15 @@ export async function exportBackup(
     repos.userProfiles.list(tenantId),
     repos.senderIdentities.listAll(tenantId),
     repos.products.list(tenantId),
+    repos.machines.list(tenantId),
+    repos.inventory.list(tenantId),
+    repos.inventory.list(tenantId).then(async (items) => {
+      const rows = await Promise.all(
+        items.map((item) => repos.inventory.listMovements(tenantId, item.id))
+      );
+      return rows.flat();
+    }),
+    repos.customizerSimulations.list(tenantId),
     repos.importBatches.list(tenantId),
     Promise.resolve([] as ImportRow[]).then(async () => {
       const batches = await repos.importBatches.list(tenantId);
@@ -156,6 +178,7 @@ export async function exportBackup(
 
   const backup: ForgeOSBackup = {
     exportedAt: new Date().toISOString(),
+    schemaVersion: SCHEMA_VERSION,
     tables: {
       activities,
       campaigns,
@@ -169,6 +192,10 @@ export async function exportBackup(
       quotes,
       senderIdentities,
       userProfiles,
+      machines,
+      inventoryItems,
+      stockMovements,
+      customizerSimulations,
       importBatches,
       importRows,
       importMappingProfiles,
@@ -208,7 +235,7 @@ export async function exportBackup(
 export function validateBackup(data: unknown): data is ForgeOSBackup {
   if (!data || typeof data !== "object") return false;
   const record = data as Record<string, unknown>;
-  if (!SUPPORTED_BACKUP_VERSIONS.includes(record.version as 4 | 5 | 6 | 7 | 8)) return false;
+  if (!SUPPORTED_BACKUP_VERSIONS.includes(record.version as 4 | 5 | 6 | 7 | 8 | 9)) return false;
   if (typeof record.tenantId !== "string") return false;
   if (!record.tables || typeof record.tables !== "object") return false;
   const tables = record.tables as Record<string, unknown>;
@@ -220,7 +247,26 @@ export function validateBackup(data: unknown): data is ForgeOSBackup {
     "senderIdentities",
     "products"
   ];
-  return required.every((key) => Array.isArray(tables[key]));
+  if (!required.every((key) => Array.isArray(tables[key]))) {
+    return false;
+  }
+  if (record.version === 9) {
+    if (typeof record.schemaVersion !== "number") return false;
+    if (record.schemaVersion < MIN_SCHEMA_VERSION) return false;
+    if (record.schemaVersion > SCHEMA_VERSION) return false;
+  }
+  return true;
+}
+
+export function isBackupSchemaCompatible(backup: ForgeOSBackup): boolean {
+  if (backup.version < 9) {
+    return true;
+  }
+  const schemaVersion = backup.schemaVersion;
+  if (schemaVersion == null) {
+    return false;
+  }
+  return schemaVersion >= MIN_SCHEMA_VERSION && schemaVersion <= SCHEMA_VERSION;
 }
 
 export async function importBackup(
@@ -230,11 +276,19 @@ export async function importBackup(
   if (!validateBackup(backup)) {
     throw new Error("Invalid backup format.");
   }
+  if (!isBackupSchemaCompatible(backup)) {
+    throw new Error("Incompatible backup schema version.");
+  }
   const normalized = normalizeBackupTables({
     ...backup,
     version: BACKUP_VERSION,
+    schemaVersion: backup.schemaVersion ?? SCHEMA_VERSION,
     tables: {
       ...backup.tables,
+      machines: backup.tables.machines ?? [],
+      inventoryItems: backup.tables.inventoryItems ?? [],
+      stockMovements: backup.tables.stockMovements ?? [],
+      customizerSimulations: backup.tables.customizerSimulations ?? [],
       emailSuppressions: backup.tables.emailSuppressions ?? [],
       outreachSendAttempts: backup.tables.outreachSendAttempts ?? [],
       outreachProviderEvents: backup.tables.outreachProviderEvents ?? [],
