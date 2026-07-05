@@ -709,7 +709,18 @@ export const dictionary: Dictionary = {
     note: "Supabase Auth will replace this placeholder in the persistent MVP.",
     googleSignIn: "Continue with Google",
     microsoftSignIn: "Continue with Microsoft",
+    loadingGoogle: "Opening Google sign-in...",
+    loadingMicrosoft: "Opening Microsoft sign-in...",
     orContinueLocal: "or continue with local demo",
+    hostedOnlyNote: "Hosted authentication is enabled. Use Google or Microsoft to establish identity before ForgeOS checks tenant membership.",
+    membershipNote: "OAuth proves identity only. Access still requires an active ForgeOS tenant membership.",
+    errors: {
+      missing_code: "The sign-in callback was missing an authorization code. Please try again.",
+      oauth_exchange_failed: "Sign-in could not be completed. Please try again or contact your ForgeOS administrator.",
+      oauth_provider_failed: "The provider sign-in could not be started. Please check the configuration and try again.",
+      supabase_not_configured: "Supabase public authentication settings are not configured for this deployment.",
+      tenant_access_denied: "Authentication succeeded, but this account does not have an active ForgeOS tenant membership."
+    },
     googleDialogTitle: "Google sign-in (hosted version)",
     googleDialogBody:
       "Google OAuth requires Supabase Auth and provider configuration in the hosted ForgeOS deployment. After login, your profile is prefilled from workspace membership and you complete company onboarding and sender identity setup.",
@@ -717,6 +728,22 @@ export const dictionary: Dictionary = {
     microsoftDialogBody:
       "Microsoft OAuth requires Supabase Auth and provider configuration in the hosted ForgeOS deployment. After login, your profile is prefilled from workspace membership and you complete company onboarding and sender identity setup.",
     closeDialog: "Close"
+  },
+  authAccess: {
+    signOut: "Sign out",
+    pending: {
+      title: "Access awaiting approval",
+      body: "Your identity is authenticated, but ForgeOS has not found an active tenant membership for this account. Ask a workspace administrator to approve your membership before accessing tenant data."
+    },
+    denied: {
+      title: "Access denied",
+      body: "This account is suspended or revoked for the available ForgeOS tenant memberships. Tenant data is not available from this session."
+    },
+    tenants: {
+      title: "Choose workspace",
+      body: "This account has access to more than one ForgeOS workspace. Choose a tenant membership to continue.",
+      select: "Select"
+    }
   },
   settings: {
     eyebrow: "Workspace configuration",

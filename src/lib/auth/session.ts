@@ -1,5 +1,6 @@
 import type { ForgeOSSession, ForgeOSAuthRole } from "./types";
 import { ForgeOSAuthError, parseRoles } from "./types";
+import { resolvePermissionsForRoles } from "@/lib/auth/permissions";
 import { isSupabaseAuthConfigured } from "@/lib/supabase/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
@@ -45,7 +46,13 @@ async function resolveTestOrDevSession(
     tenantId = resolved;
   }
 
-  return { userId, tenantId, roles, source };
+  return {
+    permissions: resolvePermissionsForRoles(roles),
+    roles,
+    source,
+    tenantId,
+    userId
+  };
 }
 
 function isUuid(value: string): boolean {
@@ -98,6 +105,8 @@ async function resolveSupabaseSession(
   }
 
   return {
+    membershipId: membership.id,
+    permissions: resolvePermissionsForRoles(roles, membership.permissions),
     userId: data.user.id,
     tenantId: membership.tenantId,
     roles: [...new Set(roles)],

@@ -374,12 +374,36 @@ export type Dictionary = {
     note: string;
     googleSignIn: string;
     microsoftSignIn: string;
+    loadingGoogle: string;
+    loadingMicrosoft: string;
     orContinueLocal: string;
+    hostedOnlyNote: string;
+    membershipNote: string;
+    errors: Record<
+      import("@/lib/auth/safe-redirect").LoginErrorCode,
+      string
+    >;
     googleDialogTitle: string;
     googleDialogBody: string;
     microsoftDialogTitle: string;
     microsoftDialogBody: string;
     closeDialog: string;
+  };
+  authAccess: {
+    signOut: string;
+    pending: {
+      title: string;
+      body: string;
+    };
+    denied: {
+      title: string;
+      body: string;
+    };
+    tenants: {
+      title: string;
+      body: string;
+      select: string;
+    };
   };
   settings: {
     eyebrow: string;
