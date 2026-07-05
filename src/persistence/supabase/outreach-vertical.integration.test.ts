@@ -2,6 +2,7 @@ import { describe, expect, it, beforeAll } from "vitest";
 import { Client } from "pg";
 import {
   applySupabaseMigrations,
+  bootstrapSupabaseAuthStub,
   readIntegrationDatabaseUrl,
   resetPublicSchema
 } from "./test-harness";
@@ -15,6 +16,7 @@ describeIf("Supabase outreach SQL integration", () => {
   beforeAll(async () => {
     if (!databaseUrl) return;
     await resetPublicSchema(databaseUrl);
+    await bootstrapSupabaseAuthStub(databaseUrl);
     await applySupabaseMigrations(databaseUrl);
     client = new Client({ connectionString: databaseUrl });
     await client.connect();
