@@ -1,79 +1,131 @@
 # ForgeOS — Current State
 
-Authoritative snapshot for the JH Gomes outreach release path.  
-Branch baseline: `release/jh-gomes-outreach-supabase` (from `de654e2`).
+**Document date:** 2026-07-05  
+**Base branch:** `integration/jh-gomes-outreach-supabase-7d2`  
+**Base commit:** `213dc3e` (`chore(supabase): add local development configuration`)  
+**Next update:** After `integration/jh-gomes-cursor-convergence` merges to release, or when auth activation lands.
 
-## Canonical architecture
+> This file describes what is on the **integration base**. Work on unmerged branches is listed separately — do not assume it is already merged.
 
-- **Single root Next.js application** (`package.json`, `src/app/`, `src/features/`).
-- Domain boundaries under `src/features/*`, application services under `src/application/`, persistence under `src/persistence/`.
-- **JH Gomes** resolves via `tenants.tenant_key = tenant_jh_gomes` → UUID; platform code stays tenant-scoped and customer-neutral.
-- Internal naming: English. UI: `pt-PT` and `en` via `src/i18n/`.
+---
 
-## Outreach production persistence slice (implemented)
+## IMPLEMENTED ON BASE (`213dc3e`)
 
-| Area | Status |
-|------|--------|
-| Stable tenant key (`tenants.tenant_key`) | Migration + lookup helpers |
-| Supabase cookie session + membership | `src/lib/auth/session.ts` |
-| Server-owned send route | `POST /api/outreach/messages/{messageId}/send` |
-| Supabase repository bundle (outreach path) | `createSupabaseRepositoryBundle()` |
-| Atomic delivery claim RPC | `claim_outreach_send_attempt` |
-| Delivery attempt persistence | `outreach_send_attempts` |
-| Campaign recipients (PostgreSQL) | `outreach_campaign_recipients` |
-| RLS read policies + blocked direct send-attempt writes | Migration `202607031600` |
-| UI supabase send path | `campaign-recipient-review-panel` → server endpoint |
-| Brevo provider events (durable) | Existing `outreach_provider_events` + webhook |
-| SQL integration tests | `npm run test:supabase:integration` (requires `FORGEOS_TEST_DATABASE_URL`) |
+### Application foundation
 
-## Persistence modes
+- Next.js 16 App Router, React 19, TypeScript, Tailwind CSS
+- Localized routes (`pt-PT`, `en`), theme system, industrial dashboard shell
+- Module routes: CRM, products, inventory sections, quotations, leadops, demo workflow
+- Vitest: 276 tests passing (59 files); Playwright configs and CI e2e subset
 
-| Mode | Env | Storage |
-|------|-----|---------|
-| `local` (default) | unset / `FORGEOS_PERSISTENCE_MODE=local` | IndexedDB (Dexie) |
-| `supabase` | `FORGEOS_PERSISTENCE_MODE=supabase` + Supabase URL/keys | PostgreSQL via `supabase/migrations/` |
+### Persistence
 
-Browser IndexedDB behavior is unchanged in `local` mode.  
-When `NEXT_PUBLIC_FORGEOS_PERSISTENCE_MODE=supabase`, campaign simulate-send uses the server-owned endpoint.
+| Mode | Configuration | Storage |
+|------|---------------|---------|
+| **Local** (default) | `FORGEOS_PERSISTENCE_MODE=local` | IndexedDB (Dexie) — full outreach CRUD |
+| **Supabase** | `FORGEOS_PERSISTENCE_MODE=supabase` + Supabase URL/keys | PostgreSQL via `supabase/migrations/` |
 
-## Authentication status
+- Tenant key: `tenant_jh_gomes` → UUID lookup helpers
+- Supabase repository bundle for outreach vertical
+- SQL integration test: `npm run test:supabase:integration` (needs `FORGEOS_TEST_DATABASE_URL`)
 
-- **Production:** Supabase cookie session → `tenant_memberships` → tenant UUID (never trusts client tenant headers).
-- **Test/E2E:** `FORGEOS_TEST_AUTH_ENABLED=true` or `FORGEOS_E2E=true` only.
-- **Development headers:** `FORGEOS_ALLOW_DEV_AUTH_HEADERS=true` and non-production only.
-- **Test tenant key resolution:** `tenant_jh_gomes` → UUID when Supabase configured.
+### Outreach (JH Gomes priority)
 
-## Email delivery status
+- Lead import (CSV/XLSX), mapping profiles, campaign workflow
+- Draft generation (deterministic + AI provider gateway)
+- Review, approve, manual send handoff (Gmail/Outlook URLs)
+- Simulation delivery and send-job API routes
+- Server-owned send: `POST /api/outreach/messages/{messageId}/send`
+- Atomic delivery claim RPC, send attempts, campaign recipients tables
+- Brevo webhook route and provider-event persistence (test-send gated)
+- Unsubscribe token flow
 
-- Default: **simulation** with exact approved subject/body.
-- Duplicate send: blocked by approval state, idempotency key, unique constraint, and atomic claim RPC.
-- Smartlead live: blocked (unchanged).
-- Brevo: test-send + webhooks; batch live gated.
+### Auth on base (limited)
 
-## Validation commands
+- Supabase client/session scaffolding (`src/lib/auth/session.ts`)
+- Test/E2E auth adapter (`FORGEOS_TEST_AUTH_ENABLED`, `FORGEOS_E2E`)
+- Dev header auth (`FORGEOS_ALLOW_DEV_AUTH_HEADERS`, non-production only)
+- **Not on base:** production OAuth login, full membership enforcement UI
+
+### Migrations present (not applied by this doc)
+
+10+ SQL files under `supabase/migrations/` including outreach schema, send jobs, RLS policies, tenant keys.
+
+---
+
+## COMPLETED ON UNMERGED BRANCHES
+
+| Area | Branch | Status |
+|------|--------|--------|
+| OAuth login (Google/Microsoft) | `feat/supabase-oauth-foundation` | Complete on branch |
+| Tenant membership enforcement | `feat/supabase-auth-membership` | Complete on branch |
+| Auth activation integration | `integration/jh-gomes-auth-activation` | In test on branch |
+| Cup Customizer UI | `feat/cup-customizer-integration-ui` | Active on branch |
+| Cup preview layout fix | `fix/cup-customizer-preview-layout` | Merged into cup feature branch |
+| Table density + action overlays | `fix/table-density-and-action-overlays` | Ready for convergence |
+| Playwright audit remediation | `fix/playwright-audit-remediation` | Ready for convergence |
+| XLSX security remediation | `fix/xlsx-security-remediation` | Ready for convergence |
+| Product data staging import | `feat/jhgomes-product-data-staging` | On branch |
+| Inventory product foundation | `feat/inventory-product-foundation` | WIP on branch (dirty worktree) |
+| Dependency security convergence | `integration/dependency-security-cursor` | Active convergence |
+| Feature convergence | `integration/jh-gomes-feature-convergence-cursor` | Active convergence |
+| Final convergence | `integration/jh-gomes-cursor-convergence` | Active convergence |
+
+---
+
+## IN PROGRESS
+
+- **Auth activation** — merging OAuth + membership into deployable path (`Forge-OS-auth-activation`)
+- **Cursor feature convergence** — table UI, xlsx fix, playwright fix, cup customizer
+- **Cursor dependency convergence** — package security alignment
+- **Repository hygiene** — canonical docs and cleanup inventories (`chore/repository-hygiene`)
+
+---
+
+## EXTERNAL SETUP REQUIRED
+
+These are not complete in any branch without operator action:
+
+| Item | Notes |
+|------|-------|
+| **OAuth providers** | Google/Microsoft app registration in Supabase dashboard |
+| **Supabase project** | URL, anon key, service role, hosted PostgREST |
+| **Migration apply** | `supabase db push` or hosted migration run |
+| **Tenant bootstrap** | Seed tenant + initial `tenant_memberships` rows |
+| **Brevo configuration** | API key, sender identity, webhook secret |
+| **RLS production validation** | Policy testing with real auth sessions |
+| **Vercel deployment** | Environment variables, domain, preview protection |
+
+---
+
+## Validation commands (base)
 
 ```bash
-npm run lint
-npm run typecheck
-npm test
-npm run build
-npm run test:e2e
+npm run lint          # 11 warnings, 0 errors (2026-07-05)
+npm run typecheck     # pass
+npm test              # 276 passed, 3 skipped
+npm run build         # pass
+npm run test:e2e      # requires Playwright + dev server prep
 npm run test:acceptance
-npm run test:customer-pc:smoke
-npm run test:supabase:integration   # requires PostgreSQL (CI service or FORGEOS_TEST_DATABASE_URL)
+npm run test:supabase:integration   # requires PostgreSQL
 ```
 
-## Remaining production blockers
+---
 
-1. Full Supabase local stack verification (`supabase start`) — CLI available via `npx supabase`; Docker daemon was not running on the implementation machine.
-2. Hosted PostgREST vertical test through `@supabase/supabase-js` (repository bundle) — requires live Supabase API, not raw PostgreSQL only.
-3. Browser Supabase read path for campaign UI data (currently IndexedDB client; server send only wired for supabase mode).
-4. Send-job routes still use development header actor context in non-production.
-5. Production deployment and secrets configuration.
+## Known limitations (base)
 
-## Contradictory docs (superseded by this file)
+1. Browser UI reads IndexedDB even when server uses Supabase for send path.
+2. Send-job routes use development header actor context in non-production.
+3. Smartlead code paths remain for backward compatibility; Brevo is the active provider direction.
+4. Cup Customizer route exists on base but full UI is on feature branch.
+5. Production OAuth and membership enforcement require unmerged auth branches.
 
-- `docs/product/outreach-mvp-implementation.md` — pre-Supabase persistence notes.
-- `docs/architecture/local-mvp-persistence.md` — outdated schema versions.
+---
 
-See `docs/email-outreach/integration-status.md` for module detail.
+## Superseded documentation
+
+- `docs/product/outreach-mvp-implementation.md` — pre-Supabase notes
+- `docs/architecture/local-mvp-persistence.md` — outdated schema versions
+- `docs/ai-context/02-current-architecture.md` — early planning
+
+See `docs/DOCUMENT_STATUS.md` for the full index.

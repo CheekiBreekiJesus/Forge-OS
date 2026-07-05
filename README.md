@@ -14,7 +14,7 @@ ForgeOS brings production, inventory, maintenance, CRM, quotations, documentatio
 ![Next.js](https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)
-![Supabase](https://img.shields.io/badge/Supabase-planned%20persistence-3FCF8E?style=for-the-badge&logo=supabase&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-dual%20persistence-3FCF8E?style=for-the-badge&logo=supabase&logoColor=white)
 ![License](https://img.shields.io/badge/license-not%20yet%20published-lightgrey?style=for-the-badge)
 
 <br />
@@ -78,37 +78,31 @@ The application is suitable for demonstration, product discovery, workflow valid
 
 ### Implemented foundation
 
-- Next.js App Router application shell
-- React and TypeScript foundation
-- Tailwind CSS industrial interface
-- Localized routes for `pt-PT` and `en`
-- Structured translation dictionaries
-- Light and dark interface direction
-- Tenant-aware domain and database design
-- Static industrial management dashboard
-- JH Gomes operational demo workflow
-- Product, quotation, production, inventory, machine, and workflow fixtures
-- Supabase/PostgreSQL schema drafts and seed data
-- Demo API routes for automation, operational data, and Copilot responses
-- Operational master-data foundation
-- Configurable quotation-rule direction
-- Quality, document, import, and production-template foundations
+- Next.js 16 App Router, React 19, TypeScript, Tailwind CSS
+- Localized routes for `pt-PT` and `en` with structured translation dictionaries
+- Light and dark theme system and industrial management dashboard
+- **Dual persistence:** IndexedDB (Dexie) local mode + Supabase/PostgreSQL outreach slice
+- Tenant-aware domain model with `tenant_jh_gomes` reference tenant
+- **Outreach (leadops):** lead import, campaigns, draft generation, review/approve, simulation send
+- Send-job API routes, Brevo webhook boundary, unsubscribe flow
+- Product, quotation, inventory, production, and demo workflow modules
+- Supabase migrations (10+ files) and SQL integration tests
+- AI provider gateway (deterministic default; optional Abacus/OpenAI/etc.)
 - Agent maintenance and health-check orchestration
-- Vitest coverage for application and agent workflows
+- **Vitest** (276+ unit tests) and **Playwright** e2e/acceptance configs
 
-### Not yet production-connected
+### Not yet production-ready
 
-- Supabase client/server persistence
-- Supabase Auth-backed sessions
-- Persistent CRUD operations
-- Production row-level security validation
-- Live OpenAI or other AI-provider integration
-- Live Smartlead email delivery
+- Production OAuth login and full tenant membership enforcement (on integration branches)
+- Applied Supabase migrations and RLS validation in a live project
+- Browser UI fully on Supabase reads (server send path only today)
+- Live Brevo campaign batch delivery (test-send foundation exists)
 - Supabase Storage artwork uploads
 - n8n production automations
-- Playwright end-to-end suite
 - Production monitoring and alerting
 - Printable production and quotation PDFs
+
+See `docs/CURRENT_STATE.md` for base vs unmerged branch detail.
 
 ---
 
@@ -244,7 +238,7 @@ Deterministic generation and simulation delivery work without credentials. OpenA
 | File storage direction | Supabase Storage |
 | Automation direction | n8n |
 | AI direction | Provider-based AI services |
-| Testing | Vitest, with Playwright planned |
+| Testing | Vitest, Playwright (e2e + acceptance) |
 | Deployment direction | Vercel |
 | Monitoring direction | Sentry |
 
@@ -323,7 +317,7 @@ The repository currently includes Supabase migrations for the demo and operation
 - `supabase/migrations/202606260001_operational_foundation.sql`
 - `supabase/seed.sql`
 
-The application currently runs primarily from local demo fixtures. Database persistence, authentication, RLS validation, and storage integration remain future implementation work.
+**Local mode** (default) stores outreach data in IndexedDB with full CRUD. **Supabase mode** routes server-owned send operations through PostgreSQL. Migrations exist but must be applied to a Supabase project; OAuth, membership enforcement, and RLS production validation are in progress on separate branches.
 
 ---
 
@@ -357,7 +351,7 @@ On PowerShell:
 Copy-Item .env.example .env.local
 ```
 
-The current demo does not require live Supabase, OpenAI, Smartlead, or n8n credentials.
+Local development works without live Supabase, AI, or Brevo credentials. Copy `.env.test.example` values for Playwright acceptance runs.
 
 Never commit `.env`, `.env.local`, API keys, service-role credentials, customer data, or private operational records.
 
@@ -384,6 +378,15 @@ npm run lint
 npm run typecheck
 npm test
 npm run build
+# or combined:
+npm run validate
+```
+
+Playwright (requires browser install):
+
+```bash
+npm run test:e2e
+npm run test:acceptance
 ```
 
 ### Agent maintenance commands
@@ -469,14 +472,13 @@ The repository may become private as the project moves from public prototype wor
 
 ### Near term
 
-- Complete the Outreach dashboard and lead workspace
-- Add deterministic personalized email generation
-- Add campaign and sequence simulation
-- Connect persistent Supabase repositories
-- Implement authenticated tenant sessions
-- Add artwork storage
-- Improve demo data and visual polish
-- Add end-to-end browser tests
+- Merge auth activation (OAuth + tenant membership)
+- Complete Cursor feature convergence (table UI, xlsx security, Playwright fixes, Cup Customizer)
+- Apply Supabase migrations and validate RLS in hosted project
+- Wire browser UI to Supabase reads in supabase persistence mode
+- Brevo live campaign delivery (gated by configuration)
+- Cup Customizer quotation preview for JH Gomes
+- Secure spreadsheet import adoption across branches
 
 ### Medium term
 
