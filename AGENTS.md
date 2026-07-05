@@ -1,184 +1,127 @@
 # AGENTS.md
 
-## 1. Project Summary
+## 1. Project summary
 
-Project name: ForgeOS  
-Repository name: Assumption: `forge-os`  
-Current stage: prototype / early MVP planning  
-Primary development target: multi-tenant SaaS web app
+**ForgeOS** is a multi-tenant Industrial Operating System for manufacturing SMEs. The first deployment customer is **JH Gomes** (Portuguese cup printing and manufacturing). JH Gomes is a tenant reference implementation, not the product architecture.
 
-ForgeOS is an Industrial Operating System for manufacturing companies. It combines ERP, WMS, CRM, CMMS, production planning, marketing tooling, website management, BI, and AI copilot functionality into one web-based platform.
+**Stage:** early MVP / operational prototype — suitable for demos and workflow validation, **not production-ready**.
 
-The first deployment target is JH Gomes, a small Portuguese manufacturing and cup-printing business.
+**Repository:** `forge-os` (npm package name)
 
-## 2. Product Goal
+## 2. Current priority
 
-Build a production-grade, multi-tenant SaaS platform for small and medium manufacturing companies, starting with practical operational tools for JH Gomes.
+1. **JH Gomes outreach** — lead import, campaign workflow, review/approve, simulation and Brevo-boundary send jobs on the integration base.
+2. **Supabase persistence slice** — PostgreSQL outreach vertical with RLS migrations (apply and validate externally).
+3. **Auth convergence** — OAuth foundation + tenant membership + activation (on unmerged branches; see `docs/CURRENT_STATE.md`).
+4. **Cup Customizer** — quotation cup preview and simulation workflow (active on feature branch).
+5. **Secure spreadsheet import** — hardened XLSX/CSV parser direction (remediation on convergence branch).
 
-Initial focus:
-- Production management
-- Warehouse/inventory management
-- Customer/order management
-- Cup printing job setup sheets
-- Internal operational documentation
-- Basic marketing/content tooling
-- AI-assisted workflows
+## 3. Verified tech stack
 
-## 3. Current Priority
+| Layer | Choice |
+|-------|--------|
+| Framework | **Next.js 16** (App Router) |
+| UI | **React 19**, **TypeScript 5.8**, **Tailwind CSS 3** |
+| Local persistence | **IndexedDB** via Dexie (`FORGEOS_PERSISTENCE_MODE=local`) |
+| Hosted persistence | **Supabase / PostgreSQL** (`FORGEOS_PERSISTENCE_MODE=supabase`) |
+| Auth direction | **Supabase Auth** + OAuth; tenant membership via `tenant_memberships` |
+| Email delivery | **Simulation** default; **Brevo** provider boundary (server-side) |
+| AI | Provider gateway (deterministic default; Abacus/OpenAI/etc. optional) |
+| Unit tests | **Vitest** (`npm test`) |
+| E2E / acceptance | **Playwright** (`npm run test:e2e`, `npm run test:acceptance`) |
+| Deployment direction | **Vercel** |
+| i18n | `pt-PT` (default), `en` |
 
-Current priority: define and build the ForgeOS MVP for JH Gomes.
+Do not claim database, auth, framework, or testing are undefined — they are implemented to varying degrees. Distinguish **base branch** vs **unmerged branch** work using `docs/CURRENT_STATE.md`.
 
-Immediate technical priority:
-1. Establish clean repo structure.
-2. Implement multilingual web app foundation.
-3. Define core data model.
-4. Build first operational modules for JH Gomes:
-   - Customers
-   - Products
-   - Orders/jobs
-   - Production sheets
-   - Inventory items
-   - Machine setup documentation
+## 4. Architecture rules
 
-## 4. Tech Stack
+- Multi-tenant SaaS: every business record is tenant-scoped.
+- Internal naming (code, DB, API) is **English**; user-facing text uses i18n dictionaries.
+- No JH Gomes-specific hardcoding in global modules — use tenant configuration.
+- Domain layout: `src/features/<module>/`, `src/application/`, `src/persistence/`.
+- Persistence modes: local IndexedDB (default) or Supabase PostgreSQL (outreach server path).
+- Brevo and AI providers are server-side boundaries — never expose secrets to the browser.
 
-Known / preferred:
-- Frontend: Next.js or React
-- Styling: Tailwind CSS
-- Language: TypeScript preferred
-- Backend language: English naming conventions
-- Frontend localization: Portuguese and English initially
-- Future localization: Spanish
+### Protected areas (require explicit approval)
 
-Not yet defined:
-- Database
-- ORM
-- Authentication provider
-- Hosting provider
-- Backend framework if not using Next.js full-stack
-- AI provider
-- Queue/background job system
-- File storage
+- Authentication and session handling
+- Row-level security and `supabase/migrations/`
+- Billing and infrastructure
+- Secrets and environment configuration
 
-## 5. Development Rules
+## 5. Development rules
 
-- Keep code modular and readable.
-- Use TypeScript where possible.
-- Prefer explicit types over implicit `any`.
-- Use English for all code, database fields, API routes, internal naming, and comments.
-- User-facing UI text must support localization.
-- Do not hardcode Portuguese text directly in components unless localization is not yet implemented and the text is clearly marked for migration.
-- Keep business logic separate from presentation components.
-- Avoid premature complexity.
-- Prefer simple, maintainable architecture over over-engineered abstractions.
-- Do not add external dependencies without a clear reason.
+- Smallest safe change; architecture-first.
+- TypeScript, explicit types, English internal naming.
+- UI strings localization-ready (`src/i18n/`).
+- Business logic separate from presentation.
+- No new dependencies without clear reason.
+- Never commit secrets, API keys, or real customer data.
 
-## 6. Architecture Rules
+## 6. Security and privacy
 
-- Design from day one as multi-tenant SaaS.
-- Every business record that belongs to a company should be tenant-scoped.
-- Do not assume ForgeOS is only for JH Gomes.
-- JH Gomes is the first tenant and reference implementation.
-- Keep tenant-specific configuration separate from generic platform logic.
-- Avoid hardcoding JH Gomes-specific workflows into global modules.
-- Use domain modules where practical:
-  - CRM
-  - Orders
-  - Production
-  - Inventory
-  - Machines
-  - Maintenance
-  - Marketing
-  - Website/CMS
-  - AI Copilot
+- Secrets in environment variables only; `.env.example` has placeholders.
+- Tenant isolation in queries, APIs, and UI.
+- Test auth (`FORGEOS_TEST_AUTH_ENABLED`, `FORGEOS_E2E`) is **never** for production.
+- AI features must not send unnecessary private business data externally.
+- See `docs/engineering/agent-privacy-policy.md`.
 
-## 7. Security Rules
+## 7. Localization
 
-- Never commit API keys, tokens, passwords, credentials, or private customer data.
-- Use environment variables for secrets.
-- Add `.env.example` with placeholder values only.
-- All tenant data must be isolated by tenant/company.
-- Authorization must enforce tenant boundaries.
-- Do not expose internal IDs unnecessarily in user-facing UI.
-- Log operational events carefully; avoid logging sensitive customer data.
-- Any AI feature must avoid sending unnecessary private business data to external providers.
+- Backend/code: English.
+- UI: `pt-PT`, `en` (future: `es`).
+- European Portuguese for JH Gomes deployment; avoid Brazilian phrasing.
 
-## 8. Localization / Language Rules
-
-- Backend, database, API, code, and internal architecture should always be in English.
-- Frontend must support:
-  - Portuguese Portugal: `pt-PT`
-  - English: `en`
-- Future language:
-  - Spanish: `es`
-- JH Gomes deployment should default to European Portuguese.
-- Avoid Brazilian Portuguese phrasing for the Portuguese UI.
-- Store translations in a structured i18n system.
-- Do not duplicate components just to support different languages.
-
-## 9. Testing / Build Rules
-
-Recommended default:
-- Add linting.
-- Add type checking.
-- Add basic unit tests for business logic.
-- Add integration tests for critical flows once backend exists.
-- Ensure `npm run build` or equivalent passes before completing tasks.
-- Add seed/demo data for local development.
-
-### Agent maintenance orchestration
-
-Read-only maintenance commands:
+## 8. Testing and validation
 
 ```bash
-npm run agent:health     # lightweight deterministic checks (skips production build)
-npm run agent:maintain   # full maintenance validation including production build
-npm run agent:test       # orchestrator unit and integration tests
-npm run agent:canary     # explicit scoped Codex canary only
+npm run lint
+npm run typecheck
+npm test
+npm run build
 ```
 
-Policy file: `agent/maintenance-policy.json`
-Health report: `qa/reports/latest-health.json` (generated locally, gitignored)
-Codex task output: `qa/reports/next-codex-task.md` (generated only when policy allows)
+Optional (require setup):
 
-Default maintenance mode is read-only validation. It must not launch Codex, modify application source, commit, push, merge, or deploy unless policy is explicitly changed and approved.
+```bash
+npm run test:e2e
+npm run test:acceptance
+npm run test:supabase:integration   # requires FORGEOS_TEST_DATABASE_URL
+npm run validate                    # lint + typecheck + test + build
+```
 
-## 10. Files the Agent Should Read Before Changing Code
+### Agent maintenance (read-only by default)
 
-Read these first:
-- `AGENTS.md`
-- `docs/ai-context/00-project-brief.md`
-- `docs/ai-context/01-product-vision.md`
-- `docs/ai-context/02-current-architecture.md`
-- `docs/ai-context/03-domain-knowledge.md`
-- `docs/ai-context/04-decisions-log.md`
-- `docs/ai-context/05-roadmap.md`
-- `docs/ai-context/06-data-model-draft.md`
-- `docs/ai-context/07-ui-ux-direction.md`
-- `docs/ai-context/08-open-questions.md`
-- `docs/ai-context/09-codex-startup-prompt.md`
-- `docs/ai-context/10-cleanup-checklist.md`
+```bash
+npm run agent:health
+npm run agent:maintain
+npm run agent:test
+npm run agent:canary
+```
 
-Then inspect actual repository files:
-- `package.json`
-- framework config files
-- app/router structure
-- database schema/migrations
-- existing components
-- existing API routes
-- existing environment templates
-- README
+Policy: `agent/maintenance-policy.json`. Generated reports under `qa/reports/` (gitignored).
 
-## 11. Definition of Done for Agent Tasks
+## 9. What to read before changing code
 
-A task is done only when:
-- The implementation matches the documented product direction.
-- Tenant isolation is preserved or explicitly not applicable.
-- UI strings are localization-ready.
-- Code uses English internal naming.
-- Type checking passes.
-- Build passes.
+**Normal task (read only these):**
+
+1. `AGENTS.md` (this file)
+2. `docs/CURRENT_STATE.md`
+3. Relevant module documentation (e.g. `docs/email-outreach/README.md`)
+4. `package.json`
+5. Affected source and tests
+
+**Optional historical context:** `docs/ai-context/*` — planning artifacts; verify claims against code. Do not treat as canonical.
+
+**Repository hygiene:** `docs/DOCUMENT_STATUS.md`, `docs/engineering/repository-cleanup-roadmap.md`.
+
+## 10. Definition of done
+
+- Matches product direction and `docs/CURRENT_STATE.md` scope.
+- Tenant isolation preserved.
+- UI strings localization-ready.
+- `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` pass.
 - New logic has tests where practical.
-- Existing behavior is not broken.
-- Documentation is updated if the implementation changes project assumptions.
-- No secrets or private data are committed.
+- No secrets or private data committed.
+- Documentation updated when assumptions change.
