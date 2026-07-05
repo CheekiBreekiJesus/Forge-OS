@@ -57,3 +57,7 @@ data/exports/
 
 # Customer PC local runtime artifacts (logs, PID files, diagnostics)
 .customer-pc/
+
+# ForgeOS 0.2.0 local demo runtime artifacts
+.demo/
+qa/demo/results/

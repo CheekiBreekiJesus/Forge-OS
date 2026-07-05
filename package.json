@@ -34,7 +34,12 @@
     "agent:maintain": "tsx scripts/agent-orchestrator/maintain.ts",
     "agent:health": "tsx scripts/agent-orchestrator/health.ts",
     "agent:test": "vitest run scripts/agent-orchestrator",
-    "agent:canary": "tsx scripts/agent-orchestrator/canary.ts"
+    "agent:canary": "tsx scripts/agent-orchestrator/canary.ts",
+    "demo:prepare": "node scripts/demo/prepare.mjs",
+    "demo:start": "node scripts/demo/start.mjs",
+    "demo:reset": "node scripts/demo/reset.mjs",
+    "demo:seed": "node scripts/demo/seed.mjs",
+    "demo:smoke": "node scripts/demo/smoke.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.0",
