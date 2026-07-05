@@ -331,8 +331,8 @@ The application currently runs primarily from local demo fixtures. Database pers
 
 ### Requirements
 
-- Node.js 20 or newer recommended
-- npm
+- Node.js 22.x (see `.nvmrc` / `.node-version`)
+- npm 10.9.8 (see `packageManager` in `package.json`)
 - Git
 
 ### Installation
