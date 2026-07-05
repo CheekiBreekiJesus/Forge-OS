@@ -68,6 +68,10 @@ Use PowerShell equivalents for Windows. The connection string above is the stand
 7. Run `docs/auth/staging-oauth-smoke-test.md`.
 8. Bootstrap only authorized synthetic or staging users with `scripts/admin/bootstrap-tenant-membership.sql`.
 
+## Release candidate note (2026-07-05)
+
+This runbook is validated locally on `integration/jh-gomes-release-candidate`. Hosted Supabase has **not** been modified by the integration branch. External OAuth provider configuration remains required before staging smoke tests.
+
 ## Rollback Notes
 
 This branch contains a forward-only migration. For staging rollback, restore the database from a pre-migration backup or use a disposable project reset. Do not attempt ad hoc production rollback SQL without a reviewed rollback plan.

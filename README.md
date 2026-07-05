@@ -86,15 +86,18 @@ The application is suitable for demonstration, product discovery, workflow valid
 - **Outreach (leadops):** lead import, campaigns, draft generation, review/approve, simulation send
 - Send-job API routes, Brevo webhook boundary, unsubscribe flow
 - Product, quotation, inventory, production, and demo workflow modules
+- Cup Customizer workflow integrated into quotations and product paths
+- Secure spreadsheet parser based on ExcelJS 4.4.0; vulnerable `xlsx` package removed
+- Supabase OAuth/session foundation and active tenant-membership enforcement merged into the release-candidate branch
 - Supabase migrations (10+ files) and SQL integration tests
 - AI provider gateway (deterministic default; optional Abacus/OpenAI/etc.)
 - Agent maintenance and health-check orchestration
-- **Vitest** (276+ unit tests) and **Playwright** e2e/acceptance configs
+- **Vitest** and **Playwright** e2e/acceptance configs
 
 ### Not yet production-ready
 
-- Production OAuth login and full tenant membership enforcement (on integration branches)
-- Applied Supabase migrations and RLS validation in a live project
+- Hosted OAuth provider configuration and real staging login smoke test
+- Applied Supabase migrations and RLS validation in a hosted project
 - Browser UI fully on Supabase reads (server send path only today)
 - Live Brevo campaign batch delivery (test-send foundation exists)
 - Supabase Storage artwork uploads
@@ -102,7 +105,7 @@ The application is suitable for demonstration, product discovery, workflow valid
 - Production monitoring and alerting
 - Printable production and quotation PDFs
 
-See `docs/CURRENT_STATE.md` for base vs unmerged branch detail.
+See `docs/CURRENT_STATE.md` for the current release-candidate state and external activation gaps.
 
 ---
 
@@ -317,7 +320,7 @@ The repository currently includes Supabase migrations for the demo and operation
 - `supabase/migrations/202606260001_operational_foundation.sql`
 - `supabase/seed.sql`
 
-**Local mode** (default) stores outreach data in IndexedDB with full CRUD. **Supabase mode** routes server-owned send operations through PostgreSQL. Migrations exist but must be applied to a Supabase project; OAuth, membership enforcement, and RLS production validation are in progress on separate branches.
+**Local mode** (default) stores outreach data in IndexedDB with full CRUD. **Supabase mode** routes server-owned send operations through PostgreSQL. Migrations and auth membership enforcement are validated locally on the release-candidate branch, but hosted migrations, OAuth providers, and RLS validation with real hosted sessions still require explicit external activation.
 
 ---
 
@@ -472,13 +475,12 @@ The repository may become private as the project moves from public prototype wor
 
 ### Near term
 
-- Merge auth activation (OAuth + tenant membership)
-- Complete Cursor feature convergence (table UI, xlsx security, Playwright fixes, Cup Customizer)
+- Verify release-candidate CI on Node 22
+- Run approved staging Supabase migration and OAuth smoke tests
 - Apply Supabase migrations and validate RLS in hosted project
 - Wire browser UI to Supabase reads in supabase persistence mode
 - Brevo live campaign delivery (gated by configuration)
-- Cup Customizer quotation preview for JH Gomes
-- Secure spreadsheet import adoption across branches
+- Continue Cup Customizer quotation hardening for JH Gomes
 
 ### Medium term
 

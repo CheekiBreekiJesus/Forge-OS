@@ -1,7 +1,7 @@
 # Dependency Remediation Status
 
 **Last updated:** 2026-07-05  
-**Active branch:** `integration/jh-gomes-cursor-convergence` (merged from `integration/dependency-security-cursor` @ `bd3f477`)
+**Active branch:** `integration/jh-gomes-release-candidate` (includes `integration/jh-gomes-cursor-convergence` and auth activation)
 
 ## Resolved
 
@@ -31,10 +31,10 @@
 - `docs/security/spreadsheet-parser-decision.md`  
 - `qa/performance/exceljs-bundle-review.md`
 
-## Out of scope (this branch)
+## Out of scope (external deployment)
 
-OAuth foundation, login UI, auth callback, tenant membership, Supabase browser client, `proxy.ts`, auth migrations.
+Hosted Supabase migration application, OAuth provider secrets, and production Brevo delivery remain external operator actions.
 
 ## Merge status
 
-Merged into `integration/jh-gomes-cursor-convergence` @ `c09c124` (2026-07-05). Pending auth activation merge before production integration — **not** into OAuth remediation branches directly.
+Merged into `integration/jh-gomes-release-candidate` through Cursor convergence and auth activation (`18b1480`). Node 22 + npm 10.9.8 standardized; lockfile regenerated for Linux CI.
