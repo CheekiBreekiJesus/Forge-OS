@@ -215,6 +215,7 @@ export function MachinesShell({ dictionary, locale }: MachinesShellProps) {
             archivedRowClass={isArchivedRecord}
             columns={columns}
             rowKey={(m) => m.id}
+            locale={locale}
             rows={filtered}
           />
           <EntityCardList
@@ -234,6 +235,7 @@ export function MachinesShell({ dictionary, locale }: MachinesShellProps) {
             archivedRowClass={isArchivedRecord}
             meta={(m) => copy.statuses[m.status]}
             rowKey={(m) => m.id}
+            locale={locale}
             rows={filtered}
             subtitle={(m) => m.code}
             title={(m) => m.name}

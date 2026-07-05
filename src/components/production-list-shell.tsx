@@ -180,6 +180,7 @@ export function ProductionListShell({ dictionary, locale }: ProductionListShellP
             archivedRowClass={isArchivedRecord}
             columns={columns}
             rowKey={(o) => o.id}
+            locale={locale}
             rows={filtered}
           />
           <EntityCardList
@@ -187,6 +188,7 @@ export function ProductionListShell({ dictionary, locale }: ProductionListShellP
             archivedRowClass={isArchivedRecord}
             meta={(o) => copy.statuses[o.status]}
             rowKey={(o) => o.id}
+            locale={locale}
             rows={filtered}
             subtitle={(o) => o.productName}
             title={(o) => o.orderNumber}

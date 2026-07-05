@@ -8,6 +8,7 @@ import {
 import { getImportBatchSummary, listImportHistory } from "@/application/lead-import-service";
 import { CampaignSegmentBuilderDialog } from "@/components/campaign-segment-builder-dialog";
 import { panelClass } from "@/components/app-frame";
+import { CollapsibleTableViewport } from "@/components/ui/collapsible-table-viewport";
 import { getLocalizedLeadDetailHref } from "@/features/leadops/lookup";
 import {
   buildLeadManagementRows,
@@ -19,6 +20,7 @@ import {
   type LeadManagementContext,
   type LeadManagementRow
 } from "@/features/leadops/lead-management";
+import { useCollapsibleRows } from "@/features/ui/use-collapsible-rows";
 import {
   buildSegmentDefinitionFromFilters,
   buildSegmentDefinitionFromSelection
@@ -93,8 +95,16 @@ export function LeadOpsLeadManagementPanel({
     () => rows.filter((row) => matchesLeadManagementFilters(row, searchQuery, filters)),
     [filters, rows, searchQuery]
   );
-  const pageRows = useMemo(() => paginateRows(filteredRows, page), [filteredRows, page]);
-  const pages = totalPages(filteredRows.length);
+  const collapsible = useCollapsibleRows({
+    totalRows: filteredRows.length,
+    locale
+  });
+  const pages = totalPages(filteredRows.length, collapsible.visibleRowCount);
+  const effectivePage = Math.min(page, pages);
+  const pageRows = useMemo(
+    () => paginateRows(filteredRows, effectivePage, collapsible.visibleRowCount),
+    [collapsible.visibleRowCount, effectivePage, filteredRows]
+  );
   const visibleLeadIds = pageRows.map((row) => row.leadId);
   const allVisibleSelected = areAllVisibleSelected(selectedLeadIds, visibleLeadIds);
   const filterOptions = useMemo(() => getFilterOptions([], rows), [rows]);
@@ -285,76 +295,87 @@ export function LeadOpsLeadManagementPanel({
           <p className="mt-2 text-sm text-slate-400">{copy.noResultsDescription}</p>
         </div>
       ) : (
-        <div className="mt-4 overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead className="text-slate-400">
-              <tr>
-                <th className="px-3 py-2" />
-                <th className="px-3 py-2">{copy.table.company}</th>
-                <th className="px-3 py-2">{copy.table.contact}</th>
-                <th className="px-3 py-2">{copy.table.email}</th>
-                <th className="px-3 py-2">{copy.management.category}</th>
-                <th className="px-3 py-2">{copy.management.region}</th>
-                <th className="px-3 py-2">{copy.management.sourceImport}</th>
-                <th className="px-3 py-2">{copy.management.emailValidity}</th>
-                <th className="px-3 py-2">{copy.management.suppressionStatus}</th>
-                <th className="px-3 py-2">{copy.management.lastContacted}</th>
-                <th className="px-3 py-2">{copy.management.campaignCount}</th>
-                <th className="px-3 py-2">{copy.management.sendability}</th>
-                <th className="px-3 py-2">{copy.table.status}</th>
-                <th className="px-3 py-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {pageRows.map((row) => {
-                const lead = leads.find((item) => item.id === row.leadId);
-                return (
-                  <tr className="border-t border-slate-800 text-slate-100" data-testid={`lead-row-${row.leadId}`} key={row.leadId}>
-                    <td className="px-3 py-2">
-                      <input
-                        checked={isLeadSelected(selectedLeadIds, row.leadId)}
-                        onChange={() => setSelectedLeadIds(toggleLeadSelection(selectedLeadIds, row.leadId))}
-                        type="checkbox"
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <a className="text-orange-300 hover:underline" href={getLocalizedLeadDetailHref(locale, row.leadId)}>
-                        {row.companyName}
-                      </a>
-                    </td>
-                    <td className="px-3 py-2">{row.contactName}</td>
-                    <td className="px-3 py-2">{row.email || "—"}</td>
-                    <td className="px-3 py-2">{row.category}</td>
-                    <td className="px-3 py-2">{row.region}</td>
-                    <td className="px-3 py-2">{row.sourceDatabase}</td>
-                    <td className="px-3 py-2">{copy.management.emailValidityValues[row.emailValidity]}</td>
-                    <td className="px-3 py-2">{copy.management.suppressionValues[row.suppressionStatus]}</td>
-                    <td className="px-3 py-2">
-                      {row.lastContactedAt ? new Date(row.lastContactedAt).toLocaleDateString(locale) : "—"}
-                    </td>
-                    <td className="px-3 py-2">{row.campaignCount}</td>
-                    <td className="px-3 py-2 text-xs">
-                      {row.sendability.sendable
-                        ? copy.management.sendabilityValues.sendable
-                        : row.sendability.reasons.join(", ")}
-                    </td>
-                    <td className="px-3 py-2">{copy.statuses[row.leadStatus]}</td>
-                    <td className="px-3 py-2">{rowActions(row.leadId, isArchived(lead))}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <CollapsibleTableViewport
+          controlsId={collapsible.controlsId}
+          expanded={collapsible.expanded}
+          labels={collapsible.labels}
+          onToggleExpanded={collapsible.toggleExpanded}
+          showExpandControl={collapsible.showExpandControl}
+          showingTotal={filteredRows.length}
+          showingVisible={pageRows.length}
+          tableId="lead-management-table"
+        >
+          <div className="mt-4 overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="text-slate-400">
+                <tr>
+                  <th className="px-3 py-2" />
+                  <th className="px-3 py-2">{copy.table.company}</th>
+                  <th className="px-3 py-2">{copy.table.contact}</th>
+                  <th className="px-3 py-2">{copy.table.email}</th>
+                  <th className="px-3 py-2">{copy.management.category}</th>
+                  <th className="px-3 py-2">{copy.management.region}</th>
+                  <th className="px-3 py-2">{copy.management.sourceImport}</th>
+                  <th className="px-3 py-2">{copy.management.emailValidity}</th>
+                  <th className="px-3 py-2">{copy.management.suppressionStatus}</th>
+                  <th className="px-3 py-2">{copy.management.lastContacted}</th>
+                  <th className="px-3 py-2">{copy.management.campaignCount}</th>
+                  <th className="px-3 py-2">{copy.management.sendability}</th>
+                  <th className="px-3 py-2">{copy.table.status}</th>
+                  <th className="px-3 py-2" />
+                </tr>
+              </thead>
+              <tbody>
+                {pageRows.map((row) => {
+                  const lead = leads.find((item) => item.id === row.leadId);
+                  return (
+                    <tr className="border-t border-slate-800 text-slate-100" data-testid={`lead-row-${row.leadId}`} key={row.leadId}>
+                      <td className="px-3 py-2">
+                        <input
+                          checked={isLeadSelected(selectedLeadIds, row.leadId)}
+                          onChange={() => setSelectedLeadIds(toggleLeadSelection(selectedLeadIds, row.leadId))}
+                          type="checkbox"
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <a className="text-orange-300 hover:underline" href={getLocalizedLeadDetailHref(locale, row.leadId)}>
+                          {row.companyName}
+                        </a>
+                      </td>
+                      <td className="px-3 py-2">{row.contactName}</td>
+                      <td className="px-3 py-2">{row.email || "—"}</td>
+                      <td className="px-3 py-2">{row.category}</td>
+                      <td className="px-3 py-2">{row.region}</td>
+                      <td className="px-3 py-2">{row.sourceDatabase}</td>
+                      <td className="px-3 py-2">{copy.management.emailValidityValues[row.emailValidity]}</td>
+                      <td className="px-3 py-2">{copy.management.suppressionValues[row.suppressionStatus]}</td>
+                      <td className="px-3 py-2">
+                        {row.lastContactedAt ? new Date(row.lastContactedAt).toLocaleDateString(locale) : "—"}
+                      </td>
+                      <td className="px-3 py-2">{row.campaignCount}</td>
+                      <td className="px-3 py-2 text-xs">
+                        {row.sendability.sendable
+                          ? copy.management.sendabilityValues.sendable
+                          : row.sendability.reasons.join(", ")}
+                      </td>
+                      <td className="px-3 py-2">{copy.statuses[row.leadStatus]}</td>
+                      <td className="px-3 py-2">{rowActions(row.leadId, isArchived(lead))}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </CollapsibleTableViewport>
       )}
 
       <div className="mt-4 flex items-center justify-between text-sm text-slate-400">
-        <span>{copy.management.pageLabel.replace("{page}", String(page)).replace("{pages}", String(pages))}</span>
+        <span>{copy.management.pageLabel.replace("{page}", String(effectivePage)).replace("{pages}", String(pages))}</span>
         <div className="flex gap-2">
-          <button className="rounded border border-slate-700 px-3 py-1 disabled:opacity-50" disabled={page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))} type="button">
+          <button className="rounded border border-slate-700 px-3 py-1 disabled:opacity-50" disabled={effectivePage <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))} type="button">
             {copy.management.previousPage}
           </button>
-          <button className="rounded border border-slate-700 px-3 py-1 disabled:opacity-50" disabled={page >= pages} onClick={() => setPage((current) => Math.min(pages, current + 1))} type="button">
+          <button className="rounded border border-slate-700 px-3 py-1 disabled:opacity-50" disabled={effectivePage >= pages} onClick={() => setPage((current) => Math.min(pages, current + 1))} type="button">
             {copy.management.nextPage}
           </button>
         </div>

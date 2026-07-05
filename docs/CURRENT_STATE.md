@@ -1,79 +1,115 @@
-# ForgeOS — Current State
+# ForgeOS Current State
 
-Authoritative snapshot for the JH Gomes outreach release path.  
-Branch baseline: `release/jh-gomes-outreach-supabase` (from `de654e2`).
+**Document date:** 2026-07-05  
+**Current integration branch:** `integration/jh-gomes-release-candidate`  
+**Starting release-candidate base:** `integration/jh-gomes-cursor-convergence` @ `64a1ebd`  
+**Auth source:** `integration/jh-gomes-auth-activation` @ `4b42cc7`  
+**Repository-hygiene source:** `chore/repository-hygiene` @ `4e9a71d`
 
-## Canonical architecture
+This file describes the consolidated JH Gomes release-candidate branch. It does not mean hosted Supabase, OAuth providers, Brevo, or production deployment have been externally configured.
 
-- **Single root Next.js application** (`package.json`, `src/app/`, `src/features/`).
-- Domain boundaries under `src/features/*`, application services under `src/application/`, persistence under `src/persistence/`.
-- **JH Gomes** resolves via `tenants.tenant_key = tenant_jh_gomes` → UUID; platform code stays tenant-scoped and customer-neutral.
-- Internal naming: English. UI: `pt-PT` and `en` via `src/i18n/`.
+---
 
-## Outreach production persistence slice (implemented)
+## Implemented On The Release Candidate
 
-| Area | Status |
+### Application Foundation
+
+- Next.js 16 App Router, React 19, TypeScript, Tailwind CSS.
+- Node.js 22.x repository target with npm 10.9.8 recorded in `packageManager`.
+- Localized routes for `pt-PT` and `en`.
+- Industrial dashboard shell with light/dark theme support.
+- Module routes for CRM/customers, products, inventory, quotations, jobs, production, LeadOps, settings, demo workflows, and operational placeholders.
+
+### Cursor Feature Convergence
+
+- Cup Customizer workflow, including artwork upload, preview, simulation persistence, and quotation integration.
+- Table density and action overlay improvements.
+- Lead import and outreach acceptance coverage.
+- Playwright upgraded to 1.61.1.
+- `xlsx` removed.
+- ExcelJS 4.4.0 adopted through the shared spreadsheet parser with dynamic import.
+
+### Supabase Auth Activation
+
+- Supabase OAuth callback and sign-out routes.
+- Next.js `src/proxy.ts` session refresh and route protection in Supabase mode.
+- Active tenant-membership enforcement through `tenant_memberships`.
+- Pending, denied, and tenant-selection access pages.
+- Safe internal redirect handling for OAuth `next` values.
+- Auth membership migration for canonical statuses: `pending`, `active`, `suspended`, `revoked`.
+- Bootstrap and synthetic validation SQL under `scripts/admin/`.
+
+### Outreach And Send Jobs
+
+- Lead import, segmentation, campaign creation, draft generation, review/approve, simulation send, and manual-send handoff.
+- Server-owned send-job APIs with actor context.
+- Brevo provider boundary, webhook route, provider-event persistence, and unsubscribe route.
+- Real sending remains disabled unless explicitly configured.
+
+### Persistence
+
+| Mode | Configuration | Storage |
+|------|---------------|---------|
+| Local | `FORGEOS_PERSISTENCE_MODE=local` | IndexedDB/Dexie for local demo workflows |
+| Supabase | `FORGEOS_PERSISTENCE_MODE=supabase` plus Supabase URL/keys | PostgreSQL via `supabase/migrations/` and server repositories |
+
+Supabase migrations are validated locally in this release-candidate workflow. Hosted migration application is still an external deployment action.
+
+---
+
+## Not Yet Externally Activated
+
+| Item | Status |
 |------|--------|
-| Stable tenant key (`tenants.tenant_key`) | Migration + lookup helpers |
-| Supabase cookie session + membership | `src/lib/auth/session.ts` |
-| Server-owned send route | `POST /api/outreach/messages/{messageId}/send` |
-| Supabase repository bundle (outreach path) | `createSupabaseRepositoryBundle()` |
-| Atomic delivery claim RPC | `claim_outreach_send_attempt` |
-| Delivery attempt persistence | `outreach_send_attempts` |
-| Campaign recipients (PostgreSQL) | `outreach_campaign_recipients` |
-| RLS read policies + blocked direct send-attempt writes | Migration `202607031600` |
-| UI supabase send path | `campaign-recipient-review-panel` → server endpoint |
-| Brevo provider events (durable) | Existing `outreach_provider_events` + webhook |
-| SQL integration tests | `npm run test:supabase:integration` (requires `FORGEOS_TEST_DATABASE_URL`) |
+| Hosted Supabase migrations | Not applied by this branch |
+| Google OAuth provider | Not configured in hosted Supabase |
+| Microsoft OAuth provider | Not configured in hosted Supabase |
+| Hosted callback URLs | Not configured by this branch |
+| First real tenant membership | Not bootstrapped by this branch |
+| Real staging OAuth smoke test | Not executed |
+| Real Brevo batch delivery | Not enabled |
+| Production Vercel deployment | Not performed |
+| Supabase Storage artwork upload | Deferred |
+| Browser UI fully reading from Supabase | Deferred beyond current outreach server path |
 
-## Persistence modes
+---
 
-| Mode | Env | Storage |
-|------|-----|---------|
-| `local` (default) | unset / `FORGEOS_PERSISTENCE_MODE=local` | IndexedDB (Dexie) |
-| `supabase` | `FORGEOS_PERSISTENCE_MODE=supabase` + Supabase URL/keys | PostgreSQL via `supabase/migrations/` |
-
-Browser IndexedDB behavior is unchanged in `local` mode.  
-When `NEXT_PUBLIC_FORGEOS_PERSISTENCE_MODE=supabase`, campaign simulate-send uses the server-owned endpoint.
-
-## Authentication status
-
-- **Production:** Supabase cookie session → `tenant_memberships` → tenant UUID (never trusts client tenant headers).
-- **Test/E2E:** `FORGEOS_TEST_AUTH_ENABLED=true` or `FORGEOS_E2E=true` only.
-- **Development headers:** `FORGEOS_ALLOW_DEV_AUTH_HEADERS=true` and non-production only.
-- **Test tenant key resolution:** `tenant_jh_gomes` → UUID when Supabase configured.
-
-## Email delivery status
-
-- Default: **simulation** with exact approved subject/body.
-- Duplicate send: blocked by approval state, idempotency key, unique constraint, and atomic claim RPC.
-- Smartlead live: blocked (unchanged).
-- Brevo: test-send + webhooks; batch live gated.
-
-## Validation commands
+## Required Local Validation
 
 ```bash
+npm ci
 npm run lint
 npm run typecheck
 npm test
-npm run build
 npm run test:e2e
 npm run test:acceptance
-npm run test:customer-pc:smoke
-npm run test:supabase:integration   # requires PostgreSQL (CI service or FORGEOS_TEST_DATABASE_URL)
+npm run build
+npm run validate
 ```
 
-## Remaining production blockers
+Supabase/local database validation:
 
-1. Full Supabase local stack verification (`supabase start`) — CLI available via `npx supabase`; Docker daemon was not running on the implementation machine.
-2. Hosted PostgREST vertical test through `@supabase/supabase-js` (repository bundle) — requires live Supabase API, not raw PostgreSQL only.
-3. Browser Supabase read path for campaign UI data (currently IndexedDB client; server send only wired for supabase mode).
-4. Send-job routes still use development header actor context in non-production.
-5. Production deployment and secrets configuration.
+```bash
+npx supabase db reset --local --yes
+npm run test:supabase:integration
+```
 
-## Contradictory docs (superseded by this file)
+Use only local Docker or an explicitly approved non-production/staging Supabase target. Do not apply migrations to production from this branch.
 
-- `docs/product/outreach-mvp-implementation.md` — pre-Supabase persistence notes.
-- `docs/architecture/local-mvp-persistence.md` — outdated schema versions.
+---
 
-See `docs/email-outreach/integration-status.md` for module detail.
+## Known Follow-Up Items
+
+1. Verify GitHub Actions on `integration/jh-gomes-release-candidate`.
+2. Run real staging OAuth smoke only after provider configuration and explicit approval.
+3. Review Supabase advisor warnings before release promotion.
+4. Keep `uuid` moderate audit findings documented through ExcelJS until upstream updates or a reviewed override exists.
+5. Continue repository cleanup only after the release-candidate branch is green.
+
+---
+
+## Historical Context
+
+- `docs/ai-context/*` remains historical planning context.
+- `qa/repository/*` contains hygiene audits from the repository-hygiene branch.
+- Branch-specific QA reports under `qa/integration/`, `qa/security/`, and `qa/outreach/` are evidence snapshots and should not be rewritten except by a new explicit validation pass.

@@ -709,7 +709,18 @@ export const dictionary: Dictionary = {
     note: "Supabase Auth will replace this placeholder in the persistent MVP.",
     googleSignIn: "Continue with Google",
     microsoftSignIn: "Continue with Microsoft",
+    loadingGoogle: "Opening Google sign-in...",
+    loadingMicrosoft: "Opening Microsoft sign-in...",
     orContinueLocal: "or continue with local demo",
+    hostedOnlyNote: "Hosted authentication is enabled. Use Google or Microsoft to establish identity before ForgeOS checks tenant membership.",
+    membershipNote: "OAuth proves identity only. Access still requires an active ForgeOS tenant membership.",
+    errors: {
+      missing_code: "The sign-in callback was missing an authorization code. Please try again.",
+      oauth_exchange_failed: "Sign-in could not be completed. Please try again or contact your ForgeOS administrator.",
+      oauth_provider_failed: "The provider sign-in could not be started. Please check the configuration and try again.",
+      supabase_not_configured: "Supabase public authentication settings are not configured for this deployment.",
+      tenant_access_denied: "Authentication succeeded, but this account does not have an active ForgeOS tenant membership."
+    },
     googleDialogTitle: "Google sign-in (hosted version)",
     googleDialogBody:
       "Google OAuth requires Supabase Auth and provider configuration in the hosted ForgeOS deployment. After login, your profile is prefilled from workspace membership and you complete company onboarding and sender identity setup.",
@@ -717,6 +728,22 @@ export const dictionary: Dictionary = {
     microsoftDialogBody:
       "Microsoft OAuth requires Supabase Auth and provider configuration in the hosted ForgeOS deployment. After login, your profile is prefilled from workspace membership and you complete company onboarding and sender identity setup.",
     closeDialog: "Close"
+  },
+  authAccess: {
+    signOut: "Sign out",
+    pending: {
+      title: "Access awaiting approval",
+      body: "Your identity is authenticated, but ForgeOS has not found an active tenant membership for this account. Ask a workspace administrator to approve your membership before accessing tenant data."
+    },
+    denied: {
+      title: "Access denied",
+      body: "This account is suspended or revoked for the available ForgeOS tenant memberships. Tenant data is not available from this session."
+    },
+    tenants: {
+      title: "Choose workspace",
+      body: "This account has access to more than one ForgeOS workspace. Choose a tenant membership to continue.",
+      select: "Select"
+    }
   },
   settings: {
     eyebrow: "Workspace configuration",
@@ -1857,10 +1884,11 @@ export const dictionary: Dictionary = {
     emptySimulations: "No saved simulations yet.",
     sections: {
       context: "Customer and product",
-      configuration: "Configuration",
+      configuration: "Printing configuration",
       artwork: "Artwork",
       simulations: "Saved simulations",
-      pricing: "Pricing estimate"
+      pricing: "Pricing estimate",
+      commercial: "Commercial details"
     },
     form: {
       customer: "Customer",
@@ -1887,17 +1915,88 @@ export const dictionary: Dictionary = {
     artworkPositions: { left: "Left", center: "Centre", right: "Right" },
     artwork: {
       upload: "Upload artwork",
+      uploadTitle: "Upload logo or artwork",
+      replace: "Replace artwork",
       useLogo: "Use company logo",
+      useCustomerLogo: "Use stored customer logo",
+      searchOnline: "Search for logo online",
+      generateLogo: "Generate logo",
       useProductImage: "Use product image",
       uploaded: "Artwork uploaded.",
+      validating: "Validating file…",
+      loaded: "Artwork loaded.",
+      invalid: "Invalid file.",
+      failed: "Failed to load artwork.",
+      replaced: "Artwork replaced.",
+      removed: "Artwork removed.",
       logoApplied: "Company logo applied to preview.",
+      customerLogoApplied: "Customer logo applied.",
+      customerLogoSearching: "Searching for stored logo…",
+      customerLogoFound: "Stored logo found.",
+      customerLogoNotFound: "No stored logo.",
+      customerLogoFailed: "Could not load customer logo.",
       productImageApplied: "Product image applied to preview.",
       noLogo: "Upload a company logo in Settings first.",
-      noProductImage: "This product has no image URL."
+      noCompanyLogoLink: "Configure company logo",
+      noProductImage: "This product has no image URL.",
+      providerNotConfigured: "Provider not configured",
+      fileTooLarge: "File exceeds the 2 MB artwork limit.",
+      unsupportedType: "Unsupported file type. Use PNG, JPEG, WebP, GIF, or SVG.",
+      unsafeFile: "Executable or unsafe file types are not allowed.",
+      decodeFailed: "Could not decode the image.",
+      unsafeSvg: "Unsafe SVG — remove scripts or active content.",
+      missingDimensions: "Image has no valid dimensions.",
+      persistenceFailed: "Failed to save the file locally."
     },
     preview: {
-      label: "Cup preview",
-      brokenProductImage: "Product image unavailable; using fallback preview."
+      label: "Design preview",
+      designTab: "Design preview",
+      mockupTab: "Realistic mockup",
+      brokenProductImage: "Product image unavailable; using fallback preview.",
+      uploadHint: "PNG, JPEG, WebP or SVG up to 2 MB",
+      dragDropHint: "Drag a file onto the cup or click to upload",
+      capacityLabel: "Cup capacity",
+      printAreaLabel: "Print area",
+      safetyBoundaryLabel: "Safety boundary",
+      overflowWarning: "Artwork may exceed the printable area"
+    },
+    workflow: {
+      navLabel: "Customizer steps",
+      previous: "Previous",
+      next: "Next",
+      steps: {
+        product: "Product",
+        printing: "Printing",
+        artwork: "Artwork",
+        preview: "Preview",
+        quotation: "Price and quotation"
+      }
+    },
+    mockup: {
+      generateRealistic: "Generate realistic mockup",
+      generating: "Generating visualization…",
+      generated: "Realistic visualization generated.",
+      generatedDisclaimer: "Visualization generated — final production result may vary.",
+      stale: "Visualization is stale — regenerate after changing artwork or configuration.",
+      failed: "Could not generate visualization.",
+      retry: "Try again",
+      unavailable: "Image provider unavailable in the current environment.",
+      disclaimer: "AI-generated visualization — final production appearance may vary.",
+      providerDeterministic: "Deterministic provider (development)",
+      summaryTitle: "Summary before generating"
+    },
+    commercialDataRequired: "Commercial data required — enter a temporary manual price or configure the product.",
+    unsavedChanges: "Unsaved changes",
+    summary: {
+      title: "Customization summary",
+      customer: "Customer",
+      cup: "Cup",
+      quantity: "Quantity",
+      printing: "Printing",
+      artwork: "Artwork",
+      pricing: "Pricing",
+      quotation: "Quotation",
+      warnings: "Warnings"
     },
     pricing: {
       estimateBadge: "Estimate",
@@ -1907,13 +2006,17 @@ export const dictionary: Dictionary = {
       vat: "VAT",
       total: "Total",
       assumptions: "Assumptions",
+      viewAssumptions: "View assumptions",
       manualOverride: "Manual unit price override",
       overrideReason: "Override reason",
       selectProduct: "Select a product to calculate pricing."
     },
     actions: {
       save: "Save simulation",
+      saving: "Saving…",
       saved: "Simulation saved.",
+      saveVisualization: "Save visualization",
+      visualizationSaved: "Visualization saved locally.",
       convertToQuote: "Create quotation from simulation",
       converted: "Quotation created.",
       newSimulation: "New simulation",
@@ -1927,7 +2030,14 @@ export const dictionary: Dictionary = {
       draft: "Draft",
       saved: "Saved",
       converted: "Converted",
-      archived: "Archived"
+      archived: "Archived",
+      DRAFT: "Draft",
+      ARTWORK_REVIEW: "Artwork review",
+      PRICING_REQUIRED: "Pricing required",
+      READY_FOR_QUOTATION: "Ready for quotation",
+      QUOTED: "Quoted",
+      APPROVED: "Approved",
+      ARCHIVED: "Archived"
     },
     leadopsMedia: {
       title: "Customizer mockup",

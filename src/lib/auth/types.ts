@@ -1,13 +1,14 @@
-export type ForgeOSAuthRole =
-  | "super_admin"
-  | "company_owner"
-  | "marketing_manager"
-  | "outreach_operator"
-  | "sales"
-  | "owner"
-  | "viewer";
+import {
+  parseForgeOSRoles,
+  type ForgeOSAuthRole,
+  type ForgeOSPermission
+} from "@/lib/auth/permissions";
+
+export type { ForgeOSAuthRole, ForgeOSPermission };
 
 export type ForgeOSSession = {
+  membershipId?: string;
+  permissions?: ForgeOSPermission[];
   userId: string;
   tenantId: string;
   roles: ForgeOSAuthRole[];
@@ -25,27 +26,13 @@ export class ForgeOSAuthError extends Error {
   }
 }
 
-const ROLE_SET = new Set<string>([
-  "super_admin",
-  "company_owner",
-  "marketing_manager",
-  "outreach_operator",
-  "sales",
-  "owner",
-  "viewer"
-]);
-
 export function parseRoles(raw: string): ForgeOSAuthRole[] {
-  const roles = raw
-    .split(",")
-    .map((role) => role.trim())
-    .filter(Boolean);
-
-  if (roles.length === 0 || roles.some((role) => !ROLE_SET.has(role))) {
+  const roles = parseForgeOSRoles(raw);
+  if (roles.length === 0) {
     throw new ForgeOSAuthError("unauthorized", "Invalid role in session.", 403);
   }
 
-  return roles as ForgeOSAuthRole[];
+  return roles;
 }
 
 export function requireOutreachPermission(

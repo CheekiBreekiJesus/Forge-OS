@@ -49,9 +49,10 @@ export async function waitForOperationsSeed(page: Page): Promise<void> {
 }
 
 export async function waitForCupCatalog(page: Page): Promise<void> {
-  await expect(page.getByRole("heading", { name: /estimativa de preço|price estimate/i })).toBeVisible({
-    timeout: 45000
-  });
+  await expect(
+    page.getByRole("heading", { name: /personalizador de copos|cup customizer/i })
+  ).toBeVisible({ timeout: 45000 });
+  await expect(page.getByText(/estimativa|estimate/i).first()).toBeVisible({ timeout: 45000 });
 }
 
 /** Lead detail loads campaigns after persistence init; generation is a no-op until then. */

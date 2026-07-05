@@ -28,10 +28,16 @@ function membership(
   overrides: Partial<TenantMembershipRecord> = {}
 ): TenantMembershipRecord {
   return {
+    createdAt: "2026-07-04T00:00:00.000Z",
+    id: "membership_1",
     permissions: [],
     role: "viewer",
     status: "active",
     tenantId: "tenant_from_membership",
+    tenantKey: "tenant_from_membership",
+    tenantName: "Tenant from membership",
+    tenantSlug: "tenant-from-membership",
+    updatedAt: "2026-07-04T00:00:00.000Z",
     ...overrides
   };
 }
@@ -55,6 +61,26 @@ describe("send job actor context", () => {
       source: "development_headers",
       tenantId: "tenant_dev",
       userId: "user_dev"
+    });
+  });
+
+  it("allows synthetic E2E actor env only when test auth is enabled", async () => {
+    const actor = await resolveTrustedSendJobActorContext(
+      new Request("http://localhost/api/outreach/send-jobs"),
+      {
+        FORGEOS_TEST_AUTH_ENABLED: "true",
+        FORGEOS_TEST_ROLES: "marketing_manager,outreach_operator",
+        FORGEOS_TEST_TENANT_ID: "tenant_e2e",
+        FORGEOS_TEST_USER_ID: "user_e2e",
+        NODE_ENV: "test"
+      }
+    );
+
+    expect(actor).toMatchObject({
+      roles: ["marketing_manager", "outreach_operator"],
+      source: "development_headers",
+      tenantId: "tenant_e2e",
+      userId: "user_e2e"
     });
   });
 

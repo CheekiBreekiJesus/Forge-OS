@@ -709,7 +709,24 @@ export const dictionary: Dictionary = {
     note: "Supabase Auth deve substituir este placeholder no MVP persistente.",
     googleSignIn: "Continuar com Google",
     microsoftSignIn: "Continuar com Microsoft",
+    loadingGoogle: "A abrir login Google...",
+    loadingMicrosoft: "A abrir login Microsoft...",
     orContinueLocal: "ou continuar com demo local",
+    hostedOnlyNote:
+      "A autenticacao alojada esta ativa. Use Google ou Microsoft para confirmar identidade antes da verificacao da associacao ao tenant.",
+    membershipNote:
+      "OAuth confirma apenas a identidade. O acesso continua a exigir uma associacao ativa ao tenant ForgeOS.",
+    errors: {
+      missing_code: "O callback de login nao recebeu codigo de autorizacao. Tente novamente.",
+      oauth_exchange_failed:
+        "Nao foi possivel concluir o login. Tente novamente ou contacte o administrador ForgeOS.",
+      oauth_provider_failed:
+        "Nao foi possivel iniciar o login do fornecedor. Verifique a configuracao e tente novamente.",
+      supabase_not_configured:
+        "A configuracao publica de autenticacao Supabase nao esta definida para este ambiente.",
+      tenant_access_denied:
+        "A autenticacao foi concluida, mas esta conta nao tem uma associacao ativa ao tenant ForgeOS."
+    },
     googleDialogTitle: "Início de sessão Google (versão alojada)",
     googleDialogBody:
       "OAuth Google requer Supabase Auth e configuração do fornecedor na versão alojada do ForgeOS. Após o login, o perfil é pré-preenchido pela associação ao workspace e conclui o onboarding da empresa e identidades de remetente.",
@@ -717,6 +734,22 @@ export const dictionary: Dictionary = {
     microsoftDialogBody:
       "OAuth Microsoft requer Supabase Auth e configuração do fornecedor na versão alojada do ForgeOS. Após o login, o perfil é pré-preenchido pela associação ao workspace e conclui o onboarding da empresa e identidades de remetente.",
     closeDialog: "Fechar"
+  },
+  authAccess: {
+    signOut: "Terminar sessao",
+    pending: {
+      title: "Acesso a aguardar aprovacao",
+      body: "A identidade esta autenticada, mas o ForgeOS nao encontrou uma associacao ativa a um tenant para esta conta. Peca a um administrador do workspace para aprovar o acesso antes de consultar dados do tenant."
+    },
+    denied: {
+      title: "Acesso negado",
+      body: "Esta conta esta suspensa ou revogada nas associacoes de tenant disponiveis. Os dados do tenant nao estao disponiveis nesta sessao."
+    },
+    tenants: {
+      title: "Escolher workspace",
+      body: "Esta conta tem acesso a mais do que um workspace ForgeOS. Escolha uma associacao de tenant para continuar.",
+      select: "Selecionar"
+    }
   },
   settings: {
     eyebrow: "Configuração do workspace",
@@ -1857,10 +1890,11 @@ export const dictionary: Dictionary = {
     emptySimulations: "Ainda sem simulações guardadas.",
     sections: {
       context: "Cliente e produto",
-      configuration: "Configuração",
+      configuration: "Configuração de impressão",
       artwork: "Arte",
       simulations: "Simulações guardadas",
-      pricing: "Estimativa de preço"
+      pricing: "Estimativa de preço",
+      commercial: "Detalhes comerciais"
     },
     form: {
       customer: "Cliente",
@@ -1887,17 +1921,88 @@ export const dictionary: Dictionary = {
     artworkPositions: { left: "Esquerda", center: "Centro", right: "Direita" },
     artwork: {
       upload: "Carregar arte",
+      uploadTitle: "Carregar logótipo ou arte",
+      replace: "Substituir arte",
       useLogo: "Usar logótipo da empresa",
+      useCustomerLogo: "Usar logótipo guardado do cliente",
+      searchOnline: "Procurar logótipo online",
+      generateLogo: "Gerar logótipo",
       useProductImage: "Usar imagem do produto",
       uploaded: "Arte carregada.",
+      validating: "A validar ficheiro…",
+      loaded: "Arte carregada.",
+      invalid: "Ficheiro inválido.",
+      failed: "Falha ao carregar arte.",
+      replaced: "Arte substituída.",
+      removed: "Arte removida.",
       logoApplied: "Logótipo aplicado à pré-visualização.",
+      customerLogoApplied: "Logótipo do cliente aplicado.",
+      customerLogoSearching: "A procurar logótipo guardado…",
+      customerLogoFound: "Logótipo guardado encontrado.",
+      customerLogoNotFound: "Nenhum logótipo guardado.",
+      customerLogoFailed: "Não foi possível carregar o logótipo do cliente.",
       productImageApplied: "Imagem do produto aplicada à pré-visualização.",
       noLogo: "Carregue primeiro o logótipo em Definições.",
-      noProductImage: "Este produto não tem URL de imagem."
+      noCompanyLogoLink: "Configurar logótipo da empresa",
+      noProductImage: "Este produto não tem URL de imagem.",
+      providerNotConfigured: "Fornecedor não configurado",
+      fileTooLarge: "O ficheiro excede o limite de 2 MB para arte.",
+      unsupportedType: "Tipo de ficheiro não suportado. Use PNG, JPEG, WebP, GIF ou SVG.",
+      unsafeFile: "Ficheiros executáveis ou inseguros não são permitidos.",
+      decodeFailed: "Não foi possível descodificar a imagem.",
+      unsafeSvg: "SVG não seguro — remova scripts ou conteúdo ativo.",
+      missingDimensions: "A imagem não tem dimensões válidas.",
+      persistenceFailed: "Falha ao guardar o ficheiro localmente."
     },
     preview: {
-      label: "Pré-visualização do copo",
-      brokenProductImage: "Imagem do produto indisponível; a usar pré-visualização base."
+      label: "Pré-visualização do desenho",
+      designTab: "Pré-visualização do desenho",
+      mockupTab: "Mockup realista",
+      brokenProductImage: "Imagem do produto indisponível; a usar pré-visualização base.",
+      uploadHint: "PNG, JPEG, WebP ou SVG até 2 MB",
+      dragDropHint: "Arraste um ficheiro para o copo ou clique para carregar",
+      capacityLabel: "Capacidade do copo",
+      printAreaLabel: "Área de impressão",
+      safetyBoundaryLabel: "Limite de segurança",
+      overflowWarning: "A arte pode ultrapassar a área imprimível"
+    },
+    workflow: {
+      navLabel: "Passos do personalizador",
+      previous: "Anterior",
+      next: "Seguinte",
+      steps: {
+        product: "Produto",
+        printing: "Impressão",
+        artwork: "Arte",
+        preview: "Pré-visualização",
+        quotation: "Preço e orçamento"
+      }
+    },
+    mockup: {
+      generateRealistic: "Gerar mockup realista",
+      generating: "A gerar visualização…",
+      generated: "Visualização realista gerada.",
+      generatedDisclaimer: "Visualização gerada — o resultado final de produção pode variar.",
+      stale: "Visualização desatualizada — regenere após alterar a arte ou configuração.",
+      failed: "Não foi possível gerar a visualização.",
+      retry: "Tentar novamente",
+      unavailable: "Fornecedor de imagem indisponível no ambiente atual.",
+      disclaimer: "Visualização gerada por IA — o aspeto final de produção pode variar.",
+      providerDeterministic: "Fornecedor determinístico (desenvolvimento)",
+      summaryTitle: "Resumo antes de gerar"
+    },
+    commercialDataRequired: "Dados comerciais necessários — introduza um preço manual temporário ou configure o produto.",
+    unsavedChanges: "Alterações por guardar",
+    summary: {
+      title: "Resumo da personalização",
+      customer: "Cliente",
+      cup: "Copo",
+      quantity: "Quantidade",
+      printing: "Impressão",
+      artwork: "Arte",
+      pricing: "Preço",
+      quotation: "Orçamento",
+      warnings: "Avisos"
     },
     pricing: {
       estimateBadge: "Estimativa",
@@ -1907,13 +2012,17 @@ export const dictionary: Dictionary = {
       vat: "IVA",
       total: "Total",
       assumptions: "Pressupostos",
+      viewAssumptions: "Ver pressupostos",
       manualOverride: "Preço unitário manual",
       overrideReason: "Motivo do ajuste",
       selectProduct: "Selecione um produto para calcular o preço."
     },
     actions: {
       save: "Guardar simulação",
+      saving: "A guardar…",
       saved: "Simulação guardada.",
+      saveVisualization: "Guardar visualização",
+      visualizationSaved: "Visualização guardada localmente.",
       convertToQuote: "Criar orçamento a partir da simulação",
       converted: "Orçamento criado.",
       newSimulation: "Nova simulação",
@@ -1927,7 +2036,14 @@ export const dictionary: Dictionary = {
       draft: "Rascunho",
       saved: "Guardada",
       converted: "Convertida",
-      archived: "Arquivada"
+      archived: "Arquivada",
+      DRAFT: "Rascunho",
+      ARTWORK_REVIEW: "Revisão de arte",
+      PRICING_REQUIRED: "Preço necessário",
+      READY_FOR_QUOTATION: "Pronta para orçamento",
+      QUOTED: "Orçamentada",
+      APPROVED: "Aprovada",
+      ARCHIVED: "Arquivada"
     },
     leadopsMedia: {
       title: "Mockup do personalizador",

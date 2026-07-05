@@ -234,6 +234,7 @@ export function CustomersShell({ dictionary, locale }: CustomersShellProps) {
             archivedRowClass={isArchivedRecord}
             columns={columns}
             rowKey={(c) => c.id}
+            locale={locale}
             rows={filtered}
           />
           <EntityCardList
@@ -260,6 +261,7 @@ export function CustomersShell({ dictionary, locale }: CustomersShellProps) {
             archivedRowClass={isArchivedRecord}
             meta={(c) => c.email}
             rowKey={(c) => c.id}
+            locale={locale}
             rows={filtered}
             subtitle={(c) => c.contactName}
             title={(c) => c.companyName}

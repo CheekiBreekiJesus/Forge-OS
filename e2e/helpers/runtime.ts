@@ -21,22 +21,28 @@ export const PLAYWRIGHT_RUNTIME = {
 } as const;
 
 export function buildPlaywrightWebServerEnv(dbName: string): Record<string, string> {
-  const env: Record<string, string> = {
-    FORGEOS_E2E: "true",
-    FORGEOS_LOCAL_DB_NAME: dbName,
-    NEXT_PUBLIC_FORGEOS_LOCAL_DB_NAME: dbName,
-    ABACUS_API_KEY: "",
-    AI_DEFAULT_PROVIDER: "deterministic",
-    AI_FALLBACK_PROVIDER: "deterministic",
-    AI_OUTREACH_PROVIDER: "deterministic",
-    OUTREACH_DELIVERY_PROVIDER: "simulation"
-  };
+  const env: Record<string, string> = {};
 
   for (const [key, value] of Object.entries(process.env)) {
     if (typeof value === "string") {
       env[key] = value;
     }
   }
+
+  env.FORGEOS_E2E = "true";
+  env.FORGEOS_TEST_AUTH_ENABLED = "true";
+  env.FORGEOS_TEST_USER_ID = "00000000-0000-4000-8000-0000000000e2";
+  env.FORGEOS_TEST_TENANT_ID = "11111111-1111-1111-1111-111111111111";
+  env.FORGEOS_TEST_ROLES = "company_owner,marketing_manager,outreach_operator";
+  env.FORGEOS_LOCAL_DB_NAME = dbName;
+  env.NEXT_PUBLIC_FORGEOS_LOCAL_DB_NAME = dbName;
+  env.FORGEOS_PERSISTENCE_MODE = "local";
+  env.NEXT_PUBLIC_FORGEOS_PERSISTENCE_MODE = "local";
+  env.ABACUS_API_KEY = "";
+  env.AI_DEFAULT_PROVIDER = "deterministic";
+  env.AI_FALLBACK_PROVIDER = "deterministic";
+  env.AI_OUTREACH_PROVIDER = "deterministic";
+  env.OUTREACH_DELIVERY_PROVIDER = "simulation";
 
   return env;
 }

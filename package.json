@@ -2,6 +2,10 @@
   "name": "forge-os",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22 <23"
+  },
+  "packageManager": "npm@10.9.8",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -9,10 +13,10 @@
     "lint": "eslint .",
     "test": "vitest run src",
     "test:supabase:integration": "vitest run src/persistence/supabase/outreach-vertical.integration.test.ts",
-    "pretest:e2e": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/qa/prepare-playwright-tests.ps1 -TestPort 3012",
+    "pretest:e2e": "node scripts/qa/prepare-playwright-tests.mjs --port 3012",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "pretest:acceptance": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/qa/prepare-playwright-tests.ps1 -TestPort 3001",
+    "pretest:acceptance": "node scripts/qa/prepare-playwright-tests.mjs --port 3001",
     "test:acceptance": "playwright test --config playwright.acceptance.config.ts",
     "test:acceptance:headed": "playwright test --config playwright.acceptance.config.ts --headed",
     "test:acceptance:ui": "playwright test --config playwright.acceptance.config.ts --ui",
@@ -33,17 +37,17 @@
     "agent:canary": "tsx scripts/agent-orchestrator/canary.ts"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.12.0",
-    "@supabase/supabase-js": "^2.110.0",
+    "@supabase/ssr": "0.12.0",
+    "@supabase/supabase-js": "2.110.0",
     "dexie": "^4.4.4",
+    "exceljs": "^4.4.0",
     "next": "^16.2.9",
     "react": "19.0.0",
     "react-dom": "19.0.0",
-    "xlsx": "^0.18.5",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@playwright/test": "1.53.1",
+    "@playwright/test": "^1.61.1",
     "@types/node": "22.15.32",
     "@types/pg": "^8.20.0",
     "@types/react": "19.0.12",

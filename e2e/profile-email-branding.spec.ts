@@ -47,13 +47,14 @@ test.describe("Profile and email branding", () => {
     await expect(page.getByRole("link", { name: "EN", exact: true })).toBeVisible();
   });
 
-  test("shows Google and Microsoft login dialogs", async ({ page }) => {
+  test("keeps OAuth login local when Supabase public config is missing", async ({ page }) => {
     await page.goto("/pt-PT/login");
     await page.getByRole("button", { name: /continuar com google/i }).click();
-    await expect(page.getByRole("heading", { name: /google/i })).toBeVisible();
-    await page.getByRole("button", { name: /fechar/i }).click();
+    await expect(page.getByText(/configuracao publica de autenticacao supabase/i)).toBeVisible();
+    await expect(page).not.toHaveURL(/accounts\.google\.com/);
     await page.getByRole("button", { name: /continuar com microsoft/i }).click();
-    await expect(page.getByRole("heading", { name: /microsoft/i })).toBeVisible();
+    await expect(page.getByText(/configuracao publica de autenticacao supabase/i)).toBeVisible();
+    await expect(page).not.toHaveURL(/login\.microsoftonline\.com/);
   });
 
   test("generates email with signature and copy actions after approval", async ({ page }) => {

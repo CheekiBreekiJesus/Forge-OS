@@ -37,6 +37,9 @@ qa/reports/*
 !qa/reports/health-report.schema.json
 qa/ai/
 
+# Cup customizer private acceptance artifacts
+qa/cup-customizer/private/
+
 # Local customer data-preparation inputs/outputs
 scripts/data-preparation/local/
 scripts/data-preparation/outputs/

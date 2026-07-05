@@ -22,11 +22,34 @@ async function waitForPersistence(page: import("@playwright/test").Page) {
   });
 }
 
+async function openPreviewOnMobile(page: import("@playwright/test").Page) {
+  const previewStep = page.getByRole("button", { name: /^Pré-visualização$|^Preview$/i });
+  if (await previewStep.isVisible()) {
+    await previewStep.click();
+  }
+}
+
+async function uploadFixtureArtwork(page: import("@playwright/test").Page, viewportWidth: number) {
+  if (viewportWidth < 1024) {
+    await page.getByRole("button", { name: /^Arte$|^Artwork$/i }).click();
+    await page.locator('input[type="file"]').setInputFiles("e2e/fixtures/logo.png");
+    await openPreviewOnMobile(page);
+  } else {
+    await page.locator('input[type="file"]').first().setInputFiles("e2e/fixtures/logo.png");
+  }
+}
+
 test.describe("Cup Customizer workflows", () => {
   test.beforeEach(async ({ page }) => {
     await resetLocalDatabase(page);
     await page.goto("/pt-PT");
     await waitForPersistence(page);
+  });
+
+  test("products cup-customizer alias route loads shell", async ({ page }) => {
+    await page.goto("/pt-PT/products/cup-customizer");
+    await waitForPersistence(page);
+    await expect(page.getByRole("heading", { name: "Personalizador de Copos" })).toBeVisible();
   });
 
   test("customizer page loads with tabs", async ({ page }) => {
@@ -114,23 +137,38 @@ test.describe("Cup Customizer workflows", () => {
     await page.goto("/pt-PT/quotations/customizer");
     await waitForPersistence(page);
     await expect(page.getByText("Estimativa", { exact: true })).toBeVisible({ timeout: 15000 });
-    await page.locator('input[type="file"]').setInputFiles("e2e/fixtures/logo.png");
+    await uploadFixtureArtwork(page, 1280);
     await expect(page.getByText(/Arte carregada/i)).toBeVisible({ timeout: 10000 });
-    await page.getByLabel(/Escala da arte/i).fill("1.25");
-    await page.getByLabel(/Desvio horizontal/i).fill("8");
-    await page.getByLabel(/Desvio vertical/i).fill("-6");
-    await page.getByLabel(/Rota/i).fill("12");
     await expect(page.getByTestId("cup-preview-artwork")).toBeVisible();
     await page.getByRole("button", { name: /Guardar simula/i }).click();
     await expect(page.getByText(/^Simulação guardada\.$/i)).toBeVisible({ timeout: 10000 });
     await page.reload();
     await waitForPersistence(page);
+    await page.getByRole("button", { name: /Simulações guardadas/i }).click();
     await expect(page.locator("li").filter({ hasText: /Guardada|Saved/i }).first()).toBeVisible({
       timeout: 10000
     });
     await page.getByRole("button", { name: /Criar or/i }).click();
     await expect(page).toHaveURL(/\/pt-PT\/quotations$/);
     await expect(page.getByText(/QT-/).first()).toBeVisible({ timeout: 10000 });
+  });
+
+  test("can generate deterministic realistic mockup on demand", async ({ page }) => {
+    await page.goto("/pt-PT/quotations/customizer");
+    await waitForPersistence(page);
+    await uploadFixtureArtwork(page, 1280);
+    await expect(page.getByText(/Arte carregada/i)).toBeVisible({ timeout: 10000 });
+    await page.getByRole("button", { name: /Gerar mockup realista/i }).click();
+    await expect(page.getByText(/Visualização realista gerada/i)).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId("cup-mockup-image")).toBeVisible({ timeout: 15000 });
+  });
+
+  test("blank customizer shows cup canvas and upload overlay", async ({ page }) => {
+    await page.goto("/pt-PT/products/cup-customizer");
+    await waitForPersistence(page);
+    await expect(page.getByTestId("cup-design-canvas")).toBeVisible();
+    await expect(page.getByTestId("cup-upload-overlay")).toBeVisible();
+    await expect(page.getByTestId("cup-preview-frame")).toBeVisible();
   });
 
   test("onboarding checklist shows customizer step", async ({ page }) => {
@@ -147,3 +185,40 @@ test.describe("Cup Customizer workflows", () => {
     await expect(page.getByText("Marcar todas como lidas")).toBeVisible();
   });
 });
+
+const VIEWPORTS = [
+  { height: 768, name: "1366x768", width: 1366 },
+  { height: 900, name: "1440x900", width: 1440 },
+  { height: 1080, name: "1920x1080", width: 1920 },
+  { height: 844, name: "390x844", width: 390 },
+  { height: 1024, name: "768x1024", width: 768 }
+] as const;
+
+for (const viewport of VIEWPORTS) {
+  test.describe(`Cup Customizer layout @ ${viewport.name}`, () => {
+    test.use({ viewport: { height: viewport.height, width: viewport.width } });
+
+    test.beforeEach(async ({ page }) => {
+      await resetLocalDatabase(page);
+      await page.goto("/pt-PT/products/cup-customizer");
+      await waitForPersistence(page);
+    });
+
+    test("canvas visible without horizontal overflow", async ({ page }) => {
+      if (viewport.width < 1024) {
+        await openPreviewOnMobile(page);
+      }
+      await expect(page.getByTestId("cup-design-canvas")).toBeVisible({ timeout: 15000 });
+      const overflow = await page.evaluate(() => {
+        return document.documentElement.scrollWidth > document.documentElement.clientWidth + 2;
+      });
+      expect(overflow).toBe(false);
+    });
+
+    test("upload works and artwork renders on cup", async ({ page }) => {
+      await uploadFixtureArtwork(page, viewport.width);
+      await expect(page.getByText(/Arte carregada/i)).toBeVisible({ timeout: 15000 });
+      await expect(page.getByTestId("cup-preview-artwork")).toBeVisible({ timeout: 15000 });
+    });
+  });
+}

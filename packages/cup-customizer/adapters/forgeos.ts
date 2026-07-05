@@ -19,6 +19,7 @@ export function createForgeOSCustomizerBridge(): ForgeOSCustomizerBridge {
 
 export { estimateCupPricing, resolveQuotationRuleForProduct };
 export { CupPreview } from "../rendering/cup-preview";
+export { CupDesignCanvas, type CupDesignCanvasProps, type CupDesignView } from "../rendering/cup-design-canvas";
 export type {
   CupConfiguration,
   CupCustomizerAdapterInput,

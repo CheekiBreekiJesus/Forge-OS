@@ -2,6 +2,38 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { Client } from "pg";
 
+export async function bootstrapSupabaseAuthStub(connectionString: string): Promise<void> {
+  const client = new Client({ connectionString });
+  await client.connect();
+
+  try {
+    await client.query(`
+      create schema if not exists auth;
+
+      create or replace function auth.uid()
+      returns uuid
+      language sql
+      stable
+      as $$
+        select null::uuid;
+      $$;
+
+      do $$
+      begin
+        if not exists (select 1 from pg_roles where rolname = 'authenticated') then
+          create role authenticated;
+        end if;
+
+        if not exists (select 1 from pg_roles where rolname = 'service_role') then
+          create role service_role;
+        end if;
+      end $$;
+    `);
+  } finally {
+    await client.end();
+  }
+}
+
 export async function applySupabaseMigrations(connectionString: string): Promise<void> {
   const client = new Client({ connectionString });
   await client.connect();

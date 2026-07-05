@@ -1,4 +1,3 @@
-import * as XLSX from "xlsx";
 import type { ImportFieldMapping } from "@/domain/import-types";
 import { applyFieldMapping, detectFieldMapping } from "@/features/leadops/import-mapping";
 import {
@@ -13,15 +12,24 @@ import {
   trimValue
 } from "@/features/leadops/import-normalization";
 import type { ParsedImportRowInput } from "@/features/leadops/import-deduplication";
+import {
+  assertSpreadsheetByteLimit,
+  extractSheetMatrix,
+  listSpreadsheetSheetNames,
+  loadSpreadsheetWorkbook,
+  MAX_SPREADSHEET_ROWS,
+  pickDefaultSpreadsheetSheet,
+  SpreadsheetParseError
+} from "@/features/shared/spreadsheet/spreadsheet-parser";
 
 export const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
-export const MAX_IMPORT_ROWS = 5000;
+export const MAX_IMPORT_ROWS = MAX_SPREADSHEET_ROWS;
 
 const CSV_MIME = ["text/csv", "application/csv", "text/plain"];
 const XLSX_MIME = [
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "application/vnd.ms-excel"
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 ];
+const LEGACY_XLS_EXTENSION = ".xls";
 
 export type SupportedImportFileType = "csv" | "xlsx";
 
@@ -47,6 +55,9 @@ export function validateImportFile(file: File): string | null {
     return "File exceeds 5 MB limit.";
   }
   const name = file.name.toLowerCase();
+  if (name.endsWith(LEGACY_XLS_EXTENSION)) {
+    return "Legacy XLS workbooks are not supported. Export to XLSX or CSV.";
+  }
   const isCsv = name.endsWith(".csv") || CSV_MIME.includes(file.type);
   const isXlsx = name.endsWith(".xlsx") || XLSX_MIME.includes(file.type);
   if (!isCsv && !isXlsx) {
@@ -61,9 +72,10 @@ export function detectFileType(file: File): SupportedImportFileType {
   return "csv";
 }
 
-export function listXlsxSheetNames(buffer: ArrayBuffer): string[] {
-  const workbook = XLSX.read(buffer, { type: "array", cellFormula: false, cellHTML: false });
-  return workbook.SheetNames;
+export async function listXlsxSheetNames(buffer: ArrayBuffer): Promise<string[]> {
+  assertSpreadsheetByteLimit(buffer.byteLength);
+  const workbook = await loadSpreadsheetWorkbook(buffer);
+  return listSpreadsheetSheetNames(workbook);
 }
 
 export async function parseImportFile(
@@ -72,14 +84,16 @@ export async function parseImportFile(
 ): Promise<ParsedSpreadsheet> {
   const fileType = detectFileType(file);
   const buffer = await file.arrayBuffer();
+  assertSpreadsheetByteLimit(buffer.byteLength);
 
   if (fileType === "xlsx") {
-    const availableSheets = listXlsxSheetNames(buffer);
+    const workbook = await loadSpreadsheetWorkbook(buffer);
+    const availableSheets = listSpreadsheetSheetNames(workbook);
     const selectedSheet =
       options.sheetName && availableSheets.includes(options.sheetName)
         ? options.sheetName
-        : pickDefaultSheet(buffer, availableSheets);
-    const spreadsheet = parseXlsxBuffer(buffer, selectedSheet);
+        : pickDefaultSpreadsheetSheet(workbook, availableSheets);
+    const spreadsheet = parseXlsxBuffer(workbook, selectedSheet);
     const detectedMapping = options.mappingOverride
       ? { ...detectFieldMapping(spreadsheet.headers), ...options.mappingOverride }
       : detectFieldMapping(spreadsheet.headers);
@@ -307,53 +321,26 @@ function parseCsv(csv: string, delimiter: "," | ";" | "\t" = ","): string[][] {
   return rows;
 }
 
-function pickDefaultSheet(buffer: ArrayBuffer, sheetNames: string[]): string {
-  const workbook = XLSX.read(buffer, { type: "array", cellFormula: false, cellHTML: false });
-  let bestName = sheetNames[0] ?? "";
-  let bestRows = -1;
-  for (const name of sheetNames) {
-    const sheet = workbook.Sheets[name];
-    const matrix = XLSX.utils.sheet_to_json<(string | number | boolean | null)[]>(sheet, {
-      header: 1,
-      raw: false,
-      defval: ""
-    });
-    const rowCount = matrix.slice(1).filter((row) => row.some((cell) => trimValue(String(cell ?? "")).length > 0)).length;
-    if (rowCount > bestRows) {
-      bestRows = rowCount;
-      bestName = name;
-    }
-  }
-  return bestName;
-}
-
 function parseXlsxBuffer(
-  buffer: ArrayBuffer,
+  workbook: Awaited<ReturnType<typeof loadSpreadsheetWorkbook>>,
   sheetName: string
 ): { headers: string[]; rows: string[][] } {
-  const workbook = XLSX.read(buffer, { type: "array", cellFormula: false, cellHTML: false });
-  const resolvedSheet = workbook.SheetNames.includes(sheetName)
+  const resolvedSheet = workbook.sheetNames.includes(sheetName)
     ? sheetName
-    : workbook.SheetNames[0];
+    : workbook.sheetNames[0];
   if (!resolvedSheet) return { headers: [], rows: [] };
-  const sheet = workbook.Sheets[resolvedSheet];
-  const matrix = XLSX.utils.sheet_to_json<(string | number | boolean | null)[]>(sheet, {
-    header: 1,
-    raw: false,
-    defval: ""
-  });
+
+  const { matrix } = extractSheetMatrix(workbook, resolvedSheet);
   if (matrix.length === 0) return { headers: [], rows: [] };
 
-  const headerRowIndex = findHeaderRowIndex(
-    matrix.map((row) => (row ?? []).map((cell) => trimValue(String(cell ?? ""))))
-  );
-  const rawHeaders = (matrix[headerRowIndex] ?? []).map((cell) => trimValue(String(cell ?? "")));
+  const headerRowIndex = findHeaderRowIndex(matrix.map((row) => row.map((cell) => trimValue(cell))));
+  const rawHeaders = (matrix[headerRowIndex] ?? []).map((cell) => trimValue(cell));
   const headers = dedupeHeaders(rawHeaders);
   const rows = matrix
     .slice(headerRowIndex + 1)
-    .filter((row) => row.some((cell) => trimValue(String(cell ?? "")).length > 0))
-    .map((row) => headers.map((_, index) => trimValue(String(row[index] ?? ""))));
+    .filter((row) => row.some((cell) => trimValue(cell).length > 0))
+    .map((row) => headers.map((_, index) => trimValue(row[index] ?? "")));
   return { headers, rows };
 }
 
-export { parseCsvText, parseCsv };
+export { parseCsvText, parseCsv, SpreadsheetParseError };
