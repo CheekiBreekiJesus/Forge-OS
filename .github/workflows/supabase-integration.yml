@@ -6,6 +6,20 @@ on:
       - ".github/workflows/supabase-integration.yml"
       - "package-lock.json"
       - "package.json"
+      - "scripts/admin/**/*.sql"
+      - "src/lib/auth/**"
+      - "src/persistence/supabase/**"
+      - "supabase/**"
+  push:
+    branches:
+      - integration/**
+      - release/**
+    paths:
+      - ".github/workflows/supabase-integration.yml"
+      - "package-lock.json"
+      - "package.json"
+      - "scripts/admin/**/*.sql"
+      - "src/lib/auth/**"
       - "src/persistence/supabase/**"
       - "supabase/**"
   workflow_dispatch:
