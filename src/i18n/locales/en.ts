@@ -761,7 +761,8 @@ export const dictionary: Dictionary = {
       senders: "Sender identities",
       team: "Team",
       integrations: "Integrations",
-      backup: "Data and backup"
+      backup: "Data and backup",
+      about: "About ForgeOS"
     },
     company: {
       legalName: "Legal name",
@@ -869,6 +870,17 @@ export const dictionary: Dictionary = {
       restoreDemoConfirm:
         "Replace all local data with the original deterministic demo dataset? User changes will be lost.",
       restoreDemoDone: "Deterministic demo state restored."
+    },
+    about: {
+      title: "About ForgeOS",
+      applicationVersion: "Application version",
+      persistenceMode: "Persistence mode",
+      schemaVersion: "IndexedDB schema version",
+      seedVersion: "Demo seed version",
+      databaseName: "Active database",
+      databaseDefault: "forgeos:jhgomes:0.2.0-demo",
+      releaseNotes:
+        "ForgeOS 0.2.0 is a local-demo release candidate. Data stays in the browser IndexedDB; no real email, paid AI, or hosted Supabase mutations in demo mode."
     }
   },
   leadops: {

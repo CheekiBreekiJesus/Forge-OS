@@ -1,6 +1,6 @@
 {
   "name": "forge-os",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "engines": {
     "node": ">=22 <23"
@@ -24,6 +24,9 @@
     "test:acceptance:live-ai": "playwright test --config playwright.acceptance.config.ts e2e/acceptance/live-ai.spec.ts",
     "typecheck": "tsc --noEmit",
     "validate": "npm run lint && npm run typecheck && npm test && npm run build",
+    "validate:security": "npm audit --audit-level=high",
+    "validate:full": "npm run lint && npm run typecheck && npm test && npm run test:e2e && npm run test:acceptance && npm run build",
+    "validate:release": "node scripts/release/validate-release.mjs",
     "test:customer-pc": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/customer-pc/Test-ForgeOS.ps1",
     "test:customer-pc:smoke": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/customer-pc/Invoke-ForgeOSSmokeTest.ps1",
     "outreach:hosted:migration:check": "tsx scripts/outreach-hosted-runtime/check-migrations.ts",
@@ -39,7 +42,8 @@
     "demo:start": "node scripts/demo/start.mjs",
     "demo:reset": "node scripts/demo/reset.mjs",
     "demo:seed": "node scripts/demo/seed.mjs",
-    "demo:smoke": "node scripts/demo/smoke.mjs"
+    "demo:smoke": "node scripts/demo/smoke.mjs",
+    "test:demo-walkthrough": "playwright test --config playwright.demo-walkthrough.config.ts"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.0",

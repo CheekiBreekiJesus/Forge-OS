@@ -767,7 +767,8 @@ export const dictionary: Dictionary = {
       senders: "Identidades de remetente",
       team: "Equipa",
       integrations: "Integrações",
-      backup: "Dados e cópia de segurança"
+      backup: "Dados e cópia de segurança",
+      about: "Sobre o ForgeOS"
     },
     company: {
       legalName: "Nome legal",
@@ -875,6 +876,17 @@ export const dictionary: Dictionary = {
       restoreDemoConfirm:
         "Substituir todos os dados locais pelo conjunto demo determinístico original? As alterações do utilizador serão perdidas.",
       restoreDemoDone: "Estado demo determinístico restaurado."
+    },
+    about: {
+      title: "Sobre o ForgeOS",
+      applicationVersion: "Versão da aplicação",
+      persistenceMode: "Modo de persistência",
+      schemaVersion: "Versão do esquema IndexedDB",
+      seedVersion: "Versão do seed demo",
+      databaseName: "Base de dados ativa",
+      databaseDefault: "forgeos:jhgomes:0.2.0-demo",
+      releaseNotes:
+        "O ForgeOS 0.2.0 é um candidato a release de demo local. Os dados permanecem no IndexedDB do browser; sem email real, IA paga ou mutações Supabase alojadas no modo demo."
     }
   },
   leadops: {

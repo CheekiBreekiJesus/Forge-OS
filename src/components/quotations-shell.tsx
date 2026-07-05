@@ -25,7 +25,7 @@ import { QuotationsSubnav } from "@/components/quotations-subnav";
 import { toQuoteSummary } from "@/domain/mappers";
 import type { Quote } from "@/domain/types";
 import { filterBySearch, isArchivedRecord, useHashAction } from "@/features/crud/ui-utils";
-import { useCustomers, useProducts, useQuotes } from "@/persistence/hooks";
+import { useCustomers, useProducts, useProductionOrders, useQuotes } from "@/persistence/hooks";
 import { usePersistence, usePersistenceLoading } from "@/persistence/provider";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
@@ -61,6 +61,7 @@ export function QuotationsShell({ dictionary, locale }: QuotationsShellProps) {
   const { state, tenantId, notifyDataChanged } = usePersistence();
   const [showArchived, setShowArchived] = useState(false);
   const { quotes, loading: quotesLoading, reload } = useQuotes(showArchived);
+  const { orders: productionOrders } = useProductionOrders();
   const { customers } = useCustomers();
   const { products } = useProducts();
   const [search, setSearch] = useState("");
@@ -69,6 +70,7 @@ export function QuotationsShell({ dictionary, locale }: QuotationsShellProps) {
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [archiveTarget, setArchiveTarget] = useState<Quote | null>(null);
+  const [actionFeedback, setActionFeedback] = useState<string | null>(null);
 
   const openCreate = useCallback(() => {
     setForm(emptyForm);
@@ -77,6 +79,32 @@ export function QuotationsShell({ dictionary, locale }: QuotationsShellProps) {
   }, []);
 
   useHashAction("create", openCreate);
+
+  async function createProductionFromQuote(quote: Quote) {
+    if (state.status !== "ready") return;
+    setActionFeedback(null);
+    try {
+      const order = await state.repos.productionOrders.createFromQuote(tenantId, quote.id);
+      notifyDataChanged();
+      setActionFeedback(
+        locale === "pt-PT"
+          ? `Ordem de produção ${order.orderNumber} criada.`
+          : `Production order ${order.orderNumber} created.`
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : locale === "pt-PT"
+            ? "Não foi possível criar a ordem de produção."
+            : "Could not create production order.";
+      setActionFeedback(message);
+    }
+  }
+
+  function productionOrderExistsForQuote(quoteId: string): boolean {
+    return productionOrders.some((order) => order.quoteId === quoteId && !isArchivedRecord(order));
+  }
 
   const summaries = useMemo(
     () => quotes.map((q) => toQuoteSummary(q, customers)),
@@ -195,6 +223,11 @@ export function QuotationsShell({ dictionary, locale }: QuotationsShellProps) {
         description={copy.description}
         title={copy.title}
       />
+      {actionFeedback ? (
+        <p className="mb-4 text-sm text-emerald-300" data-testid="quotation-action-feedback">
+          {actionFeedback}
+        </p>
+      ) : null}
 
       <QuotationsSubnav dictionary={dictionary} locale={locale} />
 
@@ -240,6 +273,17 @@ export function QuotationsShell({ dictionary, locale }: QuotationsShellProps) {
                         await state.repos.quotes.approve(tenantId, quote.id);
                         notifyDataChanged();
                         await reload();
+                      }
+                    },
+                    {
+                      key: "production",
+                      label: dictionary.demoWorkflow.actions.createProduction,
+                      disabled:
+                        quote?.status !== "approved" ||
+                        (quote ? productionOrderExistsForQuote(quote.id) : true),
+                      onClick: async () => {
+                        if (!quote) return;
+                        await createProductionFromQuote(quote);
                       }
                     },
                     {

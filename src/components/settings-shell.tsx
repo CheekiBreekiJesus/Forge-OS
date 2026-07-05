@@ -18,6 +18,8 @@ import {
   useUserProfiles
 } from "@/persistence/profile-hooks";
 import { usePersistence } from "@/persistence/provider";
+import { APP_VERSION, DEMO_DB_NAME, SCHEMA_VERSION, SEED_VERSION } from "@/domain/constants";
+import { readPersistenceMode } from "@/persistence/mode";
 import type { EmailProviderDiagnostic } from "@/domain/email-delivery-types";
 
 type SettingsSection =
@@ -26,7 +28,8 @@ type SettingsSection =
   | "senders"
   | "team"
   | "integrations"
-  | "backup";
+  | "backup"
+  | "about";
 
 type SettingsShellProps = {
   dictionary: Dictionary;
@@ -43,7 +46,8 @@ export function SettingsShell({ dictionary, locale }: SettingsShellProps) {
     { id: "senders", label: s.sections.senders },
     { id: "team", label: s.sections.team },
     { id: "integrations", label: s.sections.integrations },
-    { id: "backup", label: s.sections.backup }
+    { id: "backup", label: s.sections.backup },
+    { id: "about", label: s.sections.about }
   ];
 
   return (
@@ -79,6 +83,7 @@ export function SettingsShell({ dictionary, locale }: SettingsShellProps) {
           {section === "team" ? <TeamSection s={s} /> : null}
           {section === "integrations" ? <IntegrationsSection dictionary={dictionary} s={s} /> : null}
           {section === "backup" ? <BackupSection s={s} /> : null}
+          {section === "about" ? <AboutSection locale={locale} s={s} /> : null}
         </div>
       </div>
     </AppFrame>
@@ -837,6 +842,46 @@ function TextField({
         value={value}
       />
     </label>
+  );
+}
+
+function AboutSection({ locale, s }: { locale: Locale; s: Dictionary["settings"] }) {
+  const persistenceMode = readPersistenceMode();
+  const databaseName =
+    typeof window !== "undefined"
+      ? window.localStorage.getItem("forgeos:persistence:db-name") ?? DEMO_DB_NAME
+      : DEMO_DB_NAME;
+
+  return (
+    <Panel title={s.about.title}>
+      <dl className="grid gap-3 text-sm sm:grid-cols-2">
+        <div>
+          <dt className="text-xs uppercase tracking-wide text-slate-500">{s.about.applicationVersion}</dt>
+          <dd className="mt-1 font-semibold text-slate-100">ForgeOS v{APP_VERSION}</dd>
+        </div>
+        <div>
+          <dt className="text-xs uppercase tracking-wide text-slate-500">{s.about.persistenceMode}</dt>
+          <dd className="mt-1 font-semibold text-slate-100">{persistenceMode}</dd>
+        </div>
+        <div>
+          <dt className="text-xs uppercase tracking-wide text-slate-500">{s.about.schemaVersion}</dt>
+          <dd className="mt-1 font-semibold text-slate-100">{SCHEMA_VERSION}</dd>
+        </div>
+        <div>
+          <dt className="text-xs uppercase tracking-wide text-slate-500">{s.about.seedVersion}</dt>
+          <dd className="mt-1 font-semibold text-slate-100">{SEED_VERSION}</dd>
+        </div>
+        <div className="sm:col-span-2">
+          <dt className="text-xs uppercase tracking-wide text-slate-500">{s.about.databaseName}</dt>
+          <dd className="mt-1 font-mono text-xs text-slate-200">{databaseName}</dd>
+        </div>
+      </dl>
+      <p className="mt-4 text-sm text-slate-400">{s.about.releaseNotes}</p>
+      <p className="mt-2 text-xs text-slate-500">
+        {locale === "pt-PT" ? "Documentação:" : "Documentation:"}{" "}
+        <code className="text-slate-300">docs/releases/0.2.0.md</code>
+      </p>
+    </Panel>
   );
 }
 

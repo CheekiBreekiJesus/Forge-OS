@@ -77,7 +77,7 @@ Seed source: `src/persistence/indexeddb/repositories.ts` → `seedDatabase()` us
 Requirements:
 
 - Tenant: `tenant_jh_gomes`
-- `SEED_VERSION`: **4** (`src/domain/constants.ts`)
+- `SEED_VERSION`: **5** (`src/domain/constants.ts`)
 - All contact emails use `*.example.invalid` domains
 - No real customer names, pricing from production, or private imports
 - Lead import fixtures for live demos: `e2e/fixtures/leads-mixed.csv` (synthetic)

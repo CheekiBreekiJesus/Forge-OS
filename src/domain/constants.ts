@@ -18,3 +18,9 @@ export const SEED_VERSION = 5 as const;
 
 /** IndexedDB Dexie schema version. */
 export const SCHEMA_VERSION = 13 as const;
+
+/** Application release version (keep in sync with package.json). */
+export const APP_VERSION = "0.2.0" as const;
+
+/** Local demo IndexedDB name for ForgeOS 0.2.0 walkthrough harness. */
+export const DEMO_DB_NAME = "forgeos:jhgomes:0.2.0-demo" as const;

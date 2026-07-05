@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { Dictionary } from "@/i18n/dictionaries";
 import type { Locale } from "@/i18n/config";
 import { moduleRoutes, type ModuleKey } from "@/modules/config";
+import { APP_VERSION } from "@/domain/constants";
 import { resolveEffectivePersistenceMode } from "@/persistence/mode";
 import { AppFrameClient } from "@/components/app-frame-client";
 import { AppFrameNav } from "@/components/app-frame-nav";
@@ -148,7 +149,7 @@ function StatusFooter({
     <footer className="mx-4 mb-6 grid max-w-full gap-3 overflow-x-auto border-t border-[var(--forge-border)] pt-5 text-sm text-[var(--forge-text-muted)] sm:mx-6 md:grid-cols-[1.2fr_repeat(4,minmax(0,1fr))_auto]">
       <div>
         <div className="font-semibold text-[var(--forge-text-primary)]">
-          {dictionary.dashboard.footer.version}
+          ForgeOS v{APP_VERSION}
         </div>
         <div className="mt-1 text-xs">{dictionary.dashboard.footer.copyright}</div>
       </div>

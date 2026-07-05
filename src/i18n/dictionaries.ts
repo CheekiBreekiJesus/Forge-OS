@@ -422,6 +422,7 @@ export type Dictionary = {
       team: string;
       integrations: string;
       backup: string;
+      about: string;
     };
     company: {
       legalName: string;
@@ -519,6 +520,16 @@ export type Dictionary = {
       restoreDemo: string;
       restoreDemoConfirm: string;
       restoreDemoDone: string;
+    };
+    about: {
+      title: string;
+      applicationVersion: string;
+      persistenceMode: string;
+      schemaVersion: string;
+      seedVersion: string;
+      databaseName: string;
+      databaseDefault: string;
+      releaseNotes: string;
     };
   };
   leadops: {

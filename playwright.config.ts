@@ -16,7 +16,7 @@ process.env.NEXT_PUBLIC_FORGEOS_LOCAL_DB_NAME = e2eDbName;
 
 export default defineConfig({
   testDir: "./e2e",
-  testIgnore: ["**/acceptance/**"],
+  testIgnore: ["**/acceptance/**", "**/forgeos-0.2.0-demo.spec.ts"],
   fullyParallel: false,
   workers: 1,
   forbidOnly: Boolean(process.env.CI),
