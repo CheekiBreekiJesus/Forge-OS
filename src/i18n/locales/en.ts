@@ -1230,6 +1230,22 @@ export const dictionary: Dictionary = {
         excluded: "Excluded",
         suppressed: "Suppressed",
         skipped: "Skipped"
+      },
+      workflow: {
+        navLabel: "Campaign workflow",
+        stepNumber: "Step {number}",
+        steps: {
+          draft: "Draft emails",
+          approve: "Approve drafts",
+          queue: "Queue send",
+          delivery: "Sending queue / delivery status"
+        }
+      },
+      advanced: {
+        title: "Advanced / campaign details",
+        show: "Show details",
+        hide: "Hide details",
+        segmentHint: "Segment definition is informational for this MVP. Create segments from the LeadOps dashboard."
       }
     },
     providerEvents: {
@@ -1282,6 +1298,39 @@ export const dictionary: Dictionary = {
       resumedResult: "Resumed",
       cancelledResult: "Cancelled",
       result: "Last result",
+      localMvpNotice:
+        "For local MVP, the queue only runs while ForgeOS/dev server is running. For production, this should run through a server worker, cron, or n8n.",
+      intervalMinutes: "Interval (minutes)",
+      autoProcessingHint:
+        "Queue processing runs automatically while this page is open and the dev server is running. Use manual batch controls if needed.",
+      queueSend: {
+        stepLabel: "Step 3",
+        title: "Queue send",
+        description:
+          "Queue approved drafts into the local simulation send job with batch size and interval between emails.",
+        localMvpNotice:
+          "For local MVP, the queue only runs while ForgeOS/dev server is running. For production, this should run through a server worker, cron, or n8n.",
+        realSendDisabledWarning:
+          "Real campaign sending stays disabled unless OUTREACH_REAL_SEND_ENABLED=true. Self-test mode uses OUTREACH_TEST_SEND_ENABLED=true and does not contact campaign recipients.",
+        batchSize: "Batch size",
+        intervalMinutes: "Interval between emails (minutes)",
+        intervalError: "Interval must be between 0 and 60 minutes.",
+        startTime: "Start time",
+        startNow: "Start now",
+        startScheduled: "Schedule local time",
+        scheduleError: "Enter a valid local date and time.",
+        safetyTitle: "Queue safety summary",
+        approvedDrafts: "{count} approved drafts in campaign",
+        eligibleRecipients: "{count} recipients eligible to queue",
+        excludedRecipients: "{count} recipients excluded from queue",
+        needsApproval: "Approve all drafts before queueing.",
+        refreshEligibility: "Refresh eligibility",
+        queueAction: "Queue approved drafts",
+        queueing: "Queueing…",
+        queued: "Send queue created",
+        notEligible: "Campaign is not eligible to queue.",
+        queueFailed: "Could not queue campaign."
+      },
       hostedPreparation: {
         title: "Server-send preparation",
         description:
@@ -2042,7 +2091,13 @@ export const dictionary: Dictionary = {
       capacityLabel: "Cup capacity",
       printAreaLabel: "Print area",
       safetyBoundaryLabel: "Safety boundary",
-      overflowWarning: "Artwork may exceed the printable area"
+      overflowWarning: "Artwork may exceed the printable area",
+      statusTitle: "Preview summary",
+      cupColorLabel: "Cup colour",
+      logoStatusLabel: "Logo",
+      logoLoaded: "Loaded",
+      logoMissing: "No logo",
+      mockupPending: "Generate a mockup to see the realistic visualization. Your logo stays on the design preview."
     },
     workflow: {
       navLabel: "Customizer steps",
@@ -2105,6 +2160,16 @@ export const dictionary: Dictionary = {
       converted: "Quotation created.",
       newSimulation: "New simulation",
       resetView: "Reset view",
+      resetDesign: "Reset design",
+      resetMockup: "Reset mockup",
+      resetDesignTitle: "Reset design?",
+      resetDesignMessage: "Remove uploaded artwork and mockup preview. Quote data, quantity, and product selection are kept.",
+      resetDesignConfirm: "Reset design",
+      resetDesignDone: "Design preview reset.",
+      resetMockupTitle: "Reset mockup?",
+      resetMockupMessage: "Clear the generated mockup only. Your uploaded logo and quote data are kept.",
+      resetMockupConfirm: "Reset mockup",
+      resetMockupDone: "Mockup preview reset.",
       openCustomizer: "Open Cup Customizer",
       openInCustomizer: "Open in customizer",
       customize: "Customize",

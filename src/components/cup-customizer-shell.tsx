@@ -145,6 +145,8 @@ export function CupCustomizerShell({
   const [submitting, setSubmitting] = useState(false);
   const [archiveTarget, setArchiveTarget] = useState<CustomizerSimulation | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [resetDesignOpen, setResetDesignOpen] = useState(false);
+  const [resetMockupOpen, setResetMockupOpen] = useState(false);
   const uploadRef = useRef<HTMLInputElement>(null);
   const logoSearchProvider = useMemo(() => resolveLogoSearchProvider(), []);
   const logoGenerationProvider = useMemo(() => resolveLogoGenerationProvider(), []);
@@ -631,9 +633,60 @@ export function CupCustomizerShell({
         status: "failed"
       }));
       setFormError(copy.mockup.failed);
+      setPreviewMode("design");
     } finally {
       setGeneratingMockup(false);
     }
+  }
+
+  async function clearMockupPreviewOnly() {
+    if (state.status === "ready" && mockupGeneration?.realisticMockupAssetId) {
+      await state.repos.localAssets
+        .delete(tenantId, mockupGeneration.realisticMockupAssetId)
+        .catch(() => {});
+    }
+    revokeObjectUrlIfBlob(mockupPreviewUrl);
+    setMockupPreviewUrl(null);
+    setMockupAssetId(null);
+    setMockupGeneration(null);
+    setPreviewMode("design");
+    setIsDirty(true);
+    setSaveStatus("unsaved");
+    setFeedback(copy.actions.resetMockupDone);
+  }
+
+  async function clearDesignPreviewOnly() {
+    if (state.status === "ready" && artworkAssetId && artworkAssetIsOwned) {
+      await state.repos.localAssets.delete(tenantId, artworkAssetId).catch(() => {});
+    }
+    revokeObjectUrlIfBlob(artworkPreviewUrl);
+    setArtworkAssetId(null);
+    setArtworkAssetIsOwned(false);
+    setArtworkPreviewUrl(null);
+    setArtworkMetadata(null);
+    setArtworkUploadStatus("idle");
+    await clearMockupPreviewOnly();
+    setIsDirty(true);
+    setSaveStatus("unsaved");
+    setFeedback(copy.actions.resetDesignDone);
+  }
+
+  function requestResetMockup() {
+    setResetMockupOpen(true);
+  }
+
+  function requestResetDesign() {
+    setResetDesignOpen(true);
+  }
+
+  async function confirmResetMockup() {
+    setResetMockupOpen(false);
+    await clearMockupPreviewOnly();
+  }
+
+  async function confirmResetDesign() {
+    setResetDesignOpen(false);
+    await clearDesignPreviewOnly();
   }
 
   async function handleSaveVisualization() {
@@ -1288,6 +1341,8 @@ export function CupCustomizerShell({
                 onManualPriceChange={setManualUnitPriceOverride}
                 onOverrideReasonChange={setOverrideReason}
                 onPreviewModeChange={setPreviewMode}
+                onResetDesign={requestResetDesign}
+                onResetMockup={requestResetMockup}
                 onSave={() => void handleSave()}
                 onSaveVisualization={() => void handleSaveVisualization()}
                 onToggleAssumptions={() => setShowAssumptions((current) => !current)}
@@ -1297,6 +1352,8 @@ export function CupCustomizerShell({
                 previewMode={previewMode}
                 pricing={pricing}
                 printArea={configuration.printArea}
+                productName={selectedProduct?.name ?? null}
+                quantity={quantity}
                 saveStatus={saveStatus}
                 saving={submitting}
                 showAssumptions={showAssumptions}
@@ -1315,6 +1372,26 @@ export function CupCustomizerShell({
         onConfirm={() => void confirmArchive()}
         open={Boolean(archiveTarget)}
         title={shared.archive.title}
+      />
+      <ArchiveConfirmationDialog
+        cancelLabel={shared.archive.cancel}
+        confirmLabel={copy.actions.resetDesignConfirm}
+        confirming={submitting}
+        message={copy.actions.resetDesignMessage}
+        onCancel={() => setResetDesignOpen(false)}
+        onConfirm={() => void confirmResetDesign()}
+        open={resetDesignOpen}
+        title={copy.actions.resetDesignTitle}
+      />
+      <ArchiveConfirmationDialog
+        cancelLabel={shared.archive.cancel}
+        confirmLabel={copy.actions.resetMockupConfirm}
+        confirming={submitting}
+        message={copy.actions.resetMockupMessage}
+        onCancel={() => setResetMockupOpen(false)}
+        onConfirm={() => void confirmResetMockup()}
+        open={resetMockupOpen}
+        title={copy.actions.resetMockupTitle}
       />
     </AppFrame>
   );

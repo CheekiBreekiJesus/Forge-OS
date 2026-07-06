@@ -1236,6 +1236,23 @@ export const dictionary: Dictionary = {
         excluded: "Excluídos",
         suppressed: "Suprimidos",
         skipped: "Ignorados"
+      },
+      workflow: {
+        navLabel: "Fluxo da campanha",
+        stepNumber: "Passo {number}",
+        steps: {
+          draft: "Rascunhar emails",
+          approve: "Aprovar rascunhos",
+          queue: "Colocar em fila",
+          delivery: "Fila de envio / estado de entrega"
+        }
+      },
+      advanced: {
+        title: "Avançado / detalhes da campanha",
+        show: "Mostrar detalhes",
+        hide: "Ocultar detalhes",
+        segmentHint:
+          "A definição de segmento é informativa neste MVP. Crie segmentos no painel LeadOps."
       }
     },
     providerEvents: {
@@ -1288,6 +1305,39 @@ export const dictionary: Dictionary = {
       resumedResult: "Retomada",
       cancelledResult: "Cancelada",
       result: "Ultimo resultado",
+      localMvpNotice:
+        "No MVP local, a fila só corre enquanto o ForgeOS/servidor de desenvolvimento estiver ativo. Em produção, isto deve correr através de um worker de servidor, cron ou n8n.",
+      intervalMinutes: "Intervalo (minutos)",
+      autoProcessingHint:
+        "O processamento da fila corre automaticamente enquanto esta página estiver aberta e o servidor de desenvolvimento ativo. Use os controlos manuais se necessário.",
+      queueSend: {
+        stepLabel: "Passo 3",
+        title: "Colocar envio em fila",
+        description:
+          "Coloque rascunhos aprovados na tarefa de simulação local com tamanho de lote e intervalo entre emails.",
+        localMvpNotice:
+          "No MVP local, a fila só corre enquanto o ForgeOS/servidor de desenvolvimento estiver ativo. Em produção, isto deve correr através de um worker de servidor, cron ou n8n.",
+        realSendDisabledWarning:
+          "O envio real de campanha permanece desativado a menos que OUTREACH_REAL_SEND_ENABLED=true. O modo de auto-teste usa OUTREACH_TEST_SEND_ENABLED=true e não contacta destinatários da campanha.",
+        batchSize: "Tamanho do lote",
+        intervalMinutes: "Intervalo entre emails (minutos)",
+        intervalError: "O intervalo deve estar entre 0 e 60 minutos.",
+        startTime: "Hora de início",
+        startNow: "Iniciar agora",
+        startScheduled: "Agendar hora local",
+        scheduleError: "Introduza uma data e hora local válidas.",
+        safetyTitle: "Resumo de segurança da fila",
+        approvedDrafts: "{count} rascunhos aprovados na campanha",
+        eligibleRecipients: "{count} destinatários elegíveis para fila",
+        excludedRecipients: "{count} destinatários excluídos da fila",
+        needsApproval: "Aprove todos os rascunhos antes de colocar em fila.",
+        refreshEligibility: "Atualizar elegibilidade",
+        queueAction: "Colocar rascunhos aprovados em fila",
+        queueing: "A colocar em fila…",
+        queued: "Fila de envio criada",
+        notEligible: "A campanha não é elegível para fila.",
+        queueFailed: "Não foi possível colocar a campanha em fila."
+      },
       hostedPreparation: {
         title: "Preparacao para envio no servidor",
         description:
@@ -2048,7 +2098,13 @@ export const dictionary: Dictionary = {
       capacityLabel: "Capacidade do copo",
       printAreaLabel: "Área de impressão",
       safetyBoundaryLabel: "Limite de segurança",
-      overflowWarning: "A arte pode ultrapassar a área imprimível"
+      overflowWarning: "A arte pode ultrapassar a área imprimível",
+      statusTitle: "Resumo da pré-visualização",
+      cupColorLabel: "Cor do copo",
+      logoStatusLabel: "Logótipo",
+      logoLoaded: "Carregado",
+      logoMissing: "Sem logótipo",
+      mockupPending: "Gere um mockup para ver a visualização realista. O logótipo mantém-se na pré-visualização de design."
     },
     workflow: {
       navLabel: "Passos do personalizador",
@@ -2111,6 +2167,16 @@ export const dictionary: Dictionary = {
       converted: "Orçamento criado.",
       newSimulation: "Nova simulação",
       resetView: "Repor vista",
+      resetDesign: "Repor design",
+      resetMockup: "Repor mockup",
+      resetDesignTitle: "Repor design?",
+      resetDesignMessage: "Remove a arte carregada e a pré-visualização do mockup. Os dados do orçamento, quantidade e produto são mantidos.",
+      resetDesignConfirm: "Repor design",
+      resetDesignDone: "Pré-visualização de design reposta.",
+      resetMockupTitle: "Repor mockup?",
+      resetMockupMessage: "Limpa apenas o mockup gerado. O logótipo carregado e os dados do orçamento são mantidos.",
+      resetMockupConfirm: "Repor mockup",
+      resetMockupDone: "Pré-visualização do mockup reposta.",
       openCustomizer: "Abrir Personalizador de Copos",
       openInCustomizer: "Abrir no personalizador",
       customize: "Personalizar",

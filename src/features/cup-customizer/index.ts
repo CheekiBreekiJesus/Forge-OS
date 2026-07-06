@@ -25,6 +25,7 @@ export {
   generateDeterministicPhotorealisticMockup,
   isPaidProviderAvailable,
   resolveMockupGenerationStatus,
+  resolveEmbeddableArtworkHref,
   type MockupGenerationMeta,
   type MockupGenerationStatus
 } from "./mockup-generation";

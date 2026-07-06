@@ -10,6 +10,8 @@ import { FormField, inputClassName } from "@/components/crud";
 type PreviewPanelProps = {
   copy: Dictionary["customizerModule"];
   locale: Locale;
+  quantity: number;
+  productName: string | null;
   capacity: string;
   material: string;
   cupColor: string;
@@ -29,6 +31,8 @@ type PreviewPanelProps = {
   mockupStatus: MockupGenerationStatus;
   generatingMockup: boolean;
   onGenerateMockup: () => void;
+  onResetDesign: () => void;
+  onResetMockup: () => void;
   onUploadFile: (file: File) => void;
   onUploadRequest: () => void;
   pricing: CustomizerPricingSnapshot | null;
@@ -48,6 +52,8 @@ type PreviewPanelProps = {
 export function CupCustomizerPreviewPanel({
   copy,
   locale,
+  quantity,
+  productName,
   capacity,
   material,
   cupColor,
@@ -61,6 +67,8 @@ export function CupCustomizerPreviewPanel({
   mockupStatus,
   generatingMockup,
   onGenerateMockup,
+  onResetDesign,
+  onResetMockup,
   onUploadFile,
   onUploadRequest,
   pricing,
@@ -76,6 +84,11 @@ export function CupCustomizerPreviewPanel({
   saving,
   saveStatus
 }: PreviewPanelProps) {
+  const hasArtwork = Boolean(artworkPreviewUrl);
+  const logoStatusLabel = hasArtwork
+    ? copy.preview.logoLoaded
+    : copy.preview.logoMissing;
+
   const canvasLabels = {
     capacityLabel: copy.preview.capacityLabel,
     dragDropHint: copy.preview.dragDropHint,
@@ -88,7 +101,34 @@ export function CupCustomizerPreviewPanel({
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3 lg:sticky lg:top-3 lg:max-h-[calc(100vh-5.5rem)]">
+    <div className="flex flex-col gap-3 lg:sticky lg:top-3 lg:max-h-[calc(100vh-5.5rem)] lg:overflow-y-auto">
+      <div
+        className="shrink-0 rounded-lg border border-slate-800 bg-slate-950/60 p-3 text-xs"
+        data-testid="cup-preview-status"
+      >
+        <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-slate-500">
+          {copy.preview.statusTitle}
+        </p>
+        <dl className="grid grid-cols-2 gap-x-3 gap-y-1">
+          <dt className="text-slate-500">{copy.form.cupSize}</dt>
+          <dd className="text-right font-medium text-slate-200">{capacity}</dd>
+          <dt className="text-slate-500">{copy.form.quantity}</dt>
+          <dd className="text-right font-medium text-slate-200">{quantity.toLocaleString(locale)}</dd>
+          <dt className="text-slate-500">{copy.preview.cupColorLabel}</dt>
+          <dd className="text-right font-medium text-slate-200">{cupColor}</dd>
+          <dt className="text-slate-500">{copy.preview.logoStatusLabel}</dt>
+          <dd
+            className={`text-right font-medium ${hasArtwork ? "text-emerald-300" : "text-slate-400"}`}
+            data-testid="cup-preview-logo-status"
+          >
+            {logoStatusLabel}
+          </dd>
+        </dl>
+        {productName ? (
+          <p className="mt-2 truncate text-[10px] text-slate-500">{productName}</p>
+        ) : null}
+      </div>
+
       <div className="flex shrink-0 gap-1 rounded-lg border border-slate-800 bg-slate-950/60 p-1" role="tablist">
         <button
           aria-selected={previewMode === "design"}
@@ -114,7 +154,10 @@ export function CupCustomizerPreviewPanel({
         </button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto rounded-xl border border-slate-800 bg-slate-950/40 p-3">
+      <div
+        className="min-h-[min(42vh,280px)] shrink-0 overflow-auto rounded-xl border border-slate-800 bg-slate-950/40 p-3 sm:min-h-[min(48vh,360px)] lg:min-h-[min(52vh,480px)]"
+        data-testid="cup-preview-container"
+      >
         <CupDesignCanvas
           artworkDataUrl={artworkPreviewUrl}
           artworkOffsetX={configuration.artworkOffsetX}
@@ -122,13 +165,15 @@ export function CupCustomizerPreviewPanel({
           artworkPosition={configuration.artworkPosition}
           artworkRotation={configuration.artworkRotation}
           artworkScale={configuration.artworkScale}
-          artworkSelected={Boolean(artworkPreviewUrl)}
+          artworkSelected={hasArtwork}
           capacity={capacity}
           className="mx-auto"
           cupColor={cupColor}
+          generatingMockup={generatingMockup}
           labels={canvasLabels}
           material={material}
           mockupDataUrl={mockupPreviewUrl}
+          mockupLoadingLabel={copy.mockup.generating}
           onFileDrop={onUploadFile}
           onUploadRequest={onUploadRequest}
           previewMode={previewMode}
@@ -137,24 +182,46 @@ export function CupCustomizerPreviewPanel({
         />
         {artworkMetadata ? (
           <p className="mt-2 text-center text-[10px] text-slate-500" data-testid="artwork-metadata">
-            {artworkMetadata.fileName} · {artworkMetadata.width}×{artworkMetadata.height} ·{" "}
-            {artworkMetadata.mimeType.split("/")[1]?.toUpperCase()}
+            {artworkMetadata.fileName}
+            {artworkMetadata.width > 0
+              ? ` · ${artworkMetadata.width}×${artworkMetadata.height} · ${artworkMetadata.mimeType.split("/")[1]?.toUpperCase()}`
+              : ""}
+          </p>
+        ) : null}
+        {previewMode === "mockup" && !mockupPreviewUrl && !generatingMockup && mockupStatus !== "failed" ? (
+          <p className="mt-2 text-center text-[11px] text-slate-500" data-testid="cup-mockup-pending">
+            {copy.preview.mockupPending}
           </p>
         ) : null}
       </div>
 
-      <div aria-live="polite" className="shrink-0 space-y-2 rounded-lg border border-slate-800 bg-slate-950/50 p-3 text-xs">
+      <div
+        aria-live="polite"
+        className="shrink-0 space-y-2 rounded-lg border border-slate-800 bg-slate-950/50 p-3 text-xs"
+        data-testid="cup-mockup-actions"
+      >
         {mockupStatus === "generating" || generatingMockup ? (
-          <p className="text-amber-200">{copy.mockup.generating}</p>
+          <p className="text-amber-200" data-testid="cup-mockup-status-generating">
+            {copy.mockup.generating}
+          </p>
         ) : null}
         {mockupStatus === "complete" && previewMode === "mockup" ? (
           <p className="text-emerald-300">{copy.mockup.generatedDisclaimer}</p>
         ) : null}
-        {mockupStatus === "stale" ? <p className="text-amber-200">{copy.mockup.stale}</p> : null}
-        {mockupStatus === "failed" ? <p className="text-rose-300">{copy.mockup.failed}</p> : null}
+        {mockupStatus === "stale" ? (
+          <p className="text-amber-200" data-testid="cup-mockup-status-stale">
+            {copy.mockup.stale}
+          </p>
+        ) : null}
+        {mockupStatus === "failed" ? (
+          <p className="text-rose-300" data-testid="cup-mockup-status-failed">
+            {copy.mockup.failed}
+          </p>
+        ) : null}
         <button
           aria-busy={generatingMockup}
           className="w-full rounded-lg border border-orange-500/40 bg-orange-500/10 px-3 py-2 text-sm font-semibold text-orange-100 hover:bg-orange-500/20 disabled:opacity-50"
+          data-testid="cup-generate-mockup-button"
           disabled={generatingMockup || !pricing}
           onClick={onGenerateMockup}
           type="button"
@@ -170,6 +237,26 @@ export function CupCustomizerPreviewPanel({
             {copy.mockup.retry}
           </button>
         ) : null}
+        <div className="flex gap-2">
+          <button
+            className="flex-1 rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-800"
+            data-testid="cup-reset-mockup-button"
+            disabled={generatingMockup || (!mockupPreviewUrl && mockupStatus === "none")}
+            onClick={onResetMockup}
+            type="button"
+          >
+            {copy.actions.resetMockup}
+          </button>
+          <button
+            className="flex-1 rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-800"
+            data-testid="cup-reset-design-button"
+            disabled={generatingMockup || (!hasArtwork && mockupStatus === "none")}
+            onClick={onResetDesign}
+            type="button"
+          >
+            {copy.actions.resetDesign}
+          </button>
+        </div>
         <button
           className="w-full rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-200"
           onClick={onSaveVisualization}
@@ -180,7 +267,7 @@ export function CupCustomizerPreviewPanel({
       </div>
 
       {pricing ? (
-        <div className="shrink-0 rounded-lg border border-slate-800 bg-slate-950/50 p-3 text-sm">
+        <div className="shrink-0 rounded-lg border border-slate-800 bg-slate-950/50 p-3 text-sm" data-testid="cup-preview-pricing">
           <div className="mb-2 flex items-center justify-between gap-2">
             <span className="text-xs font-bold uppercase text-slate-500">{copy.sections.pricing}</span>
             {pricing.isEstimate ? (
@@ -216,6 +303,7 @@ export function CupCustomizerPreviewPanel({
           <FormField label={copy.pricing.manualOverride}>
             <input
               className={inputClassName}
+              data-testid="cup-manual-price-override"
               min={0}
               onChange={(event) =>
                 onManualPriceChange(event.target.value ? Number(event.target.value) : null)

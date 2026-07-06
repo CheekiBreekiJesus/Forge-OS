@@ -35,7 +35,13 @@ export type CupDesignCanvasProps = {
   className?: string;
   mockupDataUrl?: string | null;
   previewMode?: "design" | "mockup";
+  generatingMockup?: boolean;
+  mockupLoadingLabel?: string;
 };
+
+/** Shared preview sizing — keep cup artwork readable on desktop and mobile. */
+export const CUP_PREVIEW_FRAME_CLASS =
+  "mx-auto w-full min-h-[min(42vh,280px)] max-h-[min(72vh,640px)] sm:min-h-[min(48vh,360px)] lg:min-h-[min(52vh,480px)]";
 
 function parseCapacityMl(capacity: string | undefined): number {
   const match = capacity?.match(/(\d+)/);
@@ -77,7 +83,9 @@ export function CupDesignCanvas({
   labels,
   className = "",
   mockupDataUrl,
-  previewMode = "design"
+  previewMode = "design",
+  generatingMockup = false,
+  mockupLoadingLabel = "Generating…"
 }: CupDesignCanvasProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -123,13 +131,15 @@ export function CupDesignCanvas({
   const showOverlay = showUploadOverlay && !hasArtwork && previewMode === "design";
   const isWrap = view === "wrap" || printArea === "wrap";
 
-  if (previewMode === "mockup" && mockupDataUrl) {
+  const showMockupImage = previewMode === "mockup" && Boolean(mockupDataUrl) && !generatingMockup;
+
+  if (showMockupImage && mockupDataUrl) {
     return (
       <div className={`relative w-full ${className}`} data-testid="cup-design-canvas">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           alt=""
-          className="mx-auto w-full max-h-[min(52vh,420px)] rounded-xl border border-slate-700 object-contain bg-slate-950"
+          className={`${CUP_PREVIEW_FRAME_CLASS} rounded-xl border border-slate-700 object-contain bg-slate-950`}
           data-testid="cup-mockup-image"
           src={mockupDataUrl}
         />
@@ -147,7 +157,7 @@ export function CupDesignCanvas({
     >
       <svg
         aria-label={labels.capacityLabel}
-        className="mx-auto w-full max-h-[min(52vh,420px)]"
+        className={CUP_PREVIEW_FRAME_CLASS}
         data-testid="cup-preview-frame"
         role="img"
         viewBox="0 0 420 360"
@@ -270,6 +280,17 @@ export function CupDesignCanvas({
         >
           {labels.replaceArtwork}
         </button>
+      ) : null}
+
+      {generatingMockup ? (
+        <div
+          className="absolute inset-0 flex items-center justify-center rounded-2xl bg-slate-950/70 backdrop-blur-sm"
+          data-testid="cup-mockup-loading"
+        >
+          <p className="rounded-lg border border-amber-500/40 bg-slate-900/90 px-4 py-3 text-sm font-semibold text-amber-100">
+            {mockupLoadingLabel}
+          </p>
+        </div>
       ) : null}
 
       <input

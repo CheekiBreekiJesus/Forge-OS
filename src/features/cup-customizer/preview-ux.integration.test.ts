@@ -10,7 +10,7 @@ import {
   UnconfiguredLogoGenerationProvider,
   UnconfiguredLogoSearchProvider
 } from "./logo-providers";
-import { buildPhotorealisticMockupBlob, resolveMockupGenerationStatus } from "./mockup-generation";
+import { buildPhotorealisticMockupBlob, resolveMockupGenerationStatus, resolveEmbeddableArtworkHref, generateDeterministicPhotorealisticMockup } from "./mockup-generation";
 import { defaultConfiguration } from "./configuration";
 import type { Product } from "@/domain/product-types";
 
@@ -211,5 +211,34 @@ describe("mockup rendering", () => {
       "new"
     );
     expect(status).toBe("stale");
+  });
+
+  it("keeps data URLs embeddable in mockup SVG", async () => {
+    const href = await resolveEmbeddableArtworkHref(PNG_1X1);
+    expect(href).toBe(PNG_1X1);
+  });
+
+  it("embeds artwork href in deterministic mockup generation", async () => {
+    const { blob } = await generateDeterministicPhotorealisticMockup({
+      artworkAssetId: "asset_1",
+      artworkDataUrl: PNG_1X1,
+      configuration: defaultConfiguration(sampleCup()),
+      pricing: {
+        assumptions: [],
+        isEstimate: true,
+        manualUnitPriceOverride: null,
+        overrideReason: null,
+        ruleId: "rule",
+        setupCost: 50,
+        subtotal: 500,
+        total: 615,
+        unitPrice: 0.45,
+        vat: 115
+      },
+      product: sampleCup(),
+      quantity: 1000
+    });
+    const svg = await blob.text();
+    expect(svg).toContain(PNG_1X1);
   });
 });

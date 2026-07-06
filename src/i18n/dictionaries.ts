@@ -859,6 +859,17 @@ export type Dictionary = {
         suppressed: string;
         skipped: string;
       };
+      workflow: {
+        navLabel: string;
+        stepNumber: string;
+        steps: Record<"draft" | "approve" | "queue" | "delivery", string>;
+      };
+      advanced: {
+        title: string;
+        show: string;
+        hide: string;
+        segmentHint: string;
+      };
     };
     providerEvents: {
       title: string;
@@ -909,6 +920,34 @@ export type Dictionary = {
       resumedResult: string;
       cancelledResult: string;
       result: string;
+      localMvpNotice: string;
+      intervalMinutes: string;
+      autoProcessingHint: string;
+      queueSend: {
+        stepLabel: string;
+        title: string;
+        description: string;
+        localMvpNotice: string;
+        realSendDisabledWarning: string;
+        batchSize: string;
+        intervalMinutes: string;
+        intervalError: string;
+        startTime: string;
+        startNow: string;
+        startScheduled: string;
+        scheduleError: string;
+        safetyTitle: string;
+        approvedDrafts: string;
+        eligibleRecipients: string;
+        excludedRecipients: string;
+        needsApproval: string;
+        refreshEligibility: string;
+        queueAction: string;
+        queueing: string;
+        queued: string;
+        notEligible: string;
+        queueFailed: string;
+      };
       hostedPreparation: {
         title: string;
         description: string;
@@ -1595,6 +1634,12 @@ export type Dictionary = {
       printAreaLabel: string;
       safetyBoundaryLabel: string;
       overflowWarning: string;
+      statusTitle: string;
+      cupColorLabel: string;
+      logoStatusLabel: string;
+      logoLoaded: string;
+      logoMissing: string;
+      mockupPending: string;
     };
     workflow: {
       navLabel: string;
@@ -1651,6 +1696,16 @@ export type Dictionary = {
       converted: string;
       newSimulation: string;
       resetView: string;
+      resetDesign: string;
+      resetMockup: string;
+      resetDesignTitle: string;
+      resetDesignMessage: string;
+      resetDesignConfirm: string;
+      resetDesignDone: string;
+      resetMockupTitle: string;
+      resetMockupMessage: string;
+      resetMockupConfirm: string;
+      resetMockupDone: string;
       openCustomizer: string;
       openInCustomizer: string;
       customize: string;

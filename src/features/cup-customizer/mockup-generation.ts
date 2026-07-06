@@ -119,12 +119,13 @@ export async function generateDeterministicPhotorealisticMockup(input: {
     input.quantity,
     input.artworkAssetId
   );
+  const embeddableArtwork = await resolveEmbeddableArtworkHref(input.artworkDataUrl);
   const blob = buildPhotorealisticMockupBlob(
     input.product,
     input.configuration,
     input.quantity,
     input.pricing,
-    input.artworkDataUrl
+    embeddableArtwork
   );
   return {
     blob,
@@ -141,4 +142,25 @@ export async function generateDeterministicPhotorealisticMockup(input: {
 
 export function isPaidProviderAvailable(): boolean {
   return Boolean(process.env.ABACUS_API_KEY || process.env.FORGEOS_AI_IMAGE_PROVIDER);
+}
+
+/** Blob URLs cannot be embedded in SVG displayed as an image — convert to data URLs. */
+export async function resolveEmbeddableArtworkHref(
+  artworkDataUrl?: string | null
+): Promise<string | null> {
+  if (!artworkDataUrl) return null;
+  if (artworkDataUrl.startsWith("data:")) return artworkDataUrl;
+  if (!artworkDataUrl.startsWith("blob:")) return artworkDataUrl;
+  try {
+    const response = await fetch(artworkDataUrl);
+    const blob = await response.blob();
+    return await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(new Error("Failed to read artwork blob"));
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
 }
