@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-import { execSync } from "node:child_process";
 import {
   buildDemoProcessEnv,
   DEMO_BASE_URL,
@@ -17,6 +16,7 @@ import {
   log,
   removeRuntimeMetadata,
   spawnDemoDev,
+  tryResolveGitCommit,
   writeRuntimeMetadata
 } from "./lib.mjs";
 
@@ -28,12 +28,7 @@ ensureDemoDirectories(repoRoot);
 await assertDemoPortAvailable(repoRoot, DEMO_PORT);
 
 const env = buildDemoProcessEnv();
-let commit = null;
-try {
-  commit = execSync("git rev-parse --short HEAD", { cwd: repoRoot, encoding: "utf8" }).trim();
-} catch {
-  commit = null;
-}
+const commit = tryResolveGitCommit(repoRoot);
 if (commit) {
   env.FORGEOS_GIT_COMMIT = commit;
 }

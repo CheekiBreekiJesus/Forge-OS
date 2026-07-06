@@ -11,7 +11,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test": "vitest run src",
+    "test": "vitest run src scripts/demo",
     "test:supabase:integration": "vitest run src/persistence/supabase/outreach-vertical.integration.test.ts",
     "pretest:e2e": "node scripts/qa/prepare-playwright-tests.mjs --port 3012",
     "test:e2e": "playwright test",

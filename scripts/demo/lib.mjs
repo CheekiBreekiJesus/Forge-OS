@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
@@ -249,12 +247,37 @@ export function runNpmCi(repoRoot) {
   }
 }
 
-export function spawnDemoDev(repoRoot, env, port = DEMO_PORT) {
-  const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
-  return spawn(npmCmd, ["run", "dev", "--", "--port", String(port)], {
+/**
+ * Build spawn arguments for the demo Next.js dev server.
+ * On Windows, npm is a .cmd shim and must run with shell:true (Node 22+ throws EINVAL otherwise).
+ */
+export function buildDemoDevSpawnOptions(repoRoot, env, port = DEMO_PORT) {
+  const args = ["run", "dev", "--", "--port", String(port)];
+  const options = {
     cwd: repoRoot,
     env,
     stdio: "inherit",
-    shell: false
+    shell: process.platform === "win32"
+  };
+  return { command: "npm", args, options };
+}
+
+export function spawnDemoDev(repoRoot, env, port = DEMO_PORT) {
+  const { command, args, options } = buildDemoDevSpawnOptions(repoRoot, env, port);
+  return spawn(command, args, options);
+}
+
+/** Optional git commit for demo metadata; returns null when git is unavailable. */
+export function tryResolveGitCommit(repoRoot) {
+  const result = spawnSync("git", ["rev-parse", "--short", "HEAD"], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    shell: process.platform === "win32",
+    stdio: ["ignore", "pipe", "ignore"]
   });
+  if (result.status !== 0) {
+    return null;
+  }
+  const commit = (result.stdout || "").trim();
+  return commit || null;
 }
