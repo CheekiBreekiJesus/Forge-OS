@@ -1,8 +1,6 @@
-import {
-  EMAIL_DELIVERY_SELF_TEST_SENTINEL,
-  buildSelfTestIdempotencyKey
-} from "@/application/email-delivery-self-test-service";
 import { recordLastEmailTestResult } from "@/application/outreach-test-profile-service";
+
+const EMAIL_DELIVERY_SELF_TEST_SENTINEL = "__email_delivery_self_test__";
 import type {
   EmailDeliverySelfTestResult,
   OutreachSendAttemptStatus
@@ -24,9 +22,10 @@ export async function persistEmailDeliverySelfTestResult(
 ): Promise<void> {
   const startedAt = new Date().toISOString();
   const completedAt = new Date().toISOString();
-  const idempotencyKey =
-    result.idempotencyKey ??
-    buildSelfTestIdempotencyKey(input.recipientEmail, input.subject, input.messageBody);
+  const idempotencyKey = result.idempotencyKey;
+  if (!idempotencyKey) {
+    throw new Error("Self-test result is missing idempotencyKey.");
+  }
 
   const attempt = await repos.outreachSendAttempts.create({
     actualDestinationEmail: input.recipientEmail.trim().toLowerCase(),

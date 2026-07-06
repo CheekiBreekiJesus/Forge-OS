@@ -3,10 +3,10 @@ import * as python from "@/lib/ai/python";
 import {
   deliverApprovedOutreachMessage,
   deliverOutreachMessage,
-  generateOutreachEmail,
   readLastDeliveryInvocation,
   resetDeliveryInvocationForTests
-} from "./providers";
+} from "./server-delivery";
+import { generateOutreachEmail } from "./providers";
 import {
   getTenantCampaigns,
   leadOpsLeads,
