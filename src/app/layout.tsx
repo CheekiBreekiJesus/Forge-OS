@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { ThemeInitScript } from "@/theme/theme-script";
+import { ThemeScriptInjector } from "@/theme/theme-script-injector";
 
 export const metadata: Metadata = {
   title: "ForgeOS",
@@ -13,11 +13,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-PT" suppressHydrationWarning>
-      <head>
-        <ThemeInitScript />
-      </head>
-      <body>{children}</body>
+    <html lang="pt-PT" data-theme="dark" suppressHydrationWarning>
+      <body>
+        <ThemeScriptInjector />
+        {children}
+      </body>
     </html>
   );
 }
