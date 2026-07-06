@@ -24,7 +24,7 @@ import { readPersistenceMode } from "@/persistence/mode";
 import type { EmailDeliverySelfTestResult, EmailProviderDiagnostic } from "@/domain/email-delivery-types";
 import { persistEmailDeliverySelfTestResult } from "@/application/email-delivery-self-test-client";
 import { buildJhGomesOutreachTestProfileDefaults } from "@/features/outreach-test-profile/defaults";
-import type { UpsertOutreachTestProfileInput } from "@/domain/outreach-test-profile-types";
+import type { OutreachTestProfile, UpsertOutreachTestProfileInput } from "@/domain/outreach-test-profile-types";
 import { useOutreachTestProfile } from "@/persistence/outreach-test-profile-hooks";
 
 type SettingsSection =
@@ -358,12 +358,10 @@ function SendersSection({ locale, s }: { locale: Locale; s: Dictionary["settings
       <div className="space-y-3">
         {identities.map((identity) => (
           <SenderIdentityEditor
-            company={company}
             feedback={feedback}
             identity={identity}
             isEditing={editingId === identity.id}
             key={identity.id}
-            locale={locale}
             onPreview={() => setPreviewId(identity.id)}
             onSaved={async (message) => {
               setFeedback(message);
@@ -396,9 +394,7 @@ function SendersSection({ locale, s }: { locale: Locale; s: Dictionary["settings
 
 function SenderIdentityEditor({
   identity,
-  company,
   isEditing,
-  locale,
   onPreview,
   onSaved,
   onStartEdit,
@@ -410,9 +406,7 @@ function SenderIdentityEditor({
   tenantId
 }: {
   identity: SenderIdentity;
-  company: CompanyProfile | null;
   isEditing: boolean;
-  locale: Locale;
   onPreview: () => void;
   onSaved: (message: string) => Promise<void>;
   onStartEdit: () => void;
@@ -613,29 +607,74 @@ function IntegrationsSection({
   );
 }
 
+function outreachTestProfileToFormInput(
+  profile: OutreachTestProfile
+): UpsertOutreachTestProfileInput {
+  return {
+    campaignLanguage: profile.campaignLanguage,
+    companyName: profile.companyName,
+    companyWebsite: profile.companyWebsite,
+    defaultOptOutLine: profile.defaultOptOutLine,
+    defaultProductFocus: profile.defaultProductFocus,
+    defaultSignature: profile.defaultSignature,
+    defaultTestRecipient: profile.defaultTestRecipient,
+    replyToEmail: profile.replyToEmail,
+    senderDisplayName: profile.senderDisplayName,
+    senderEmail: profile.senderEmail
+  };
+}
+
 function OutreachTestProfilePanel({ s }: { s: Dictionary["settings"] }) {
   const t = s.integrations.outreachTestProfile;
   const { notifyDataChanged } = usePersistence();
   const { loadDefaults, loading, profile, reset, save } = useOutreachTestProfile();
   const defaults = buildJhGomesOutreachTestProfileDefaults();
-  const [form, setForm] = useState<UpsertOutreachTestProfileInput>(defaults);
-  const [feedback, setFeedback] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!profile) return;
-    setForm({
-      campaignLanguage: profile.campaignLanguage,
-      companyName: profile.companyName,
-      companyWebsite: profile.companyWebsite,
-      defaultOptOutLine: profile.defaultOptOutLine,
-      defaultProductFocus: profile.defaultProductFocus,
-      defaultSignature: profile.defaultSignature,
-      defaultTestRecipient: profile.defaultTestRecipient,
-      replyToEmail: profile.replyToEmail,
-      senderDisplayName: profile.senderDisplayName,
-      senderEmail: profile.senderEmail
-    });
-  }, [profile]);
+  if (loading) {
+    return (
+      <article className="mt-4 rounded-lg border border-slate-800 bg-slate-950/40 p-4" data-testid="outreach-test-profile">
+        <h3 className="font-semibold">{t.title}</h3>
+        <p className="mt-1 text-sm text-slate-400">{t.description}</p>
+        <p className="mt-3 text-sm text-slate-400">{t.loading}</p>
+      </article>
+    );
+  }
+
+  return (
+    <OutreachTestProfileForm
+      defaults={defaults}
+      initialProfile={profile}
+      key={profile?.id ?? "empty"}
+      loadDefaults={loadDefaults}
+      notifyDataChanged={notifyDataChanged}
+      reset={reset}
+      save={save}
+      t={t}
+    />
+  );
+}
+
+function OutreachTestProfileForm({
+  defaults,
+  initialProfile,
+  loadDefaults,
+  notifyDataChanged,
+  reset,
+  save,
+  t
+}: {
+  defaults: UpsertOutreachTestProfileInput;
+  initialProfile: OutreachTestProfile | null;
+  loadDefaults: () => Promise<OutreachTestProfile | null>;
+  notifyDataChanged: () => void;
+  reset: () => Promise<void>;
+  save: (input: UpsertOutreachTestProfileInput) => Promise<OutreachTestProfile | null>;
+  t: Dictionary["settings"]["integrations"]["outreachTestProfile"];
+}) {
+  const [form, setForm] = useState<UpsertOutreachTestProfileInput>(() =>
+    initialProfile ? outreachTestProfileToFormInput(initialProfile) : defaults
+  );
+  const [feedback, setFeedback] = useState<string | null>(null);
 
   async function handleSave(event: FormEvent) {
     event.preventDefault();
@@ -648,7 +687,6 @@ function OutreachTestProfilePanel({ s }: { s: Dictionary["settings"] }) {
     <article className="mt-4 rounded-lg border border-slate-800 bg-slate-950/40 p-4" data-testid="outreach-test-profile">
       <h3 className="font-semibold">{t.title}</h3>
       <p className="mt-1 text-sm text-slate-400">{t.description}</p>
-      {loading ? <p className="mt-3 text-sm text-slate-400">{t.loading}</p> : null}
       <form className="mt-4 grid gap-3 md:grid-cols-2" onSubmit={handleSave}>
         <TextField label={t.companyName} onChange={(v) => setForm({ ...form, companyName: v })} value={form.companyName} />
         <TextField label={t.companyWebsite} onChange={(v) => setForm({ ...form, companyWebsite: v })} value={form.companyWebsite} />
@@ -732,6 +770,14 @@ function OutreachTestProfilePanel({ s }: { s: Dictionary["settings"] }) {
   );
 }
 
+function buildProfileSelfTestMessageBody(
+  profile: OutreachTestProfile | null,
+  defaultBody: string
+): string {
+  if (!profile?.defaultProductFocus) return defaultBody;
+  return `${defaultBody}\n\n${profile.defaultProductFocus}${profile.defaultSignature ? `\n\n${profile.defaultSignature}` : ""}`;
+}
+
 function ProviderDiagnosticPanel({ s }: { s: Dictionary["settings"] }) {
   const t = s.integrations.provider;
   const { state, tenantId, notifyDataChanged } = usePersistence();
@@ -739,13 +785,19 @@ function ProviderDiagnosticPanel({ s }: { s: Dictionary["settings"] }) {
   const [diagnostic, setDiagnostic] = useState<EmailProviderDiagnostic | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [recipientEmail, setRecipientEmail] = useState("");
+  const [recipientEmailOverride, setRecipientEmailOverride] = useState<string | null>(null);
   const [subject, setSubject] = useState(t.defaultSubject);
-  const [messageBody, setMessageBody] = useState(t.defaultBody);
+  const [messageBodyOverride, setMessageBodyOverride] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState("");
   const [sending, setSending] = useState(false);
   const [selfTestResult, setSelfTestResult] = useState<EmailDeliverySelfTestResult | null>(null);
   const [selfTestFeedback, setSelfTestFeedback] = useState<string | null>(null);
+  const recipientEmail =
+    recipientEmailOverride ??
+    profile?.defaultTestRecipient ??
+    diagnostic?.configuredTestRecipientEmail ??
+    "";
+  const messageBody = messageBodyOverride ?? buildProfileSelfTestMessageBody(profile, t.defaultBody);
 
   async function refresh() {
     setLoading(true);
@@ -757,9 +809,6 @@ function ProviderDiagnosticPanel({ s }: { s: Dictionary["settings"] }) {
       if (!response.ok) throw new Error("diagnostic_failed");
       const payload = (await response.json()) as EmailProviderDiagnostic;
       setDiagnostic(payload);
-      if (!recipientEmail && payload.configuredTestRecipientEmail) {
-        setRecipientEmail(payload.configuredTestRecipientEmail);
-      }
     } catch {
       setError(t.unavailable);
     } finally {
@@ -772,18 +821,6 @@ function ProviderDiagnosticPanel({ s }: { s: Dictionary["settings"] }) {
     void refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load diagnostic once on panel mount
   }, []);
-
-  useEffect(() => {
-    if (!profile) return;
-    if (!recipientEmail && profile.defaultTestRecipient) {
-      setRecipientEmail(profile.defaultTestRecipient);
-    }
-    if (profile.defaultProductFocus && messageBody === t.defaultBody) {
-      setMessageBody(
-        `${t.defaultBody}\n\n${profile.defaultProductFocus}${profile.defaultSignature ? `\n\n${profile.defaultSignature}` : ""}`
-      );
-    }
-  }, [profile, recipientEmail, messageBody, t.defaultBody]);
 
   async function submitSelfTest(event: FormEvent) {
     event.preventDefault();
@@ -899,13 +936,13 @@ function ProviderDiagnosticPanel({ s }: { s: Dictionary["settings"] }) {
           <h4 className="font-semibold">{t.selfTestTitle}</h4>
           <p className="mt-1 text-sm text-slate-400">{t.selfTestDescription}</p>
         </div>
-        <TextField label={t.recipientEmail} onChange={setRecipientEmail} value={recipientEmail} />
+        <TextField label={t.recipientEmail} onChange={setRecipientEmailOverride} value={recipientEmail} />
         <TextField label={t.subject} onChange={setSubject} value={subject} />
         <label className="grid gap-1 text-sm">
           <span className="text-xs uppercase tracking-wide text-slate-500">{t.messageBody}</span>
           <textarea
             className="min-h-24 rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100"
-            onChange={(event) => setMessageBody(event.target.value)}
+            onChange={(event) => setMessageBodyOverride(event.target.value)}
             value={messageBody}
           />
         </label>

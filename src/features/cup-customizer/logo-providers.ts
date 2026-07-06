@@ -33,11 +33,12 @@ export class UnconfiguredLogoSearchProvider implements LogoSearchProvider {
     return false;
   }
 
-  async search(_input: {
+  async search(input: {
     customerId?: string;
     leadId?: string;
     query?: string;
   }): Promise<LogoSearchProviderResult> {
+    void input;
     return { message: "not_configured", ok: false, reason: "not_configured" };
   }
 }
@@ -49,7 +50,8 @@ export class UnconfiguredLogoGenerationProvider implements LogoGenerationProvide
     return false;
   }
 
-  async generate(_input: { brief: string }): Promise<LogoGenerationProviderResult> {
+  async generate(input: { brief: string }): Promise<LogoGenerationProviderResult> {
+    void input;
     return { message: "not_configured", ok: false, reason: "not_configured" };
   }
 }

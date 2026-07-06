@@ -17,7 +17,6 @@ import {
   defaultConfiguration,
   filterCupProducts,
   normalizeConfiguration,
-  resolveProductPreviewUrl,
   validateQuantity
 } from "@/features/cup-customizer";
 import {
@@ -72,7 +71,6 @@ import type {
   CustomizerConfiguration,
   CustomizerSimulation
 } from "@/domain/customizer-types";
-import { blobToDataUrl } from "@/features/email-composition/local-asset";
 import { isArchivedRecord, useHashAction } from "@/features/crud/ui-utils";
 import { convertSimulationToQuote } from "@/persistence/indexeddb/customizer-repositories";
 import {
@@ -141,7 +139,6 @@ export function CupCustomizerShell({
     "idle" | "searching" | "found" | "not_found" | "loaded" | "failed"
   >("idle");
   const [saveStatus, setSaveStatus] = useState<"unsaved" | "saving" | "saved" | "failed">("saved");
-  const [cupImageUrl, setCupImageUrl] = useState<string | null>(null);
   const [manualUnitPriceOverride, setManualUnitPriceOverride] = useState<number | null>(null);
   const [overrideReason, setOverrideReason] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
@@ -232,7 +229,6 @@ export function CupCustomizerShell({
       setCustomerLogoPreviewUrl(null);
       setCustomerLogoStatus("idle");
       setSaveStatus("saved");
-      setCupImageUrl(resolveProductPreviewUrl(product));
       setManualUnitPriceOverride(null);
       setOverrideReason("");
       setFormError(null);
@@ -263,7 +259,6 @@ export function CupCustomizerShell({
       setMockupGeneration(simulation.mockupGeneration ?? null);
       setManualUnitPriceOverride(simulation.pricing.manualUnitPriceOverride);
       setOverrideReason(simulation.pricing.overrideReason ?? "");
-      setCupImageUrl(resolveProductPreviewUrl(product));
       setIsDirty(false);
       setSaveStatus("saved");
       if (simulation.artworkAssetId && state.status === "ready") {
@@ -342,7 +337,6 @@ export function CupCustomizerShell({
   useEffect(() => {
     if (!selectedProduct) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- sync product defaults into form
-    setCupImageUrl(resolveProductPreviewUrl(selectedProduct));
     setConfiguration((current) => normalizeConfiguration({
       ...current,
       cupSize: selectedProduct.capacity,
@@ -564,29 +558,6 @@ export function CupCustomizerShell({
     setIsDirty(true);
     setSaveStatus("unsaved");
     setFeedback(copy.artwork.loaded);
-  }
-
-  async function applyProductImageArtwork() {
-    if (!selectedProduct) return;
-    const url = resolveProductPreviewUrl(selectedProduct);
-    if (!url) {
-      setFormError(copy.artwork.noProductImage);
-      return;
-    }
-    try {
-      const response = await fetch(url);
-      if (!response.ok || !response.headers.get("content-type")?.startsWith("image/")) {
-        throw new Error("Product image unavailable.");
-      }
-      const blob = await response.blob();
-      const dataUrl = await blobToDataUrl(blob);
-      setArtworkPreviewUrl(dataUrl);
-      setArtworkAssetId(null);
-      setArtworkAssetIsOwned(false);
-      setFeedback(copy.artwork.productImageApplied);
-    } catch {
-      setFormError(copy.artwork.noProductImage);
-    }
   }
 
   async function ensureMockupAsset(): Promise<string | null> {

@@ -1,5 +1,5 @@
 import Dexie, { type Table } from "dexie";
-import { LOCAL_DB_NAME, SCHEMA_VERSION } from "@/domain/constants";
+import { LOCAL_DB_NAME } from "@/domain/constants";
 import type {
   CustomerContact,
   InventoryItem,
@@ -8,7 +8,6 @@ import type {
 } from "@/domain/operations-types";
 import type {
   ActivityEvent,
-  Campaign,
   Customer,
   Lead,
   Opportunity,
@@ -376,7 +375,6 @@ export class ForgeOSDatabase extends Dexie {
           "id, tenantId, leadId, normalizedEmail, active, isPrimary, [tenantId+leadId], [tenantId+normalizedEmail]"
       })
       .upgrade(async (tx) => {
-        const timestamp = new Date().toISOString();
         await tx.table("campaigns").toCollection().modify((row: Record<string, unknown>) => {
           if (row.subjectTemplate === undefined) row.subjectTemplate = "";
           if (row.plainTextTemplate === undefined) row.plainTextTemplate = "";

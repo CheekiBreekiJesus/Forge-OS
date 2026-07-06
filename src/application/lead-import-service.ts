@@ -201,7 +201,19 @@ export async function buildImportPreview(
 
   const storedRows = await repos.importRows.createMany(
     tenantId,
-    previewRows.map(({ displayIndex: _displayIndex, id: _id, createdAt: _createdAt, ...row }) => row)
+    previewRows.map((row) => ({
+      duplicateMatches: row.duplicateMatches,
+      importBatchId: row.importBatchId,
+      normalizedValues: row.normalizedValues,
+      originalValues: row.originalValues,
+      proposedAction: row.proposedAction,
+      resultContactId: row.resultContactId,
+      resultLeadId: row.resultLeadId,
+      rowIndex: row.rowIndex,
+      status: row.status,
+      validationErrors: row.validationErrors,
+      warnings: row.warnings
+    }))
   );
 
   const rowsWithDisplay = storedRows.map((row) => ({

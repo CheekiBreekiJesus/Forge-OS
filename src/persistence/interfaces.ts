@@ -31,7 +31,6 @@ import type {
 import type { CreateProductInput, Product, UpdateProductInput } from "@/domain/product-types";
 import type {
   ActivityEvent,
-  Campaign,
   CreateActivityEventInput,
   CreateCustomerInput,
   CreateLeadInput,
@@ -47,7 +46,6 @@ import type {
   UpdateQuoteInput
 } from "@/domain/types";
 import type { ArchiveInput, ListOptions } from "@/persistence/archive-utils";
-import type { OutreachCampaign } from "@/domain/campaign-types";
 import type {
   CampaignRecipientRepository,
   OutreachCampaignRepository
