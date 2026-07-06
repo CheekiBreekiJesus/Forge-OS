@@ -15,12 +15,6 @@ Sou {{senderName}} da {{companySenderName}}. Trabalhamos com copos personalizado
 
 Se fizer sentido para a sua equipa, terei todo o gosto em preparar uma proposta ou esclarecer dúvidas por email ou telefone.
 
-Com os melhores cumprimentos,
-{{senderName}}
-{{companySenderName}}
-{{senderPhone}}
-{{senderEmail}}
-
 {{unsubscribeInstruction}}`,
   htmlTemplate: ""
 };
@@ -50,12 +44,6 @@ I am {{senderName}} from {{companySenderName}}. We supply personalized plastic c
 {{regionLine}}
 
 If helpful for your team, I would be glad to prepare a quotation or answer questions by email or phone.
-
-Kind regards,
-{{senderName}}
-{{companySenderName}}
-{{senderPhone}}
-{{senderEmail}}
 
 {{unsubscribeInstruction}}`,
     htmlTemplate: ""

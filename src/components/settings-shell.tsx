@@ -24,6 +24,10 @@ import { readPersistenceMode } from "@/persistence/mode";
 import type { EmailDeliverySelfTestResult, EmailProviderDiagnostic } from "@/domain/email-delivery-types";
 import { persistEmailDeliverySelfTestResult } from "@/application/email-delivery-self-test-client";
 import { buildJhGomesOutreachTestProfileDefaults } from "@/features/outreach-test-profile/defaults";
+import {
+  DEFAULT_OUTREACH_LOGO_PATH,
+  DEFAULT_OUTREACH_SHOWCASE_PATH
+} from "@/features/email-composition/outreach-branding-config";
 import type { OutreachTestProfile, UpsertOutreachTestProfileInput } from "@/domain/outreach-test-profile-types";
 import { useOutreachTestProfile } from "@/persistence/outreach-test-profile-hooks";
 
@@ -612,15 +616,38 @@ function outreachTestProfileToFormInput(
 ): UpsertOutreachTestProfileInput {
   return {
     campaignLanguage: profile.campaignLanguage,
+    companyLogoReference: profile.companyLogoReference || DEFAULT_OUTREACH_LOGO_PATH,
     companyName: profile.companyName,
     companyWebsite: profile.companyWebsite,
     defaultOptOutLine: profile.defaultOptOutLine,
     defaultProductFocus: profile.defaultProductFocus,
     defaultSignature: profile.defaultSignature,
     defaultTestRecipient: profile.defaultTestRecipient,
+    footerCtaLabel: profile.footerCtaLabel || "",
+    footerCtaUrl: profile.footerCtaUrl || profile.companyWebsite,
     replyToEmail: profile.replyToEmail,
     senderDisplayName: profile.senderDisplayName,
-    senderEmail: profile.senderEmail
+    senderEmail: profile.senderEmail,
+    showcaseImageReference: profile.showcaseImageReference || DEFAULT_OUTREACH_SHOWCASE_PATH
+  };
+}
+
+function buildSelfTestBrandingPayload(
+  profile: OutreachTestProfile | null,
+  diagnostic: EmailProviderDiagnostic | null
+) {
+  if (!profile) return undefined;
+  return {
+    companyLogoReference: profile.companyLogoReference,
+    companyName: profile.companyName,
+    companyWebsite: profile.companyWebsite,
+    defaultOptOutLine: profile.defaultOptOutLine,
+    footerCtaLabel: profile.footerCtaLabel,
+    footerCtaUrl: profile.footerCtaUrl,
+    locale: profile.campaignLanguage,
+    senderEmail: profile.senderEmail || diagnostic?.senderEmail || undefined,
+    senderName: profile.senderDisplayName || diagnostic?.senderName || undefined,
+    showcaseImageReference: profile.showcaseImageReference
   };
 }
 
@@ -694,6 +721,10 @@ function OutreachTestProfileForm({
         <TextField label={t.senderEmail} onChange={(v) => setForm({ ...form, senderEmail: v })} value={form.senderEmail} />
         <TextField label={t.replyToEmail} onChange={(v) => setForm({ ...form, replyToEmail: v })} value={form.replyToEmail} />
         <TextField label={t.defaultTestRecipient} onChange={(v) => setForm({ ...form, defaultTestRecipient: v })} value={form.defaultTestRecipient} />
+        <TextField label={t.showcaseImageReference} onChange={(v) => setForm({ ...form, showcaseImageReference: v })} value={form.showcaseImageReference} />
+        <TextField label={t.companyLogoReference} onChange={(v) => setForm({ ...form, companyLogoReference: v })} value={form.companyLogoReference} />
+        <TextField label={t.footerCtaLabel} onChange={(v) => setForm({ ...form, footerCtaLabel: v })} value={form.footerCtaLabel} />
+        <TextField label={t.footerCtaUrl} onChange={(v) => setForm({ ...form, footerCtaUrl: v })} value={form.footerCtaUrl} />
         <label className="grid gap-1 text-sm md:col-span-2">
           <span className="text-xs uppercase tracking-wide text-slate-500">{t.defaultSignature}</span>
           <textarea
@@ -727,18 +758,7 @@ function OutreachTestProfileForm({
               void (async () => {
                 const saved = await loadDefaults();
                 if (saved) {
-                  setForm({
-                    campaignLanguage: saved.campaignLanguage,
-                    companyName: saved.companyName,
-                    companyWebsite: saved.companyWebsite,
-                    defaultOptOutLine: saved.defaultOptOutLine,
-                    defaultProductFocus: saved.defaultProductFocus,
-                    defaultSignature: saved.defaultSignature,
-                    defaultTestRecipient: saved.defaultTestRecipient,
-                    replyToEmail: saved.replyToEmail,
-                    senderDisplayName: saved.senderDisplayName,
-                    senderEmail: saved.senderEmail
-                  });
+                  setForm(outreachTestProfileToFormInput(saved));
                 }
                 notifyDataChanged();
                 setFeedback(t.loadedDefaults);
@@ -830,6 +850,7 @@ function ProviderDiagnosticPanel({ s }: { s: Dictionary["settings"] }) {
     try {
       const response = await fetch("/api/leadops/email-provider/self-test", {
         body: JSON.stringify({
+          branding: buildSelfTestBrandingPayload(profile, diagnostic),
           confirmation,
           initiatedBy: "settings-self-test",
           messageBody,

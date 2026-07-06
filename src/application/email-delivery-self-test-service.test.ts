@@ -59,6 +59,7 @@ describe("email delivery self-test service", () => {
     vi.stubEnv("OUTREACH_REAL_SEND_ENABLED", "false");
     vi.stubEnv("OUTREACH_TEST_SEND_ENABLED", "true");
     vi.stubEnv("OUTREACH_TEST_RECIPIENT_ALLOWLIST", "qa@example.com");
+    vi.stubEnv("FORGEOS_PUBLIC_BASE_URL", "https://forgeos.example");
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ messageId: "<message@relay.example>" }), { status: 201 })
     );
@@ -71,6 +72,8 @@ describe("email delivery self-test service", () => {
     expect(result.providerMessageId).toBe("<message@relay.example>");
     expect(body.tags).toEqual(["forgeos:self-test"]);
     expect(body.to).toEqual([{ email: "qa@example.com", name: "qa@example.com" }]);
+    expect(body.htmlContent).toContain("<img");
+    expect(body.textContent).toContain("ForgeOS delivery self-test body.");
     expect(result.idempotencyKey).toBe(buildSelfTestIdempotencyKey(input.recipientEmail, input.subject, input.messageBody));
   });
 

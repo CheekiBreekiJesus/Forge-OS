@@ -65,6 +65,7 @@ export function CampaignTemplateDraftsPanel({
   const [preview, setPreview] = useState<CampaignDraftPreview | null>(null);
   const [sampleSubject, setSampleSubject] = useState("");
   const [sampleBody, setSampleBody] = useState("");
+  const [sampleHtml, setSampleHtml] = useState("");
   const [samplePreview, setSamplePreview] = useState<TemplateRenderResult["preview"] | null>(null);
   const [greetingOverride, setGreetingOverride] = useState("");
   const [organizationDisplayOverride, setOrganizationDisplayOverride] = useState("");
@@ -151,6 +152,7 @@ export function CampaignTemplateDraftsPanel({
     const sample = await previewTemplateSample(repos, tenantId, campaignId, selectedRecipientId ?? undefined);
     setSampleSubject(sample.subject);
     setSampleBody(sample.plainText);
+    setSampleHtml(sample.html);
     setSamplePreview(sample.preview);
   }
 
@@ -379,6 +381,17 @@ export function CampaignTemplateDraftsPanel({
             ) : null}
             <p className="mt-2 text-sm font-semibold">{sampleSubject}</p>
             <pre className="mt-3 whitespace-pre-wrap text-sm text-slate-300">{sampleBody}</pre>
+            {sampleHtml ? (
+              <div className="mt-4 border-t border-slate-800 pt-4" data-testid="campaign-template-html-preview">
+                <p className="text-xs uppercase tracking-wide text-slate-500">
+                  {copy.htmlPreview}
+                </p>
+                <div
+                  className="prose prose-invert mt-3 max-w-none text-sm"
+                  dangerouslySetInnerHTML={{ __html: sampleHtml }}
+                />
+              </div>
+            ) : null}
           </div>
         ) : null}
       </section>

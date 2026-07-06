@@ -4,6 +4,7 @@ import { resolveSalutation } from "@/features/leadops/salutation-resolver";
 import { localizeCategoryLabel } from "@/features/leadops/category-localization";
 import { renderCampaignTemplate } from "@/features/leadops/template-rendering";
 import { DEFAULT_PT_CUP_OUTREACH_TEMPLATE } from "@/features/leadops/default-templates";
+import type { OutreachBrandingConfig } from "@/features/email-composition/outreach-branding-config";
 import type { CompanyProfileSnapshot, SenderIdentitySnapshot } from "@/domain/profile-types";
 
 const company: CompanyProfileSnapshot = {
@@ -45,6 +46,21 @@ const sender: SenderIdentitySnapshot = {
   signatureText: "",
   tenantId: "tenant_test",
   userProfileId: "u1"
+};
+
+const branding: OutreachBrandingConfig = {
+  companyName: "Synthetic Cups",
+  companyWebsite: "https://synthetic.example",
+  footerCtaLabel: "Ver copos",
+  footerCtaUrl: "https://synthetic.example",
+  locale: "pt-PT",
+  logoUrl: "https://forgeos.example/demo/outreach/jh-gomes-logo.svg",
+  optOutLine: 'Se preferir não receber contactos comerciais, responda a este email com o assunto "Remover".',
+  senderEmail: "ana.operator@synthetic.example",
+  senderName: "Ana Operador",
+  senderPhone: "+351 244 111 222",
+  showcaseImageCaption: "Exemplos de copos personalizados produzidos pela JH Gomes",
+  showcaseImageUrl: "https://forgeos.example/demo/outreach/jh-gomes-showcase.svg"
 };
 
 describe("salutation resolver", () => {
@@ -134,6 +150,7 @@ describe("category localization", () => {
 describe("municipality draft rendering", () => {
   it("matches acceptance example for synthetic municipality lead", () => {
     const result = renderCampaignTemplate({
+      branding,
       subjectTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.subjectTemplate,
       plainTextTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.plainTextTemplate,
       language: "pt-PT",

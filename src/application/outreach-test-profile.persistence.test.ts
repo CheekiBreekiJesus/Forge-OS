@@ -24,16 +24,11 @@ describe("outreach test profile persistence", () => {
   it("persists profile after reload", async () => {
     const repos = createLocalRepositoryBundle(getDatabase(TEST_DB));
     const saved = await saveOutreachTestProfile(repos, DEFAULT_TENANT_ID, {
-      campaignLanguage: "pt-PT",
-      companyName: "JH Gomes",
-      companyWebsite: "https://www.jhgomes.pt",
+      ...buildJhGomesOutreachTestProfileDefaults(),
       defaultOptOutLine: "Opt-out line",
       defaultProductFocus: "Cup printing",
       defaultSignature: "Best regards",
-      defaultTestRecipient: "qa@example.com",
-      replyToEmail: "operador@synthetic.example",
-      senderDisplayName: "Operador ForgeOS",
-      senderEmail: "operador@synthetic.example"
+      defaultTestRecipient: "qa@example.com"
     });
 
     const reloaded = await repos.outreachTestProfiles.getForTenant(DEFAULT_TENANT_ID);

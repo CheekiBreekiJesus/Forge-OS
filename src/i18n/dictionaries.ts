@@ -544,6 +544,10 @@ export type Dictionary = {
         defaultSignature: string;
         defaultOptOutLine: string;
         defaultProductFocus: string;
+        showcaseImageReference: string;
+        companyLogoReference: string;
+        footerCtaLabel: string;
+        footerCtaUrl: string;
         campaignLanguage: string;
         save: string;
         saved: string;
@@ -740,6 +744,7 @@ export type Dictionary = {
         templateSaved: string;
         previewSample: string;
         previewTitle: string;
+        htmlPreview: string;
         templateVersion: string;
         senderIncomplete: string;
         refreshSender: string;

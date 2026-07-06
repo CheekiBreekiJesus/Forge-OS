@@ -6,6 +6,7 @@ import {
   renderCampaignTemplate
 } from "@/features/leadops/template-rendering";
 import { TEMPLATE_VARIABLES } from "@/features/leadops/template-variables";
+import type { OutreachBrandingConfig } from "@/features/email-composition/outreach-branding-config";
 import type { CompanyProfileSnapshot, SenderIdentitySnapshot } from "@/domain/profile-types";
 
 const company: CompanyProfileSnapshot = {
@@ -59,6 +60,21 @@ const recipient = {
   greetingOverride: "",
   organizationDisplayNameOverride: "",
   contactSalutation: null
+};
+
+const branding: OutreachBrandingConfig = {
+  companyName: "Forge Cups",
+  companyWebsite: "https://example.pt",
+  footerCtaLabel: "Ver copos",
+  footerCtaUrl: "https://example.pt/copos",
+  locale: "pt-PT",
+  logoUrl: "https://forgeos.example/demo/outreach/jh-gomes-logo.svg",
+  optOutLine: "Se preferir não receber futuras mensagens, responda com 'remover'.",
+  senderEmail: "maria@example.pt",
+  senderName: "Maria Silva",
+  senderPhone: "+351 910 000 000",
+  showcaseImageCaption: "Exemplos de copos personalizados produzidos pela JH Gomes",
+  showcaseImageUrl: "https://forgeos.example/demo/outreach/jh-gomes-showcase.svg"
 };
 
 describe("template rendering", () => {
@@ -180,5 +196,23 @@ describe("template rendering", () => {
     expect(result.hasUnresolvedVariables).toBe(false);
     expect(result.subject).toContain("Hotel Atlântico");
     expect(result.plainText).toContain("copos personalizados");
+  });
+
+  it("adds showcase and footer blocks when branding config is provided", () => {
+    const result = renderCampaignTemplate({
+      branding,
+      subjectTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.subjectTemplate,
+      plainTextTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.plainTextTemplate,
+      language: "pt-PT",
+      recipient,
+      sender,
+      company
+    });
+
+    expect(result.html).toContain("jh-gomes-showcase.svg");
+    expect(result.html).toContain("jh-gomes-logo.svg");
+    expect(result.html).toContain("Maria Silva");
+    expect(result.plainText).toContain("Exemplos de copos personalizados produzidos pela JH Gomes");
+    expect(result.plainText).toContain("Maria Silva");
   });
 });

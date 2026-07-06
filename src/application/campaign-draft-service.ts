@@ -6,8 +6,11 @@ import type {
   UpdateCampaignRecipientDraftInput
 } from "@/domain/campaign-types";
 import { loadSenderContext, type SenderContext } from "@/application/campaign-sender-context";
+import { loadOutreachBrandingConfig } from "@/application/outreach-branding-context";
 import type { ContactSalutation } from "@/features/leadops/salutation-resolver";
 import { plainTextToHtml, sanitizeEmailHtml } from "@/features/email-composition/sanitize";
+import { applyOutreachBrandingToEmail } from "@/features/email-composition/outreach-branding";
+import type { OutreachBrandingConfig } from "@/features/email-composition/outreach-branding-config";
 import { buildDefaultCampaignTemplate } from "@/features/leadops/default-templates";
 import {
   countUnresolvedInTemplate,
@@ -111,7 +114,8 @@ export async function saveCampaignTemplate(
 export function renderRecipientDraft(
   campaign: OutreachCampaign,
   recipient: CampaignRecipient,
-  senderContext: SenderContext
+  senderContext: SenderContext,
+  branding?: OutreachBrandingConfig | null
 ): TemplateRenderResult {
   return renderCampaignTemplate({
     subjectTemplate: campaign.subjectTemplate,
@@ -120,7 +124,8 @@ export function renderRecipientDraft(
     language: campaign.language,
     recipient,
     sender: senderContext.sender,
-    company: senderContext.company
+    company: senderContext.company,
+    branding
   });
 }
 
@@ -171,6 +176,7 @@ export async function generateCampaignDrafts(
   }
 
   const senderContext = await loadSenderContext(repos, tenantId, campaign);
+  const branding = await loadOutreachBrandingConfig(repos, tenantId, campaign, senderContext);
   const recipients = await repos.campaignRecipients.listForCampaign(tenantId, campaignId);
   const targetIds = options?.recipientIds ? new Set(options.recipientIds) : null;
   const skipEdited = options?.skipEdited !== false;
@@ -189,7 +195,7 @@ export async function generateCampaignDrafts(
       continue;
     }
 
-    const rendered = renderRecipientDraft(campaign, recipient, senderContext);
+    const rendered = renderRecipientDraft(campaign, recipient, senderContext, branding);
     const draftStatus = resolveDraftStatus(rendered);
     if (draftStatus === "NEEDS_REVIEW") needsReview += 1;
     else drafted += 1;
@@ -243,7 +249,8 @@ export async function regenerateRecipientDraft(
   }
 
   const senderContext = await loadSenderContext(repos, tenantId, campaign);
-  const rendered = renderRecipientDraft(campaign, recipient, senderContext);
+  const branding = await loadOutreachBrandingConfig(repos, tenantId, campaign, senderContext);
+  const rendered = renderRecipientDraft(campaign, recipient, senderContext, branding);
   const timestamp = nowIso();
 
   if (recipient.draftStatus === "APPROVED" || recipient.draftStatus === "OPENED_EXTERNALLY") {
@@ -277,10 +284,23 @@ export async function updateRecipientDraftContent(
     await invalidateRecipientApproval(repos, tenantId, recipientId, "manual_draft_edit");
   }
 
+  let personalizedHtml = sanitizeEmailHtml(plainTextToHtml(plainText));
+  if (existing) {
+    const campaign = await repos.campaigns.getById(tenantId, existing.campaignId);
+    if (campaign) {
+      const senderContext = await loadSenderContext(repos, tenantId, campaign);
+      const branding = await loadOutreachBrandingConfig(repos, tenantId, campaign, senderContext);
+      personalizedHtml = applyOutreachBrandingToEmail(
+        { html: personalizedHtml, plainText },
+        branding
+      ).html;
+    }
+  }
+
   return repos.campaignRecipients.updateDraft(tenantId, recipientId, {
     personalizedSubject: subject,
     personalizedPlainText: plainText,
-    personalizedHtml: sanitizeEmailHtml(plainTextToHtml(plainText)),
+    personalizedHtml,
     draftStatus: hasUnresolved.length > 0 ? "NEEDS_REVIEW" : "DRAFTED",
     generationMethod: "manual",
     userEdited: true,
@@ -307,6 +327,7 @@ export async function previewTemplateSample(
   if (!existing) throw new PersistenceError("not_found", "Campaign not found.");
   const campaign = await ensureCampaignTemplate(repos, tenantId, existing);
   const senderContext = await loadSenderContext(repos, tenantId, campaign);
+  const branding = await loadOutreachBrandingConfig(repos, tenantId, campaign, senderContext);
   const recipients = await repos.campaignRecipients.listForCampaign(tenantId, campaignId);
   const recipient =
     recipients.find((row) => row.id === recipientId && row.status === "included") ??
@@ -314,7 +335,7 @@ export async function previewTemplateSample(
   if (!recipient) {
     throw new PersistenceError("not_found", "No included recipient available for preview.");
   }
-  return renderRecipientDraft(campaign, recipient, senderContext);
+  return renderRecipientDraft(campaign, recipient, senderContext, branding);
 }
 
 export async function refreshCampaignSenderData(

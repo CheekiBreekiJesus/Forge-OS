@@ -44,17 +44,33 @@ export function toSenderDefaults(profile: OutreachTestProfile): OutreachCampaign
   };
 }
 
+function brandingFieldsFromProfile(profile: OutreachTestProfile) {
+  return {
+    companyLogoReference: profile.companyLogoReference,
+    companyName: profile.companyName,
+    companyWebsite: profile.companyWebsite,
+    defaultOptOutLine: profile.defaultOptOutLine,
+    footerCtaLabel: profile.footerCtaLabel,
+    footerCtaUrl: profile.footerCtaUrl,
+    showcaseImageReference: profile.showcaseImageReference
+  };
+}
+
 export function validateOutreachTestProfileInput(input: UpsertOutreachTestProfileInput): void {
   assertOutreachTestProfileHasNoSecrets({
+    companyLogoReference: input.companyLogoReference,
     companyName: input.companyName,
     companyWebsite: input.companyWebsite,
     defaultOptOutLine: input.defaultOptOutLine,
     defaultProductFocus: input.defaultProductFocus,
     defaultSignature: input.defaultSignature,
     defaultTestRecipient: input.defaultTestRecipient,
+    footerCtaLabel: input.footerCtaLabel,
+    footerCtaUrl: input.footerCtaUrl,
     replyToEmail: input.replyToEmail,
     senderDisplayName: input.senderDisplayName,
-    senderEmail: input.senderEmail
+    senderEmail: input.senderEmail,
+    showcaseImageReference: input.showcaseImageReference
   });
 }
 
@@ -91,10 +107,8 @@ export async function recordLastEmailTestResult(
   const profile = await repos.outreachTestProfiles.getForTenant(tenantId);
   if (!profile) return null;
   return repos.outreachTestProfiles.upsert(tenantId, {
+    ...brandingFieldsFromProfile(profile),
     campaignLanguage: profile.campaignLanguage,
-    companyName: profile.companyName,
-    companyWebsite: profile.companyWebsite,
-    defaultOptOutLine: profile.defaultOptOutLine,
     defaultProductFocus: profile.defaultProductFocus,
     defaultSignature: profile.defaultSignature,
     defaultTestRecipient: profile.defaultTestRecipient,
@@ -114,7 +128,10 @@ export async function syncOutreachTestProfileToOperationalContext(
   if (company) {
     await repos.companyProfiles.update(tenantId, company.id, {
       tradingName: profile.companyName || company.tradingName,
-      websiteUrl: profile.companyWebsite || company.websiteUrl
+      websiteUrl: profile.companyWebsite || company.websiteUrl,
+      logoPublicUrl: profile.companyLogoReference?.startsWith("https://")
+        ? profile.companyLogoReference
+        : company.logoPublicUrl
     });
   }
 

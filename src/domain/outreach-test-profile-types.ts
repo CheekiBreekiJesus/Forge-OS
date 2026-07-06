@@ -26,6 +26,10 @@ export type OutreachTestProfile = {
   defaultSignature: string;
   defaultOptOutLine: string;
   defaultProductFocus: string;
+  showcaseImageReference: string;
+  companyLogoReference: string;
+  footerCtaLabel: string;
+  footerCtaUrl: string;
   campaignLanguage: OutreachCampaignLanguage;
   lastEmailTestResult: LastEmailTestResult | null;
   createdAt: string;

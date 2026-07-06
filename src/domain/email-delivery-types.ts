@@ -53,12 +53,27 @@ export type EmailProviderDiagnostic = {
   warnings: string[];
 };
 
+export type EmailDeliverySelfTestBrandingInput = {
+  locale?: string;
+  companyName?: string;
+  companyWebsite?: string;
+  senderName?: string;
+  senderEmail?: string;
+  senderPhone?: string;
+  showcaseImageReference?: string;
+  companyLogoReference?: string;
+  footerCtaLabel?: string;
+  footerCtaUrl?: string;
+  defaultOptOutLine?: string;
+};
+
 export type EmailDeliverySelfTestInput = {
   recipientEmail: string;
   subject: string;
   messageBody: string;
   confirmation: string;
   initiatedBy?: string;
+  branding?: EmailDeliverySelfTestBrandingInput;
 };
 
 export type EmailDeliverySelfTestResult = EmailDeliveryResponse & {

@@ -1,4 +1,6 @@
 import { plainTextToHtml, sanitizeEmailHtml } from "@/features/email-composition/sanitize";
+import { applyOutreachBrandingToEmail } from "@/features/email-composition/outreach-branding";
+import type { OutreachBrandingConfig } from "@/features/email-composition/outreach-branding-config";
 import { buildCategoryContentLine } from "@/features/leadops/category-content";
 import { localizeCategoryLabel } from "@/features/leadops/category-localization";
 import {
@@ -39,6 +41,7 @@ export type TemplateRenderInput = {
   sender: SenderIdentitySnapshot;
   company: CompanyProfileSnapshot;
   unsubscribeInstruction?: string;
+  branding?: OutreachBrandingConfig | null;
 };
 
 export type TemplateRenderResult = {
@@ -106,10 +109,17 @@ export function renderCampaignTemplate(input: TemplateRenderInput): TemplateRend
   const htmlSource = input.htmlTemplate?.trim()
     ? substituteTemplate(input.htmlTemplate, values)
     : plainTextToHtml(plainText);
-  const html = sanitizeEmailHtml(cleanupRenderedHtml(htmlSource));
+  let html = sanitizeEmailHtml(cleanupRenderedHtml(htmlSource));
+  let brandedPlainText = plainText;
+
+  if (input.branding) {
+    const branded = applyOutreachBrandingToEmail({ html, plainText }, input.branding);
+    html = branded.html;
+    brandedPlainText = branded.plainText;
+  }
 
   const unresolvedVariables = [
-    ...new Set([...templateUnresolved, ...findUnresolvedVariables(subject, plainText, html)])
+    ...new Set([...templateUnresolved, ...findUnresolvedVariables(subject, brandedPlainText, html)])
   ];
 
   if (unresolvedVariables.length > 0) {
@@ -128,7 +138,7 @@ export function renderCampaignTemplate(input: TemplateRenderInput): TemplateRend
 
   return {
     subject,
-    plainText,
+    plainText: brandedPlainText,
     html,
     usedVariables: [...usedVariables],
     fallbackVariables: [...fallbackVariables],

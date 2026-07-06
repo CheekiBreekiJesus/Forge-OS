@@ -4,6 +4,8 @@ import type {
   EmailDeliverySelfTestInput,
   EmailDeliverySelfTestResult
 } from "@/domain/email-delivery-types";
+import { buildSelfTestOutreachBrandingConfig } from "@/application/self-test-outreach-branding";
+import { buildBrandedSelfTestEmailContent } from "@/features/email-composition/outreach-branding";
 import { readEmailDeliveryConfig } from "@/features/email-delivery/config";
 import type { EmailDeliveryProvider } from "@/features/email-delivery/provider";
 import { createEmailDeliveryProvider } from "@/features/email-delivery/provider";
@@ -79,17 +81,20 @@ export function buildSelfTestDeliveryRequest(
   const subject = input.subject.trim();
   const messageBody = input.messageBody.trim();
   const idempotencyKey = buildSelfTestIdempotencyKey(recipientEmail, subject, messageBody);
+  const deliveryConfig = readEmailDeliveryConfig();
+  const branding = buildSelfTestOutreachBrandingConfig(input.branding, deliveryConfig);
+  const branded = buildBrandedSelfTestEmailContent(messageBody, branding);
 
   return {
     approvedContentHash: idempotencyKey,
     campaignId: EMAIL_DELIVERY_SELF_TEST_SENTINEL,
     campaignRecipientId: EMAIL_DELIVERY_SELF_TEST_SENTINEL,
-    html: `<p>${escapeHtml(messageBody)}</p>`,
+    html: branded.html,
     idempotencyKey,
     initiatedBy: input.initiatedBy ?? "settings-self-test",
     leadId: EMAIL_DELIVERY_SELF_TEST_SENTINEL,
     mode: "delivery_self_test",
-    plainText: messageBody,
+    plainText: branded.plainText,
     subject,
     tenantId,
     toEmail: recipientEmail,
@@ -145,12 +150,4 @@ export async function sendEmailDeliverySelfTest(
     ...delivery,
     idempotencyKey: request.idempotencyKey
   };
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
 }

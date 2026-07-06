@@ -30,10 +30,33 @@ function parsePayload(payload: unknown): EmailDeliverySelfTestInput | null {
   if (typeof value.confirmation !== "string" || value.confirmation !== "SEND SELF TEST") return null;
 
   return {
+    branding: parseBranding(value.branding),
     confirmation: value.confirmation,
     initiatedBy: typeof value.initiatedBy === "string" ? value.initiatedBy : undefined,
     messageBody: value.messageBody,
     recipientEmail: value.recipientEmail,
     subject: value.subject
+  };
+}
+
+function parseBranding(
+  value: EmailDeliverySelfTestInput["branding"] | undefined
+): EmailDeliverySelfTestInput["branding"] | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const branding = value as Record<string, unknown>;
+  const readString = (key: string) =>
+    typeof branding[key] === "string" ? branding[key].trim() : undefined;
+  return {
+    companyLogoReference: readString("companyLogoReference"),
+    companyName: readString("companyName"),
+    companyWebsite: readString("companyWebsite"),
+    defaultOptOutLine: readString("defaultOptOutLine"),
+    footerCtaLabel: readString("footerCtaLabel"),
+    footerCtaUrl: readString("footerCtaUrl"),
+    locale: readString("locale"),
+    senderEmail: readString("senderEmail"),
+    senderName: readString("senderName"),
+    senderPhone: readString("senderPhone"),
+    showcaseImageReference: readString("showcaseImageReference")
   };
 }
