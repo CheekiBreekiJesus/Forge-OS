@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import type { Dictionary } from "@/i18n/dictionaries";
 import type { Locale } from "@/i18n/config";
@@ -12,7 +12,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { DashboardCustomizeDialog } from "@/components/dashboard/dashboard-customize-dialog";
 import {
   PREVIEW_ROLES,
-  readPreviewRole,
+  usePreviewRole,
   writePreviewRole,
   type PreviewRole
 } from "@/features/crud/role-preview";
@@ -33,7 +33,13 @@ export function AppFrameClient({
 }: AppFrameClientProps) {
   const activeRoute = supplementalRoute ?? moduleRoutes[activeModule];
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [previewRole, setPreviewRole] = useState<PreviewRole>(() => readPreviewRole());
+  const previewRole = usePreviewRole();
+  const hasHydrated = useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false
+  );
+  const effectiveRole = hasHydrated ? previewRole : "owner";
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
@@ -44,7 +50,6 @@ export function AppFrameClient({
 
   function handleRoleChange(role: PreviewRole) {
     writePreviewRole(role);
-    setPreviewRole(role);
     window.dispatchEvent(new CustomEvent("forgeos:preview-role-changed", { detail: role }));
   }
 
@@ -64,7 +69,7 @@ export function AppFrameClient({
 
       <div className="ml-auto flex min-w-0 shrink items-center gap-1 sm:gap-2">
         <NotificationCenter dictionary={dictionary} locale={locale} />
-        <QuickCreateMenu dictionary={dictionary} locale={locale} previewRole={previewRole} />
+        <QuickCreateMenu dictionary={dictionary} locale={locale} previewRole={effectiveRole} />
         <ThemeToggle
           labelDark={dictionary.dashboard.theme.switchToDark}
           labelLight={dictionary.dashboard.theme.switchToLight}
@@ -76,7 +81,7 @@ export function AppFrameClient({
             aria-label={roleCopy.label}
             className="bg-transparent text-xs font-semibold outline-none"
             onChange={(event) => handleRoleChange(event.target.value as PreviewRole)}
-            value={previewRole}
+            value={effectiveRole}
           >
             {PREVIEW_ROLES.map((role) => (
               <option key={role} value={role}>
@@ -176,7 +181,7 @@ export function AppFrameClient({
           if (href) window.location.href = href;
         }}
         open={paletteOpen}
-        previewRole={previewRole}
+        previewRole={effectiveRole}
       />
 
       <DashboardCustomizeDialog
@@ -188,17 +193,4 @@ export function AppFrameClient({
   );
 }
 
-export function usePreviewRole(): PreviewRole {
-  const [role, setRole] = useState<PreviewRole>(() => readPreviewRole());
-
-  useEffect(() => {
-    function handleChange(event: Event) {
-      const detail = (event as CustomEvent<PreviewRole>).detail;
-      if (detail) setRole(detail);
-    }
-    window.addEventListener("forgeos:preview-role-changed", handleChange);
-    return () => window.removeEventListener("forgeos:preview-role-changed", handleChange);
-  }, []);
-
-  return role;
-}
+export { usePreviewRole } from "@/features/crud/role-preview";

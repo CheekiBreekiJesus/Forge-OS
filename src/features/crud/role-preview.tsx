@@ -1,5 +1,6 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import type { ModuleKey } from "@/modules/config";
 
 export const PREVIEW_ROLE_STORAGE_KEY = "forgeos:preview-role";
@@ -94,6 +95,30 @@ export function readPreviewRole(): PreviewRole {
 export function writePreviewRole(role: PreviewRole): void {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(PREVIEW_ROLE_STORAGE_KEY, role);
+}
+
+function subscribePreviewRole(onStoreChange: () => void): () => void {
+  function handleChange() {
+    onStoreChange();
+  }
+  window.addEventListener("storage", handleChange);
+  window.addEventListener("forgeos:preview-role-changed", handleChange);
+  return () => {
+    window.removeEventListener("storage", handleChange);
+    window.removeEventListener("forgeos:preview-role-changed", handleChange);
+  };
+}
+
+function getPreviewRoleServerSnapshot(): PreviewRole {
+  return "owner";
+}
+
+export function usePreviewRole(): PreviewRole {
+  return useSyncExternalStore(
+    subscribePreviewRole,
+    readPreviewRole,
+    getPreviewRoleServerSnapshot
+  );
 }
 
 export function canViewModule(role: PreviewRole, moduleKey: ModuleKey): boolean {
