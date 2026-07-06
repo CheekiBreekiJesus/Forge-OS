@@ -71,13 +71,13 @@ test.describe("Campaign send job simulation", () => {
     await expect(page.getByTestId("send-job-simulation-banner")).toBeVisible();
     await expect(page.getByTestId("send-job-production-incomplete")).toBeVisible();
     await expect(page.getByTestId("send-job-brevo-disabled")).toBeVisible();
-    await expect(page.getByTestId("queue-simulation-job")).toBeEnabled();
+    await expect(page.getByTestId("queue-campaign-send")).toBeEnabled();
 
-    await page.getByTestId("queue-simulation-job").click();
+    await page.getByTestId("queue-campaign-send").click();
     await expect(page.getByText(/tarefa de simulacao criada|queued simulation job/i)).toBeVisible();
     await expect(page.getByTestId("send-job-status")).toContainText("QUEUED");
 
-    await page.getByTestId("queue-simulation-job").click();
+    await page.getByTestId("queue-campaign-send").click();
     await expect(page.getByText(/ja em fila|already queued/i)).toBeVisible();
 
     page.once("dialog", (dialog) => dialog.accept());
@@ -110,11 +110,11 @@ test.describe("Campaign send job simulation", () => {
     await gotoAndWait(page, page.url().replace("/pt-PT/", "/en/"));
     await expect(page.getByTestId("send-job-panel")).toBeVisible();
     await expect(page.getByText(/local simulation only/i)).toBeVisible();
-    await expect(page.getByTestId("queue-simulation-job")).toHaveText(/queue simulation/i);
+    await expect(page.getByTestId("queue-campaign-send")).toHaveText(/queue approved drafts/i);
 
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(page.getByTestId("send-job-panel")).toBeVisible();
-    await expect(page.getByTestId("queue-simulation-job")).toBeVisible();
+    await expect(page.getByTestId("queue-campaign-send")).toBeVisible();
     await expect(page.getByRole("button", { name: /queue brevo|enviar brevo/i })).toHaveCount(0);
     expect(errors).toEqual([]);
   });
@@ -241,7 +241,7 @@ test.describe("Campaign send job simulation", () => {
     await page.getByTestId("bulk-approve-campaign-drafts").click();
 
     const campaignUrl = page.url();
-    await page.getByTestId("queue-simulation-job").click();
+    await page.getByTestId("queue-campaign-send").click();
     await expect(page.getByTestId("send-job-status")).toContainText("QUEUED");
 
     await gotoAndWait(page, "/pt-PT/leadops");

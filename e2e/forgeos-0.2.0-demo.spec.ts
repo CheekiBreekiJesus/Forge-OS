@@ -88,7 +88,7 @@ test.describe("ForgeOS 0.2.0 integrated demo walkthrough", () => {
     await page.getByTestId("bulk-approve-campaign-drafts").click();
     await expect(page.getByTestId("send-job-panel")).toBeVisible();
 
-    await page.getByTestId("queue-simulation-job").click();
+    await page.getByTestId("queue-campaign-send").click();
     await expect(page.getByText(/tarefa de simulacao criada|queued simulation job/i)).toBeVisible();
 
     await gotoAndWait(page, "/pt-PT/leadops");
