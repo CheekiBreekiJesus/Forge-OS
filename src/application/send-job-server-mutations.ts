@@ -12,6 +12,7 @@ import {
   type SendJobPermission
 } from "@/features/email-delivery/send-job-authorization";
 import type { TrustedSendJobActorContext } from "@/features/email-delivery/send-job-actor-context";
+import { MAX_QUEUE_DELAY_MS } from "@/features/leadops/campaign-workflow";
 import type { LocalRepositoryBundle } from "@/persistence/interfaces";
 import { PersistenceError } from "@/persistence/interfaces";
 
@@ -492,7 +493,7 @@ function parseQueueRequest(input: unknown): QueueRequest {
     campaignId: requiredId(row.campaignId, "campaignId"),
     confirmation,
     dailyLimit: optionalNumber(row.dailyLimit, "dailyLimit", 0, 1000),
-    delayMs: optionalNumber(row.delayMs, "delayMs", 0, 5000),
+    delayMs: optionalNumber(row.delayMs, "delayMs", 0, MAX_QUEUE_DELAY_MS),
     deliveryMode,
     maxRetries: optionalNumber(row.maxRetries, "maxRetries", 0, 10),
     provider

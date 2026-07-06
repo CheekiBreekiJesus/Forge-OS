@@ -382,4 +382,98 @@ describe("campaign send job service", () => {
     expect(recipient.status).toBe("FAILED");
     expect(provider.calls).toHaveLength(2);
   });
+
+  it("blocks queueing when campaign recipients are not all approved", async () => {
+    const { campaign, repos: r } = await prepareApprovedCampaign(2);
+    const recipients = await r.campaignRecipients.listForCampaign(DEFAULT_TENANT_ID, campaign.id);
+    for (const recipient of recipients) {
+      await r.campaignRecipients.updateDraft(DEFAULT_TENANT_ID, recipient.id, {
+        draftStatus: "NEEDS_REVIEW"
+      });
+    }
+    await r.campaigns.update(DEFAULT_TENANT_ID, campaign.id, { status: "ready_for_review" });
+
+    const eligibility = await evaluateCampaignQueueEligibility(r, {
+      campaignId: campaign.id,
+      tenantId: DEFAULT_TENANT_ID
+    });
+    expect(eligibility.canQueue).toBe(false);
+    expect(eligibility.eligibleRecipients).toHaveLength(0);
+    await expect(
+      queueCampaignSendJob(r, {
+        campaignId: campaign.id,
+        confirmation: "QUEUE SIMULATION",
+        tenantId: DEFAULT_TENANT_ID
+      })
+    ).rejects.toThrow(/not queueable/i);
+  });
+
+  it("stores minute-based delay intervals on queued jobs", async () => {
+    const { campaign, repos: r } = await prepareApprovedCampaign(1);
+    const { job } = await queueCampaignSendJob(r, {
+      batchSize: 1,
+      campaignId: campaign.id,
+      confirmation: "QUEUE SIMULATION",
+      delayMs: 5 * 60_000,
+      tenantId: DEFAULT_TENANT_ID
+    });
+    expect(job.delayMs).toBe(300_000);
+  });
+
+  it("waits until scheduled start before processing", async () => {
+    const { campaign, repos: r } = await prepareApprovedCampaign(1);
+    const provider = new ScriptedProvider();
+    const future = new Date(Date.now() + 60_000).toISOString();
+    const { job } = await queueCampaignSendJob(r, {
+      campaignId: campaign.id,
+      confirmation: "QUEUE SIMULATION",
+      scheduledStartAt: future,
+      tenantId: DEFAULT_TENANT_ID
+    });
+    expect(job.queuedAt).toBe(future);
+
+    const result = await processNextCampaignBatch(r, provider, {
+      sendJobId: job.id,
+      tenantId: DEFAULT_TENANT_ID
+    });
+    expect(result.stopReason).toBe("scheduled");
+    expect(provider.calls).toHaveLength(0);
+  });
+
+  it("blocks brevo queueing when real campaign sending is disabled", async () => {
+    const previous = process.env.OUTREACH_REAL_SEND_ENABLED;
+    process.env.OUTREACH_REAL_SEND_ENABLED = "false";
+    try {
+      const { campaign, repos: r } = await prepareApprovedCampaign(1);
+      const eligibility = await evaluateCampaignQueueEligibility(r, {
+        campaignId: campaign.id,
+        deliveryMode: "brevo",
+        provider: "brevo",
+        tenantId: DEFAULT_TENANT_ID
+      });
+      expect(eligibility.providerReady).toBe(false);
+      expect(eligibility.canQueue).toBe(false);
+    } finally {
+      process.env.OUTREACH_REAL_SEND_ENABLED = previous;
+    }
+  });
+
+  it("skips duplicate emails when queueing", async () => {
+    const { campaign, repos: r } = await prepareApprovedCampaign(2);
+    const recipients = await r.campaignRecipients.listForCampaign(DEFAULT_TENANT_ID, campaign.id);
+    const sharedEmail = recipients[0].snapshotEmail;
+    await r.campaignRecipients.updateDraft(DEFAULT_TENANT_ID, recipients[1].id, {
+      snapshotEmail: sharedEmail
+    });
+    await approveRecipientDraft(r, DEFAULT_TENANT_ID, campaign.id, recipients[1].id);
+
+    const eligibility = await evaluateCampaignQueueEligibility(r, {
+      campaignId: campaign.id,
+      tenantId: DEFAULT_TENANT_ID
+    });
+    expect(eligibility.eligibleRecipients).toHaveLength(1);
+    expect(
+      eligibility.excludedRecipients.some((row) => row.reason === "duplicate_email" || row.reason === "approval_stale")
+    ).toBe(true);
+  });
 });

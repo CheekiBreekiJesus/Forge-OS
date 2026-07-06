@@ -200,6 +200,7 @@ export type QueueSendJobInput = {
   dailyLimit?: number;
   maxRetries?: number;
   actorId?: string;
+  scheduledStartAt?: string | null;
   confirmation: "QUEUE SIMULATION" | "QUEUE BREVO";
 };
 
@@ -226,7 +227,8 @@ export type ProcessBatchResult = {
     | "daily_limit_reached"
     | "provider_invalid"
     | "lock_busy"
-    | "nothing_to_process";
+    | "nothing_to_process"
+    | "scheduled";
 };
 
 export type SendJobDeliveryProvider = {

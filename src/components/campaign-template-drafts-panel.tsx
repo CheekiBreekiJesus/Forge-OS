@@ -57,6 +57,7 @@ export function CampaignTemplateDraftsPanel({
 }: CampaignTemplateDraftsPanelProps) {
   const copy = dictionary.leadops.campaigns.templates;
   const draftCopy = dictionary.leadops.campaigns.drafts;
+  const workflowCopy = dictionary.leadops.campaigns.workflow;
   const included = useMemo(() => recipients.filter((row) => row.status === "included"), [recipients]);
 
   const [subjectTemplate, setSubjectTemplate] = useState(campaign.subjectTemplate);
@@ -252,7 +253,11 @@ export function CampaignTemplateDraftsPanel({
     TEMPLATE_VARIABLE_LABELS[key][locale === "pt-PT" ? "pt-PT" : "en"];
 
   return (
-    <div className="grid gap-4 xl:grid-cols-2">
+    <div className="grid gap-4 xl:col-span-2 xl:grid-cols-2">
+      <div className="grid gap-4 xl:col-span-2" data-testid="campaign-workflow-step-draft">
+        <p className="text-xs font-semibold uppercase tracking-wide text-orange-300 xl:col-span-2">
+          {workflowCopy.steps.draft}
+        </p>
       <section className={`${panelClass} p-5 xl:col-span-2`} data-testid="campaign-template-editor">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -416,14 +421,6 @@ export function CampaignTemplateDraftsPanel({
               <option value="unsafe">{dictionary.leadops.campaigns.review.unsafeReasons}</option>
             </select>
           </label>
-          <CampaignBulkApprovalBar
-            campaignId={campaignId}
-            dictionary={dictionary}
-            onNotify={onNotify}
-            onRecipientsUpdated={reloadRecipients}
-            repos={repos}
-            tenantId={tenantId}
-          />
           {preview ? (
             <p className="text-xs text-slate-500">
               {draftCopy.countSummary
@@ -572,21 +569,38 @@ export function CampaignTemplateDraftsPanel({
           </div>
         </section>
       ) : null}
+      </div>
 
-      {selectedRecipient ? (
-        <CampaignRecipientReviewPanel
-          campaign={campaign}
-          campaignId={campaignId}
-          dictionary={dictionary}
-          locale={locale}
-          onCampaignUpdated={onCampaignUpdated}
-          onNotify={onNotify}
-          onRecipientsUpdated={reloadRecipients}
-          recipient={selectedRecipient}
-          repos={repos}
-          tenantId={tenantId}
-        />
-      ) : null}
+      <div className="grid gap-4 xl:col-span-2" data-testid="campaign-workflow-step-approve">
+        <p className="text-xs font-semibold uppercase tracking-wide text-orange-300 xl:col-span-2">
+          {workflowCopy.steps.approve}
+        </p>
+        <div className={`${panelClass} p-5 xl:col-span-2`}>
+          <CampaignBulkApprovalBar
+            campaignId={campaignId}
+            dictionary={dictionary}
+            onNotify={onNotify}
+            onRecipientsUpdated={reloadRecipients}
+            repos={repos}
+            tenantId={tenantId}
+          />
+        </div>
+
+        {selectedRecipient ? (
+          <CampaignRecipientReviewPanel
+            campaign={campaign}
+            campaignId={campaignId}
+            dictionary={dictionary}
+            locale={locale}
+            onCampaignUpdated={onCampaignUpdated}
+            onNotify={onNotify}
+            onRecipientsUpdated={reloadRecipients}
+            recipient={selectedRecipient}
+            repos={repos}
+            tenantId={tenantId}
+          />
+        ) : null}
+      </div>
 
       {feedback ? (
         <p className="text-sm text-green-400 xl:col-span-2" data-testid="campaign-draft-feedback">
