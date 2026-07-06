@@ -21,7 +21,8 @@ import {
 import { usePersistence } from "@/persistence/provider";
 import { APP_VERSION, DEMO_DB_NAME, SCHEMA_VERSION, SEED_VERSION } from "@/domain/constants";
 import { readPersistenceMode } from "@/persistence/mode";
-import type { EmailProviderDiagnostic } from "@/domain/email-delivery-types";
+import type { EmailDeliverySelfTestResult, EmailProviderDiagnostic } from "@/domain/email-delivery-types";
+import { persistEmailDeliverySelfTestResult } from "@/application/email-delivery-self-test-client";
 
 type SettingsSection =
   | "company"
@@ -610,9 +611,17 @@ function IntegrationsSection({
 
 function ProviderDiagnosticPanel({ s }: { s: Dictionary["settings"] }) {
   const t = s.integrations.provider;
+  const { state, tenantId } = usePersistence();
   const [diagnostic, setDiagnostic] = useState<EmailProviderDiagnostic | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [recipientEmail, setRecipientEmail] = useState("");
+  const [subject, setSubject] = useState(t.defaultSubject);
+  const [messageBody, setMessageBody] = useState(t.defaultBody);
+  const [confirmation, setConfirmation] = useState("");
+  const [sending, setSending] = useState(false);
+  const [selfTestResult, setSelfTestResult] = useState<EmailDeliverySelfTestResult | null>(null);
+  const [selfTestFeedback, setSelfTestFeedback] = useState<string | null>(null);
 
   async function refresh() {
     setLoading(true);
@@ -622,7 +631,11 @@ function ProviderDiagnosticPanel({ s }: { s: Dictionary["settings"] }) {
         method: "GET"
       });
       if (!response.ok) throw new Error("diagnostic_failed");
-      setDiagnostic((await response.json()) as EmailProviderDiagnostic);
+      const payload = (await response.json()) as EmailProviderDiagnostic;
+      setDiagnostic(payload);
+      if (!recipientEmail && payload.configuredTestRecipientEmail) {
+        setRecipientEmail(payload.configuredTestRecipientEmail);
+      }
     } catch {
       setError(t.unavailable);
     } finally {
@@ -636,8 +649,63 @@ function ProviderDiagnosticPanel({ s }: { s: Dictionary["settings"] }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load diagnostic once on panel mount
   }, []);
 
+  async function submitSelfTest(event: FormEvent) {
+    event.preventDefault();
+    setSending(true);
+    setSelfTestResult(null);
+    setSelfTestFeedback(null);
+    try {
+      const response = await fetch("/api/leadops/email-provider/self-test", {
+        body: JSON.stringify({
+          confirmation,
+          initiatedBy: "settings-self-test",
+          messageBody,
+          recipientEmail,
+          subject
+        }),
+        headers: { "content-type": "application/json" },
+        method: "POST"
+      });
+      const payload = (await response.json()) as EmailDeliverySelfTestResult & { error?: string };
+      setSelfTestResult(payload);
+      if (state.status === "ready") {
+        await persistEmailDeliverySelfTestResult(state.repos, tenantId, {
+          initiatedBy: "settings-self-test",
+          messageBody,
+          recipientEmail,
+          subject
+        }, payload);
+        setSelfTestFeedback(t.savedLocally);
+      }
+      if (payload.status === "accepted") {
+        setSelfTestFeedback(`${t.resultAccepted} ${t.savedLocally}`);
+      } else if (payload.status === "blocked") {
+        setSelfTestFeedback(`${t.resultBlocked}: ${payload.errorMessage ?? payload.errorCode ?? response.status}`);
+      } else if (payload.status === "failed") {
+        setSelfTestFeedback(`${t.resultFailed}: ${payload.errorMessage ?? payload.errorCode ?? response.status}`);
+      }
+    } catch {
+      setSelfTestFeedback(t.unavailable);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  const gmailStatus =
+    diagnostic?.emailDeliveryProvider === "gmail"
+      ? diagnostic.gmailConfigured
+        ? t.yes
+        : t.notConfiguredYet
+      : t.notConfiguredYet;
+  const outlookStatus =
+    diagnostic?.emailDeliveryProvider === "outlook"
+      ? diagnostic.outlookConfigured
+        ? t.yes
+        : t.notConfiguredYet
+      : t.notConfiguredYet;
+
   return (
-    <article className="mt-4 rounded-lg border border-slate-800 bg-slate-950/40 p-4">
+    <article className="mt-4 rounded-lg border border-slate-800 bg-slate-950/40 p-4" data-testid="email-delivery-diagnostics">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="font-semibold">{t.title}</h3>
@@ -651,15 +719,21 @@ function ProviderDiagnosticPanel({ s }: { s: Dictionary["settings"] }) {
       {error ? <p className="mt-3 text-sm text-red-300">{error}</p> : null}
       {diagnostic ? (
         <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <DiagnosticRow label={t.emailDeliveryProvider} value={diagnostic.emailDeliveryProvider} />
+          <DiagnosticRow label={t.outreachDeliveryProvider} value={diagnostic.outreachDeliveryProvider} />
           <DiagnosticRow label={t.provider} value={diagnostic.provider} />
           <DiagnosticRow label={t.configured} value={diagnostic.configured ? t.yes : t.no} />
           <DiagnosticRow label={t.realSend} value={diagnostic.realSendEnabled ? t.yes : t.no} />
           <DiagnosticRow label={t.testSend} value={diagnostic.testSendEnabled ? t.yes : t.no} />
           <DiagnosticRow label={t.apiKey} value={diagnostic.apiKeyPresent ? t.yes : t.no} />
           <DiagnosticRow
-            label={t.sender}
-            value={diagnostic.senderEmailConfigured && diagnostic.senderNameConfigured ? t.yes : t.no}
+            label={t.apiKeyRedacted}
+            value={diagnostic.brevoApiKeyRedacted ?? t.no}
           />
+          <DiagnosticRow label={t.senderEmail} value={diagnostic.senderEmail ?? t.no} />
+          <DiagnosticRow label={t.senderName} value={diagnostic.senderName ?? t.no} />
+          <DiagnosticRow label={t.gmail} value={gmailStatus} />
+          <DiagnosticRow label={t.outlook} value={outlookStatus} />
           <DiagnosticRow
             label={t.allowlist}
             value={`${diagnostic.allowlistConfigured ? t.yes : t.no} (${diagnostic.allowlistCount})`}
@@ -675,6 +749,50 @@ function ProviderDiagnosticPanel({ s }: { s: Dictionary["settings"] }) {
           ) : null}
         </div>
       ) : null}
+
+      <form className="mt-6 grid gap-3 border-t border-slate-800 pt-4" onSubmit={submitSelfTest}>
+        <div>
+          <h4 className="font-semibold">{t.selfTestTitle}</h4>
+          <p className="mt-1 text-sm text-slate-400">{t.selfTestDescription}</p>
+        </div>
+        <TextField label={t.recipientEmail} onChange={setRecipientEmail} value={recipientEmail} />
+        <TextField label={t.subject} onChange={setSubject} value={subject} />
+        <label className="grid gap-1 text-sm">
+          <span className="text-xs uppercase tracking-wide text-slate-500">{t.messageBody}</span>
+          <textarea
+            className="min-h-24 rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100"
+            onChange={(event) => setMessageBody(event.target.value)}
+            value={messageBody}
+          />
+        </label>
+        <TextField label={t.confirmation} onChange={setConfirmation} value={confirmation} />
+        <div>
+          <button
+            className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
+            disabled={sending || !diagnostic?.testSendEnabled}
+            type="submit"
+          >
+            {sending ? t.sending : t.sendSelfTest}
+          </button>
+        </div>
+        {selfTestFeedback ? <p className="text-sm text-slate-300">{selfTestFeedback}</p> : null}
+        {selfTestResult ? (
+          <pre className="overflow-x-auto rounded-md border border-slate-800 bg-slate-900/60 p-3 text-xs text-slate-200">
+            {JSON.stringify(
+              {
+                errorCode: selfTestResult.errorCode,
+                errorMessage: selfTestResult.errorMessage,
+                mode: selfTestResult.mode,
+                provider: selfTestResult.provider,
+                providerMessageId: selfTestResult.providerMessageId,
+                status: selfTestResult.status
+              },
+              null,
+              2
+            )}
+          </pre>
+        ) : null}
+      </form>
     </article>
   );
 }

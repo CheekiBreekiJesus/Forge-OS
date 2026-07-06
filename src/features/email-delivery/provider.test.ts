@@ -145,6 +145,37 @@ describe("BrevoEmailDeliveryProvider", () => {
     expect(body.htmlContent).toContain("Opt out of future outreach");
   });
 
+  it("allows delivery self-test when real campaign sending is disabled", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ messageId: "<self-test@relay.example>" }), { status: 201 })
+    );
+    const provider = new BrevoEmailDeliveryProvider(
+      readEmailDeliveryConfig({
+        BREVO_API_KEY: "test-api-key",
+        BREVO_SENDER_EMAIL: "sender@example.com",
+        BREVO_SENDER_NAME: "ForgeOS",
+        EMAIL_DELIVERY_PROVIDER: "brevo",
+        OUTREACH_REAL_SEND_ENABLED: "false",
+        OUTREACH_TEST_RECIPIENT_ALLOWLIST: "qa@example.com",
+        OUTREACH_TEST_SEND_ENABLED: "true"
+      })
+    );
+
+    const result = await provider.send({
+      ...request,
+      campaignId: "__email_delivery_self_test__",
+      campaignRecipientId: "__email_delivery_self_test__",
+      leadId: "__email_delivery_self_test__",
+      mode: "delivery_self_test",
+      unsubscribeUrl: undefined
+    });
+    const [, init] = fetchSpy.mock.calls[0]!;
+    const body = JSON.parse(String(init?.body));
+
+    expect(result.status).toBe("accepted");
+    expect(body.tags).toEqual(["forgeos:self-test"]);
+  });
+
   it("sanitizes provider error messages and classifies rate limits as retryable", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(

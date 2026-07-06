@@ -20,9 +20,13 @@ export class SimulationEmailDeliveryProvider implements EmailDeliveryProvider {
   }
 
   async send(request: EmailDeliveryRequest): Promise<EmailDeliveryResponse> {
+    const mode =
+      request.mode === "provider_test" || request.mode === "delivery_self_test"
+        ? request.mode
+        : "simulation";
     return {
       provider: "simulation",
-      mode: request.mode === "provider_test" ? "provider_test" : "simulation",
+      mode,
       status: "accepted",
       providerMessageId: `simulation-${request.idempotencyKey}`,
       retryable: false,

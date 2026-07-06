@@ -31,6 +31,22 @@ function readProvider(value: string | undefined): EmailDeliveryProviderKey {
   return value?.trim().toLowerCase() === "brevo" ? "brevo" : "simulation";
 }
 
+function readProviderLabel(value: string | undefined): string {
+  const normalized = value?.trim().toLowerCase();
+  if (!normalized) return "simulation";
+  if (normalized === "brevo") return "brevo";
+  if (normalized === "gmail") return "gmail";
+  if (normalized === "outlook") return "outlook";
+  return normalized;
+}
+
+export function redactApiKey(apiKey: string): string | null {
+  const trimmed = apiKey.trim();
+  if (!trimmed) return null;
+  if (trimmed.length <= 8) return "[configured]";
+  return `${trimmed.slice(0, 4)}…${trimmed.slice(-4)}`;
+}
+
 function readAllowlist(value: string | undefined): string[] {
   return Array.from(
     new Set(
@@ -68,10 +84,17 @@ export function readEmailDeliveryConfig(
 }
 
 export function buildEmailProviderDiagnostic(
-  config: EmailDeliveryConfig
+  config: EmailDeliveryConfig,
+  env: Record<string, string | undefined> = process.env
 ): EmailProviderDiagnostic {
   const missing: string[] = [];
   const warnings: string[] = [];
+  const emailDeliveryProvider = readProviderLabel(env.EMAIL_DELIVERY_PROVIDER);
+  const outreachDeliveryProvider = readProviderLabel(
+    env.OUTREACH_DELIVERY_PROVIDER ?? env.EMAIL_DELIVERY_PROVIDER
+  );
+  const gmailConfigured = readBoolean(env.GMAIL_SEND_ENABLED);
+  const outlookConfigured = readBoolean(env.OUTLOOK_GRAPH_ENABLED);
 
   if (config.provider === "brevo") {
     if (!config.brevoApiKey) missing.push("BREVO_API_KEY");
@@ -90,21 +113,36 @@ export function buildEmailProviderDiagnostic(
     }
   }
 
+  if (emailDeliveryProvider === "gmail" && !gmailConfigured) {
+    warnings.push("Gmail provider is not configured yet.");
+  }
+  if (emailDeliveryProvider === "outlook" && !outlookConfigured) {
+    warnings.push("Outlook provider is not configured yet.");
+  }
+
   return {
     provider: config.provider,
+    emailDeliveryProvider,
+    outreachDeliveryProvider,
     configured: config.provider === "simulation" || missing.length === 0,
     realSendEnabled: config.realSendEnabled,
     testSendEnabled: config.testSendEnabled,
     sandboxMode: config.provider !== "brevo" || !config.realSendEnabled,
     apiKeyPresent: Boolean(config.brevoApiKey),
+    brevoApiKeyRedacted: redactApiKey(config.brevoApiKey),
+    senderEmail: EMAIL_RE.test(config.brevoSenderEmail) ? config.brevoSenderEmail : null,
+    senderName: config.brevoSenderName || null,
     senderEmailConfigured: EMAIL_RE.test(config.brevoSenderEmail),
     senderNameConfigured: Boolean(config.brevoSenderName),
     replyToConfigured: !config.brevoReplyTo || EMAIL_RE.test(config.brevoReplyTo),
     allowlistConfigured: config.testRecipientAllowlist.length > 0,
     allowlistCount: config.testRecipientAllowlist.length,
+    configuredTestRecipientEmail: config.testRecipientAllowlist[0] ?? null,
     publicBaseUrlConfigured: isValidPublicBaseUrl(config.publicBaseUrl),
     unsubscribeSecretConfigured: config.unsubscribeSigningSecret.length >= 32,
     webhookSecretConfigured: config.webhookSecret.length >= 24,
+    gmailConfigured,
+    outlookConfigured,
     missing,
     warnings
   };

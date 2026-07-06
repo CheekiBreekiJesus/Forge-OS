@@ -24,6 +24,9 @@ describe("/api/leadops/email-provider/diagnostic", () => {
     expect(response.status).toBe(200);
     expect(payload.provider).toBe("brevo");
     expect(payload.apiKeyPresent).toBe(true);
+    expect(payload.emailDeliveryProvider).toBe("brevo");
+    expect(payload.senderEmail).toBe("sender@example.com");
+    expect(payload.brevoApiKeyRedacted).not.toContain("test-api-key");
     expect(payload.configured).toBe(true);
     expect(JSON.stringify(payload)).not.toContain("test-api-key");
   });

@@ -1,6 +1,6 @@
 export type EmailDeliveryProviderKey = "simulation" | "brevo";
 
-export type EmailDeliveryMode = "simulation" | "provider_test";
+export type EmailDeliveryMode = "simulation" | "provider_test" | "delivery_self_test";
 
 export type EmailDeliveryStatus =
   | "accepted"
@@ -26,21 +26,41 @@ export type EmailDeliveryErrorCode =
 
 export type EmailProviderDiagnostic = {
   provider: EmailDeliveryProviderKey;
+  emailDeliveryProvider: string;
+  outreachDeliveryProvider: string;
   configured: boolean;
   realSendEnabled: boolean;
   testSendEnabled: boolean;
   sandboxMode: boolean;
   apiKeyPresent: boolean;
+  brevoApiKeyRedacted: string | null;
+  senderEmail: string | null;
+  senderName: string | null;
   senderEmailConfigured: boolean;
   senderNameConfigured: boolean;
   replyToConfigured: boolean;
   allowlistConfigured: boolean;
   allowlistCount: number;
+  configuredTestRecipientEmail: string | null;
   publicBaseUrlConfigured: boolean;
   unsubscribeSecretConfigured: boolean;
   webhookSecretConfigured: boolean;
+  gmailConfigured: boolean;
+  outlookConfigured: boolean;
   missing: string[];
   warnings: string[];
+};
+
+export type EmailDeliverySelfTestInput = {
+  recipientEmail: string;
+  subject: string;
+  messageBody: string;
+  confirmation: string;
+  initiatedBy?: string;
+};
+
+export type EmailDeliverySelfTestResult = EmailDeliveryResponse & {
+  idempotencyKey: string;
 };
 
 export type EmailDeliveryRequest = {

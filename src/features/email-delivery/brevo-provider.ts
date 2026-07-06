@@ -7,12 +7,14 @@ import type {
 import {
   buildEmailProviderDiagnostic,
   isAllowlistedTestRecipient,
+  redactApiKey,
   type EmailDeliveryConfig
 } from "./config";
 import type { EmailDeliveryProvider } from "./provider";
 import { assertServerOnlyModule } from "./server-only";
 
 const BREVO_ENDPOINT = "https://api.brevo.com/v3/smtp/email";
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 assertServerOnlyModule();
 
@@ -34,21 +36,43 @@ export class BrevoEmailDeliveryProvider implements EmailDeliveryProvider {
 
   async send(request: EmailDeliveryRequest): Promise<EmailDeliveryResponse> {
     const diagnostic = this.diagnostic();
-    if (!diagnostic.configured) {
-      return blocked("configuration_missing", "Brevo email delivery is not fully configured.");
+    const isSelfTest = request.mode === "delivery_self_test";
+
+    if (isSelfTest) {
+      if (!this.config.testSendEnabled) {
+        return blocked("test_send_disabled", "Email delivery self-test is disabled.", request.mode);
+      }
+      if (!this.config.brevoApiKey) {
+        return blocked("configuration_missing", "BREVO_API_KEY is missing.", request.mode);
+      }
+      if (!EMAIL_RE.test(this.config.brevoSenderEmail)) {
+        return blocked("configuration_missing", "BREVO_SENDER_EMAIL is missing or invalid.", request.mode);
+      }
+      if (!this.config.brevoSenderName) {
+        return blocked("configuration_missing", "BREVO_SENDER_NAME is missing.", request.mode);
+      }
+      if (!isAllowlistedTestRecipient(this.config, request.toEmail)) {
+        return blocked("recipient_not_allowed", "The self-test recipient is not allowlisted.", request.mode);
+      }
+    } else {
+      if (!diagnostic.configured) {
+        return blocked("configuration_missing", "Brevo email delivery is not fully configured.", request.mode);
+      }
+      if (!this.config.realSendEnabled) {
+        return blocked("real_send_disabled", "Real email delivery is disabled.", request.mode);
+      }
+      if (request.mode === "provider_test" && !this.config.testSendEnabled) {
+        return blocked("test_send_disabled", "Protected test email delivery is disabled.", request.mode);
+      }
+      if (request.mode === "provider_test" && !isAllowlistedTestRecipient(this.config, request.toEmail)) {
+        return blocked("recipient_not_allowed", "The test recipient is not allowlisted.", request.mode);
+      }
+      if (!request.unsubscribeUrl?.trim()) {
+        return blocked("invalid_request", "Real provider delivery requires a valid unsubscribe URL.", request.mode);
+      }
     }
-    if (!this.config.realSendEnabled) {
-      return blocked("real_send_disabled", "Real email delivery is disabled.");
-    }
-    if (request.mode === "provider_test" && !this.config.testSendEnabled) {
-      return blocked("test_send_disabled", "Protected test email delivery is disabled.");
-    }
-    if (request.mode === "provider_test" && !isAllowlistedTestRecipient(this.config, request.toEmail)) {
-      return blocked("recipient_not_allowed", "The test recipient is not allowlisted.");
-    }
-    if (!request.unsubscribeUrl?.trim()) {
-      return blocked("invalid_request", "Real provider delivery requires a valid unsubscribe URL.");
-    }
+
+    logDevelopmentSendAttempt(request, this.config.brevoApiKey);
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.config.timeoutMs);
@@ -68,7 +92,7 @@ export class BrevoEmailDeliveryProvider implements EmailDeliveryProvider {
       const payload = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        return failed(response.status, payload as BrevoErrorPayload, this.config.brevoApiKey);
+        return failed(response.status, payload as BrevoErrorPayload, this.config.brevoApiKey, request.mode);
       }
 
       const success = payload as BrevoSuccessPayload;
@@ -109,8 +133,11 @@ export class BrevoEmailDeliveryProvider implements EmailDeliveryProvider {
 
   private buildPayload(request: EmailDeliveryRequest) {
     const unsubscribeUrl = request.unsubscribeUrl ?? "";
+    const isSelfTest = request.mode === "delivery_self_test";
     const payload: Record<string, unknown> = {
-      htmlContent: appendHtmlUnsubscribe(request.html, unsubscribeUrl),
+      htmlContent: isSelfTest
+        ? request.html
+        : appendHtmlUnsubscribe(request.html, unsubscribeUrl),
       replyTo: this.config.brevoReplyTo
         ? { email: this.config.brevoReplyTo, name: this.config.brevoSenderName }
         : undefined,
@@ -119,12 +146,16 @@ export class BrevoEmailDeliveryProvider implements EmailDeliveryProvider {
         name: this.config.brevoSenderName
       },
       subject: request.subject,
-      tags: [
-        `tenant:${request.tenantId}`,
-        `campaign:${request.campaignId}`,
-        `recipient:${request.campaignRecipientId}`
-      ],
-      textContent: appendTextUnsubscribe(request.plainText, unsubscribeUrl),
+      tags: isSelfTest
+        ? ["forgeos:self-test"]
+        : [
+            `tenant:${request.tenantId}`,
+            `campaign:${request.campaignId}`,
+            `recipient:${request.campaignRecipientId}`
+          ],
+      textContent: isSelfTest
+        ? request.plainText
+        : appendTextUnsubscribe(request.plainText, unsubscribeUrl),
       to: [
         {
           email: request.toEmail,
@@ -152,11 +183,12 @@ function escapeHtml(value: string): string {
 
 function blocked(
   errorCode: EmailDeliveryErrorCode,
-  errorMessage: string
+  errorMessage: string,
+  mode: EmailDeliveryRequest["mode"] = "provider_test"
 ): EmailDeliveryResponse {
   return {
     provider: "brevo",
-    mode: "provider_test",
+    mode,
     status: "blocked",
     providerMessageId: null,
     retryable: false,
@@ -165,11 +197,16 @@ function blocked(
   };
 }
 
-function failed(status: number, payload: BrevoErrorPayload, apiKey: string): EmailDeliveryResponse {
+function failed(
+  status: number,
+  payload: BrevoErrorPayload,
+  apiKey: string,
+  mode: EmailDeliveryRequest["mode"]
+): EmailDeliveryResponse {
   const mapped = mapBrevoError(status, payload.code);
   return {
     provider: "brevo",
-    mode: "provider_test",
+    mode,
     status: "failed",
     providerMessageId: null,
     retryable: mapped.retryable,
@@ -199,4 +236,19 @@ function sanitizeProviderMessage(message: string | undefined, apiKey: string): s
   const apiKeyPattern = escapedKey ? new RegExp(escapedKey, "g") : null;
   const redacted = message.replace(/xkeysib-[a-z0-9-]+/gi, "[redacted]");
   return (apiKeyPattern ? redacted.replace(apiKeyPattern, "[redacted]") : redacted).slice(0, 240);
+}
+
+function logDevelopmentSendAttempt(request: EmailDeliveryRequest, apiKey: string): void {
+  if (process.env.NODE_ENV === "production") return;
+  const runtimeMode = process.env.FORGEOS_RUNTIME_MODE?.trim().toLowerCase();
+  if (runtimeMode && runtimeMode !== "development") return;
+
+  console.info("[email-delivery] provider send attempt", {
+    mode: request.mode,
+    provider: "brevo",
+    recipient: request.toEmail,
+    subject: request.subject,
+    apiKey: redactApiKey(apiKey),
+    campaignRecipientId: request.campaignRecipientId || null
+  });
 }
