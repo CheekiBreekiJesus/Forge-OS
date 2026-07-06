@@ -522,6 +522,37 @@ export type Dictionary = {
         resultFailed: string;
         defaultSubject: string;
         defaultBody: string;
+        runtimeStartupMode: string;
+        demoStartWarning: string;
+        lastEmailTestTitle: string;
+        lastEmailTestEmpty: string;
+        testedAt: string;
+        status: string;
+        recipient: string;
+        providerMessageId: string;
+        error: string;
+      };
+      outreachTestProfile: {
+        title: string;
+        description: string;
+        companyName: string;
+        companyWebsite: string;
+        senderDisplayName: string;
+        senderEmail: string;
+        replyToEmail: string;
+        defaultTestRecipient: string;
+        defaultSignature: string;
+        defaultOptOutLine: string;
+        defaultProductFocus: string;
+        campaignLanguage: string;
+        save: string;
+        saved: string;
+        loadDefaults: string;
+        loadedDefaults: string;
+        reset: string;
+        resetConfirm: string;
+        resetDone: string;
+        loading: string;
       };
     };
     backup: {

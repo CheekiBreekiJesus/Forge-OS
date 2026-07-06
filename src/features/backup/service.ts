@@ -26,6 +26,7 @@ import type {
 import type { EmailSuppression } from "@/domain/suppression-types";
 import type { ImportBatch, ImportRow, LeadContact, ImportMappingProfile } from "@/domain/import-types";
 import type { CustomizerSimulation } from "@/domain/customizer-types";
+import type { OutreachTestProfile } from "@/domain/outreach-test-profile-types";
 import type { Machine, InventoryItem, StockMovement, CustomerContact } from "@/domain/operations-types";
 import { APP_VERSION, LOCAL_DB_NAME, SCHEMA_VERSION } from "@/domain/constants";
 import type { LocalRepositoryBundle } from "@/persistence/interfaces";
@@ -69,7 +70,8 @@ export const BACKUP_TABLE_KEYS = [
   "outreachSendJobs",
   "outreachSendJobRecipients",
   "outreachSendJobAttempts",
-  "outreachSendJobDailyUsage"
+  "outreachSendJobDailyUsage",
+  "outreachTestProfiles"
 ] as const;
 
 export const INDEXEDDB_DATA_TABLE_KEYS = [...BACKUP_TABLE_KEYS, "localAssets"] as const;
@@ -112,6 +114,7 @@ export type ForgeOSBackup = {
     outreachSendJobRecipients: OutreachSendJobRecipient[];
     outreachSendJobAttempts: OutreachSendJobAttempt[];
     outreachSendJobDailyUsage: OutreachSendJobDailyUsage[];
+    outreachTestProfiles: OutreachTestProfile[];
   };
   localAssets?: Array<Omit<LocalAsset, "blob"> & { blobBase64: string }>;
 };
@@ -171,7 +174,8 @@ export async function exportBackup(
     outreachSendJobRecipients,
     outreachSendJobAttempts,
     outreachSendJobDailyUsage,
-    assets
+    assets,
+    outreachTestProfile
   ] = await Promise.all([
     repos.leads.list(tenantId),
     repos.customers.list(tenantId),
@@ -233,7 +237,8 @@ export async function exportBackup(
       );
       return rows.filter((row): row is OutreachSendJobDailyUsage => Boolean(row));
     }),
-    includeAssets ? repos.localAssets.list(tenantId) : Promise.resolve([])
+    includeAssets ? repos.localAssets.list(tenantId) : Promise.resolve([]),
+    repos.outreachTestProfiles.getForTenant(tenantId).then((row) => row)
   ]);
 
   const customerContacts = await listCustomerContactsForTenant(repos, tenantId, customers);
@@ -267,7 +272,8 @@ export async function exportBackup(
     outreachSendJobs,
     outreachSendJobRecipients,
     outreachSendJobAttempts,
-    outreachSendJobDailyUsage
+    outreachSendJobDailyUsage,
+    outreachTestProfiles: outreachTestProfile ? [outreachTestProfile] : []
   };
 
   const recordCounts = Object.fromEntries(
@@ -370,7 +376,8 @@ export async function importBackup(
       outreachSendJobs: backup.tables.outreachSendJobs ?? [],
       outreachSendJobRecipients: backup.tables.outreachSendJobRecipients ?? [],
       outreachSendJobAttempts: backup.tables.outreachSendJobAttempts ?? [],
-      outreachSendJobDailyUsage: backup.tables.outreachSendJobDailyUsage ?? []
+      outreachSendJobDailyUsage: backup.tables.outreachSendJobDailyUsage ?? [],
+      outreachTestProfiles: backup.tables.outreachTestProfiles ?? []
     }
   });
   const report = validateBackupRestoreIntegrity(normalized);

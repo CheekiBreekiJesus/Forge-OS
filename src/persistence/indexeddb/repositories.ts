@@ -45,6 +45,7 @@ import {
   createSenderIdentityRepository,
   createUserProfileRepository
 } from "./profile-repositories";
+import { createOutreachTestProfileRepository } from "./outreach-test-profile-repository";
 import { createProductRepository, demoProductToCreateInput } from "./product-repositories";
 import { createCustomizerSimulationRepository } from "./customizer-repositories";
 import {
@@ -1207,7 +1208,8 @@ export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
       db.outreachSendJobs,
       db.outreachSendJobRecipients,
       db.outreachSendJobAttempts,
-      db.outreachSendJobDailyUsage
+      db.outreachSendJobDailyUsage,
+      db.outreachTestProfiles
     ],
     async () => {
       await db.meta.clear();
@@ -1241,6 +1243,7 @@ export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
       await db.outreachSendJobRecipients.clear();
       await db.outreachSendJobAttempts.clear();
       await db.outreachSendJobDailyUsage.clear();
+      await db.outreachTestProfiles.clear();
     }
   );
 }
@@ -1278,7 +1281,8 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
       db.outreachSendJobs,
       db.outreachSendJobRecipients,
       db.outreachSendJobAttempts,
-      db.outreachSendJobDailyUsage
+      db.outreachSendJobDailyUsage,
+      db.outreachTestProfiles
   ] as const;
 
   await db.transaction("rw", writableTables, async () => {
@@ -1313,6 +1317,7 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
     await db.outreachSendJobRecipients.clear();
     await db.outreachSendJobAttempts.clear();
     await db.outreachSendJobDailyUsage.clear();
+    await db.outreachTestProfiles.clear();
 
     await db.leads.bulkPut(tables.leads);
     await db.customers.bulkPut(tables.customers);
@@ -1343,6 +1348,7 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
       await db.outreachSendJobRecipients.bulkPut(tables.outreachSendJobRecipients ?? []);
       await db.outreachSendJobAttempts.bulkPut(tables.outreachSendJobAttempts ?? []);
       await db.outreachSendJobDailyUsage.bulkPut(tables.outreachSendJobDailyUsage ?? []);
+      await db.outreachTestProfiles.bulkPut(tables.outreachTestProfiles ?? []);
       if (localAssets) {
         for (const asset of localAssets) {
           const binary = atob(asset.blobBase64);
@@ -1404,6 +1410,7 @@ export function createLocalRepositoryBundle(db: ForgeOSDatabase) {
   const outreachSendJobRecipients = createOutreachSendJobRecipientRepository(db);
   const outreachSendJobAttempts = createOutreachSendJobAttemptRepository(db);
   const outreachSendJobDailyUsage = createOutreachSendJobDailyUsageRepository(db);
+  const outreachTestProfiles = createOutreachTestProfileRepository(db);
 
   return {
     meta,
@@ -1436,6 +1443,7 @@ export function createLocalRepositoryBundle(db: ForgeOSDatabase) {
     outreachSendJobRecipients,
     outreachSendJobAttempts,
     outreachSendJobDailyUsage,
+    outreachTestProfiles,
     async reset() {
       assertLocalDemoLifecycleAllowed();
       await resetDatabase(db);

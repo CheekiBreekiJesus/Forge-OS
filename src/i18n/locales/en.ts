@@ -870,7 +870,40 @@ export const dictionary: Dictionary = {
         resultBlocked: "Self-test blocked",
         resultFailed: "Self-test failed",
         defaultSubject: "ForgeOS email delivery self-test",
-        defaultBody: "This is a ForgeOS email delivery self-test message."
+        defaultBody: "This is a ForgeOS email delivery self-test message.",
+        runtimeStartupMode: "Runtime startup mode",
+        demoStartWarning:
+          "npm run demo:start always forces simulation mode. To test Brevo, start with .\\node_modules\\.bin\\next.cmd dev --port 3000.",
+        lastEmailTestTitle: "Last email test result",
+        lastEmailTestEmpty: "No self-test has been run yet.",
+        testedAt: "Timestamp",
+        status: "Status",
+        recipient: "Recipient",
+        providerMessageId: "Provider message ID",
+        error: "Error"
+      },
+      outreachTestProfile: {
+        title: "Outreach test profile",
+        description:
+          "Persist local outreach defaults in IndexedDB for faster campaign and self-test setup. Secrets are never stored here.",
+        companyName: "Company name",
+        companyWebsite: "Company website",
+        senderDisplayName: "Sender display name",
+        senderEmail: "Sender email",
+        replyToEmail: "Reply-to email",
+        defaultTestRecipient: "Default test recipient",
+        defaultSignature: "Default signature",
+        defaultOptOutLine: "Default opt-out line",
+        defaultProductFocus: "Default product focus",
+        campaignLanguage: "Default campaign language",
+        save: "Save outreach test profile",
+        saved: "Outreach test profile saved.",
+        loadDefaults: "Load JH Gomes test defaults",
+        loadedDefaults: "JH Gomes test defaults loaded.",
+        reset: "Reset outreach test profile",
+        resetConfirm: "Clear the saved outreach test profile for this tenant?",
+        resetDone: "Outreach test profile cleared.",
+        loading: "Loading outreach test profile..."
       }
     },
     backup: {

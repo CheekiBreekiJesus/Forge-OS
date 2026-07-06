@@ -23,6 +23,9 @@ import { APP_VERSION, DEMO_DB_NAME, SCHEMA_VERSION, SEED_VERSION } from "@/domai
 import { readPersistenceMode } from "@/persistence/mode";
 import type { EmailDeliverySelfTestResult, EmailProviderDiagnostic } from "@/domain/email-delivery-types";
 import { persistEmailDeliverySelfTestResult } from "@/application/email-delivery-self-test-client";
+import { buildJhGomesOutreachTestProfileDefaults } from "@/features/outreach-test-profile/defaults";
+import type { UpsertOutreachTestProfileInput } from "@/domain/outreach-test-profile-types";
+import { useOutreachTestProfile } from "@/persistence/outreach-test-profile-hooks";
 
 type SettingsSection =
   | "company"
@@ -602,6 +605,7 @@ function IntegrationsSection({
           />
         ))}
       </div>
+      <OutreachTestProfilePanel s={s} />
       <ProviderDiagnosticPanel s={s} />
       {diag ? <p className="mt-4 text-sm text-slate-300">{diag}</p> : null}
       <HostedFeaturesDialog card={hostedCard} dictionary={dictionary} onClose={() => setHostedCard(null)} />
@@ -609,9 +613,129 @@ function IntegrationsSection({
   );
 }
 
+function OutreachTestProfilePanel({ s }: { s: Dictionary["settings"] }) {
+  const t = s.integrations.outreachTestProfile;
+  const { notifyDataChanged } = usePersistence();
+  const { loadDefaults, loading, profile, reset, save } = useOutreachTestProfile();
+  const defaults = buildJhGomesOutreachTestProfileDefaults();
+  const [form, setForm] = useState<UpsertOutreachTestProfileInput>(defaults);
+  const [feedback, setFeedback] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!profile) return;
+    setForm({
+      campaignLanguage: profile.campaignLanguage,
+      companyName: profile.companyName,
+      companyWebsite: profile.companyWebsite,
+      defaultOptOutLine: profile.defaultOptOutLine,
+      defaultProductFocus: profile.defaultProductFocus,
+      defaultSignature: profile.defaultSignature,
+      defaultTestRecipient: profile.defaultTestRecipient,
+      replyToEmail: profile.replyToEmail,
+      senderDisplayName: profile.senderDisplayName,
+      senderEmail: profile.senderEmail
+    });
+  }, [profile]);
+
+  async function handleSave(event: FormEvent) {
+    event.preventDefault();
+    await save(form);
+    notifyDataChanged();
+    setFeedback(t.saved);
+  }
+
+  return (
+    <article className="mt-4 rounded-lg border border-slate-800 bg-slate-950/40 p-4" data-testid="outreach-test-profile">
+      <h3 className="font-semibold">{t.title}</h3>
+      <p className="mt-1 text-sm text-slate-400">{t.description}</p>
+      {loading ? <p className="mt-3 text-sm text-slate-400">{t.loading}</p> : null}
+      <form className="mt-4 grid gap-3 md:grid-cols-2" onSubmit={handleSave}>
+        <TextField label={t.companyName} onChange={(v) => setForm({ ...form, companyName: v })} value={form.companyName} />
+        <TextField label={t.companyWebsite} onChange={(v) => setForm({ ...form, companyWebsite: v })} value={form.companyWebsite} />
+        <TextField label={t.senderDisplayName} onChange={(v) => setForm({ ...form, senderDisplayName: v })} value={form.senderDisplayName} />
+        <TextField label={t.senderEmail} onChange={(v) => setForm({ ...form, senderEmail: v })} value={form.senderEmail} />
+        <TextField label={t.replyToEmail} onChange={(v) => setForm({ ...form, replyToEmail: v })} value={form.replyToEmail} />
+        <TextField label={t.defaultTestRecipient} onChange={(v) => setForm({ ...form, defaultTestRecipient: v })} value={form.defaultTestRecipient} />
+        <label className="grid gap-1 text-sm md:col-span-2">
+          <span className="text-xs uppercase tracking-wide text-slate-500">{t.defaultSignature}</span>
+          <textarea
+            className="min-h-20 rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100"
+            onChange={(event) => setForm({ ...form, defaultSignature: event.target.value })}
+            value={form.defaultSignature}
+          />
+        </label>
+        <TextField label={t.defaultOptOutLine} onChange={(v) => setForm({ ...form, defaultOptOutLine: v })} value={form.defaultOptOutLine} />
+        <TextField label={t.defaultProductFocus} onChange={(v) => setForm({ ...form, defaultProductFocus: v })} value={form.defaultProductFocus} />
+        <label className="grid gap-1 text-sm">
+          <span className="text-xs uppercase tracking-wide text-slate-500">{t.campaignLanguage}</span>
+          <select
+            className="rounded-md border border-slate-700 bg-slate-950 px-3 py-2"
+            onChange={(event) =>
+              setForm({ ...form, campaignLanguage: event.target.value as UpsertOutreachTestProfileInput["campaignLanguage"] })
+            }
+            value={form.campaignLanguage}
+          >
+            <option value="pt-PT">pt-PT</option>
+            <option value="en">en</option>
+          </select>
+        </label>
+        <div className="md:col-span-2 flex flex-wrap gap-2">
+          <button className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-bold text-white" type="submit">
+            {t.save}
+          </button>
+          <button
+            className="rounded-lg border border-slate-700 px-4 py-2 text-sm"
+            onClick={() => {
+              void (async () => {
+                const saved = await loadDefaults();
+                if (saved) {
+                  setForm({
+                    campaignLanguage: saved.campaignLanguage,
+                    companyName: saved.companyName,
+                    companyWebsite: saved.companyWebsite,
+                    defaultOptOutLine: saved.defaultOptOutLine,
+                    defaultProductFocus: saved.defaultProductFocus,
+                    defaultSignature: saved.defaultSignature,
+                    defaultTestRecipient: saved.defaultTestRecipient,
+                    replyToEmail: saved.replyToEmail,
+                    senderDisplayName: saved.senderDisplayName,
+                    senderEmail: saved.senderEmail
+                  });
+                }
+                notifyDataChanged();
+                setFeedback(t.loadedDefaults);
+              })();
+            }}
+            type="button"
+          >
+            {t.loadDefaults}
+          </button>
+          <button
+            className="rounded-lg border border-red-800 px-4 py-2 text-sm text-red-200"
+            onClick={() => {
+              if (!window.confirm(t.resetConfirm)) return;
+              void (async () => {
+                await reset();
+                setForm(defaults);
+                notifyDataChanged();
+                setFeedback(t.resetDone);
+              })();
+            }}
+            type="button"
+          >
+            {t.reset}
+          </button>
+        </div>
+        {feedback ? <p className="md:col-span-2 text-sm text-emerald-300">{feedback}</p> : null}
+      </form>
+    </article>
+  );
+}
+
 function ProviderDiagnosticPanel({ s }: { s: Dictionary["settings"] }) {
   const t = s.integrations.provider;
-  const { state, tenantId } = usePersistence();
+  const { state, tenantId, notifyDataChanged } = usePersistence();
+  const { profile, reload: reloadProfile } = useOutreachTestProfile();
   const [diagnostic, setDiagnostic] = useState<EmailProviderDiagnostic | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -649,6 +773,18 @@ function ProviderDiagnosticPanel({ s }: { s: Dictionary["settings"] }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load diagnostic once on panel mount
   }, []);
 
+  useEffect(() => {
+    if (!profile) return;
+    if (!recipientEmail && profile.defaultTestRecipient) {
+      setRecipientEmail(profile.defaultTestRecipient);
+    }
+    if (profile.defaultProductFocus && messageBody === t.defaultBody) {
+      setMessageBody(
+        `${t.defaultBody}\n\n${profile.defaultProductFocus}${profile.defaultSignature ? `\n\n${profile.defaultSignature}` : ""}`
+      );
+    }
+  }, [profile, recipientEmail, messageBody, t.defaultBody]);
+
   async function submitSelfTest(event: FormEvent) {
     event.preventDefault();
     setSending(true);
@@ -673,8 +809,12 @@ function ProviderDiagnosticPanel({ s }: { s: Dictionary["settings"] }) {
           initiatedBy: "settings-self-test",
           messageBody,
           recipientEmail,
+          senderEmail: diagnostic?.senderEmail ?? profile?.senderEmail ?? null,
+          senderName: diagnostic?.senderName ?? profile?.senderDisplayName ?? null,
           subject
         }, payload);
+        await reloadProfile();
+        notifyDataChanged();
         setSelfTestFeedback(t.savedLocally);
       }
       if (payload.status === "accepted") {
@@ -730,6 +870,7 @@ function ProviderDiagnosticPanel({ s }: { s: Dictionary["settings"] }) {
             label={t.apiKeyRedacted}
             value={diagnostic.brevoApiKeyRedacted ?? t.no}
           />
+          <DiagnosticRow label={t.runtimeStartupMode} value={diagnostic.runtimeStartupMode} />
           <DiagnosticRow label={t.senderEmail} value={diagnostic.senderEmail ?? t.no} />
           <DiagnosticRow label={t.senderName} value={diagnostic.senderName ?? t.no} />
           <DiagnosticRow label={t.gmail} value={gmailStatus} />
@@ -742,6 +883,9 @@ function ProviderDiagnosticPanel({ s }: { s: Dictionary["settings"] }) {
             label={t.missing}
             value={diagnostic.missing.length > 0 ? diagnostic.missing.join(", ") : t.no}
           />
+          {diagnostic.demoStartForcedSimulation ? (
+            <p className="md:col-span-2 text-sm text-amber-300">{t.demoStartWarning}</p>
+          ) : null}
           {diagnostic.warnings.length > 0 ? (
             <p className="md:col-span-2 text-sm text-amber-300">
               {t.warnings}: {diagnostic.warnings.join(" ")}
@@ -793,6 +937,29 @@ function ProviderDiagnosticPanel({ s }: { s: Dictionary["settings"] }) {
           </pre>
         ) : null}
       </form>
+
+      <section className="mt-6 border-t border-slate-800 pt-4">
+        <h4 className="font-semibold">{t.lastEmailTestTitle}</h4>
+        {profile?.lastEmailTestResult ? (
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <DiagnosticRow label={t.testedAt} value={new Date(profile.lastEmailTestResult.testedAt).toLocaleString()} />
+            <DiagnosticRow label={t.provider} value={String(profile.lastEmailTestResult.provider)} />
+            <DiagnosticRow label={t.senderEmail} value={profile.lastEmailTestResult.senderEmail ?? t.no} />
+            <DiagnosticRow label={t.recipient} value={profile.lastEmailTestResult.recipientEmail} />
+            <DiagnosticRow label={t.status} value={profile.lastEmailTestResult.status} />
+            <DiagnosticRow
+              label={t.providerMessageId}
+              value={profile.lastEmailTestResult.providerMessageId ?? t.no}
+            />
+            <DiagnosticRow
+              label={t.error}
+              value={profile.lastEmailTestResult.errorMessage ?? profile.lastEmailTestResult.errorCode ?? t.no}
+            />
+          </div>
+        ) : (
+          <p className="mt-2 text-sm text-slate-400">{t.lastEmailTestEmpty}</p>
+        )}
+      </section>
     </article>
   );
 }

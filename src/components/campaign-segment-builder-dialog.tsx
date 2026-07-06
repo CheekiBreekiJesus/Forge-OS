@@ -11,6 +11,7 @@ import type { SegmentPreviewCounts } from "@/features/leadops/segmentation";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { usePersistence } from "@/persistence/provider";
+import { useOutreachTestProfile } from "@/persistence/outreach-test-profile-hooks";
 
 type CampaignSegmentBuilderDialogProps = {
   copy: Dictionary["leadops"];
@@ -32,6 +33,7 @@ export function CampaignSegmentBuilderDialog({
   previewCounts: initialPreview
 }: CampaignSegmentBuilderDialogProps) {
   const { state, tenantId, notifyDataChanged } = usePersistence();
+  const { profile } = useOutreachTestProfile();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -79,7 +81,7 @@ export function CampaignSegmentBuilderDialog({
       const { campaign } = await createCampaignWithSnapshot(state.repos, tenantId, {
         name: name.trim(),
         description: description.trim() || undefined,
-        language: locale,
+        language: profile?.campaignLanguage ?? locale,
         segmentDefinition,
         searchQuery: segmentDefinition.searchQuery
       });

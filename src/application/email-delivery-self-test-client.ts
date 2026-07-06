@@ -2,6 +2,7 @@ import {
   EMAIL_DELIVERY_SELF_TEST_SENTINEL,
   buildSelfTestIdempotencyKey
 } from "@/application/email-delivery-self-test-service";
+import { recordLastEmailTestResult } from "@/application/outreach-test-profile-service";
 import type {
   EmailDeliverySelfTestResult,
   OutreachSendAttemptStatus
@@ -16,6 +17,8 @@ export async function persistEmailDeliverySelfTestResult(
     subject: string;
     messageBody: string;
     initiatedBy: string;
+    senderEmail?: string | null;
+    senderName?: string | null;
   },
   result: EmailDeliverySelfTestResult
 ): Promise<void> {
@@ -69,6 +72,18 @@ export async function persistEmailDeliverySelfTestResult(
     },
     sendAttemptId: attempt.id,
     tenantId
+  });
+
+  await recordLastEmailTestResult(repos, tenantId, {
+    errorCode: result.errorCode,
+    errorMessage: result.errorMessage,
+    provider: result.provider,
+    providerMessageId: result.providerMessageId,
+    recipientEmail: input.recipientEmail.trim().toLowerCase(),
+    senderEmail: input.senderEmail ?? null,
+    senderName: input.senderName ?? null,
+    status: result.status,
+    testedAt: completedAt
   });
 }
 

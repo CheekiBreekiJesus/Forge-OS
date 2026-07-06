@@ -47,6 +47,8 @@ export type EmailProviderDiagnostic = {
   webhookSecretConfigured: boolean;
   gmailConfigured: boolean;
   outlookConfigured: boolean;
+  runtimeStartupMode: string;
+  demoStartForcedSimulation: boolean;
   missing: string[];
   warnings: string[];
 };

@@ -4,6 +4,18 @@ Purpose: verify Brevo, Gmail, or Outlook configuration from **Settings → Integ
 
 This is separate from protected campaign test emails. It never uses campaign recipients or lead inboxes.
 
+## Outreach test profile
+
+Settings → Integrations → **Outreach test profile** stores tenant-scoped defaults in IndexedDB:
+
+- company name / website
+- sender display name / email / reply-to
+- default test recipient
+- signature, opt-out line, product focus
+- default campaign language
+
+Use **Load JH Gomes test defaults** for synthetic starter values. The profile is included in JSON backup/restore and never stores API keys.
+
 ## Where to use it
 
 1. Open **Settings → Integrations**.

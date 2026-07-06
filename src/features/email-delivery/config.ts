@@ -120,6 +120,18 @@ export function buildEmailProviderDiagnostic(
     warnings.push("Outlook provider is not configured yet.");
   }
 
+  const demoStartForcedSimulation = env.FORGEOS_DEMO_START?.trim().toLowerCase() === "true";
+  const runtimeStartupMode = demoStartForcedSimulation
+    ? "demo:start-simulation"
+    : config.provider === "brevo"
+      ? "dev-env-brevo"
+      : "dev-env-local";
+  if (demoStartForcedSimulation) {
+    warnings.push(
+      "npm run demo:start always forces simulation mode. To test Brevo, start with .\\node_modules\\.bin\\next.cmd dev --port 3000."
+    );
+  }
+
   return {
     provider: config.provider,
     emailDeliveryProvider,
@@ -143,6 +155,8 @@ export function buildEmailProviderDiagnostic(
     webhookSecretConfigured: config.webhookSecret.length >= 24,
     gmailConfigured,
     outlookConfigured,
+    runtimeStartupMode,
+    demoStartForcedSimulation,
     missing,
     warnings
   };

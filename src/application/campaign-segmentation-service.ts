@@ -21,6 +21,7 @@ import {
   invalidateCampaignApprovals
 } from "@/application/campaign-approval-service";
 import { buildActiveSuppressedEmailSet } from "@/application/suppression-service";
+import { resolveOutreachCampaignSenderDefaults } from "@/application/outreach-test-profile-service";
 
 export type CreateCampaignFromSegmentInput = {
   name: string;
@@ -81,15 +82,25 @@ export async function createCampaignWithSnapshot(
   const preview = previewCampaignSegment(input.segmentDefinition, context, input.searchQuery ?? "");
   const sendable = preview.candidates.filter((item) => item.row.sendability.sendable);
   const defaultSender = await repos.senderIdentities.getDefault(tenantId);
+  const profileDefaults = await resolveOutreachCampaignSenderDefaults(repos, tenantId);
+  const language = input.language ?? profileDefaults?.campaignLanguage ?? "pt-PT";
 
   const campaign = await repos.campaigns.create(tenantId, {
     name: input.name,
     description: input.description,
-    language: input.language,
+    language,
     segmentDefinition: input.segmentDefinition,
     senderProfileId: defaultSender?.id ?? null,
-    fromName: defaultSender?.displayName ?? "",
-    replyTo: defaultSender?.replyToEmail || defaultSender?.fromEmail || ""
+    fromName:
+      profileDefaults?.senderDisplayName?.trim() ||
+      defaultSender?.displayName?.trim() ||
+      "",
+    replyTo:
+      profileDefaults?.replyToEmail?.trim() ||
+      profileDefaults?.senderEmail?.trim() ||
+      defaultSender?.replyToEmail?.trim() ||
+      defaultSender?.fromEmail?.trim() ||
+      ""
   });
 
   await snapshotCampaignRecipients(repos, tenantId, campaign.id, preview.candidates);

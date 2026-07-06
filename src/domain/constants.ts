@@ -17,7 +17,7 @@ export const LOCAL_DB_NAME = resolveLocalDbName();
 export const SEED_VERSION = 5 as const;
 
 /** IndexedDB Dexie schema version. */
-export const SCHEMA_VERSION = 13 as const;
+export const SCHEMA_VERSION = 14 as const;
 
 /** Application release version (keep in sync with package.json). */
 export const APP_VERSION = "0.2.0" as const;

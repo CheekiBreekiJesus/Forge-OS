@@ -26,8 +26,21 @@ describe("/api/leadops/email-provider/diagnostic", () => {
     expect(payload.apiKeyPresent).toBe(true);
     expect(payload.emailDeliveryProvider).toBe("brevo");
     expect(payload.senderEmail).toBe("sender@example.com");
+    expect(payload.runtimeStartupMode).toBe("dev-env-brevo");
     expect(payload.brevoApiKeyRedacted).not.toContain("test-api-key");
     expect(payload.configured).toBe(true);
     expect(JSON.stringify(payload)).not.toContain("test-api-key");
+  });
+
+  it("flags demo:start simulation mode with startup warning", async () => {
+    vi.stubEnv("FORGEOS_DEMO_START", "true");
+    vi.stubEnv("EMAIL_DELIVERY_PROVIDER", "simulation");
+
+    const response = await GET();
+    const payload = await response.json();
+
+    expect(payload.runtimeStartupMode).toBe("demo:start-simulation");
+    expect(payload.demoStartForcedSimulation).toBe(true);
+    expect(payload.warnings.join(" ")).toContain("demo:start");
   });
 });

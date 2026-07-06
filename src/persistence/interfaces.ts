@@ -67,6 +67,7 @@ import type {
   LeadContactRepository
 } from "@/persistence/indexeddb/import-repositories";
 import type { ImportMappingProfileRepository } from "@/persistence/indexeddb/import-mapping-profile-repositories";
+import type { OutreachTestProfileRepository } from "@/persistence/indexeddb/outreach-test-profile-repository";
 
 export type { ListOptions, ArchiveInput };
 
@@ -334,6 +335,7 @@ export interface LocalRepositoryBundle {
   outreachSendJobRecipients: OutreachSendJobRecipientRepository;
   outreachSendJobAttempts: OutreachSendJobAttemptRepository;
   outreachSendJobDailyUsage: OutreachSendJobDailyUsageRepository;
+  outreachTestProfiles: OutreachTestProfileRepository;
   reset(): Promise<void>;
   resetDemoData(tenantId: string): Promise<void>;
   restoreDeterministicDemoState(tenantId: string): Promise<void>;

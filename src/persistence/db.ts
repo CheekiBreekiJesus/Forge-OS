@@ -25,6 +25,7 @@ import type {
 import type { CustomizerSimulation } from "@/domain/customizer-types";
 import type { CampaignRecipient, OutreachCampaign } from "@/domain/campaign-types";
 import type { OutreachProviderEvent, OutreachSendAttempt } from "@/domain/email-delivery-types";
+import type { OutreachTestProfile } from "@/domain/outreach-test-profile-types";
 import type {
   OutreachSendJob,
   OutreachSendJobAttempt,
@@ -77,6 +78,7 @@ export class ForgeOSDatabase extends Dexie {
   outreachSendJobRecipients!: Table<OutreachSendJobRecipient, string>;
   outreachSendJobAttempts!: Table<OutreachSendJobAttempt, string>;
   outreachSendJobDailyUsage!: Table<OutreachSendJobDailyUsage, string>;
+  outreachTestProfiles!: Table<OutreachTestProfile, string>;
 
   constructor(name: string = LOCAL_DB_NAME) {
     super(name);
@@ -562,7 +564,7 @@ export class ForgeOSDatabase extends Dexie {
         await tx.table("meta").put({ key: "schemaVersion", value: "12" });
       });
 
-    this.version(SCHEMA_VERSION)
+    this.version(13)
       .stores({
         meta: "key",
         leads:
@@ -619,6 +621,59 @@ export class ForgeOSDatabase extends Dexie {
           if (row.contactSalutation === undefined) row.contactSalutation = null;
         });
         await tx.table("meta").put({ key: "schemaVersion", value: "13" });
+      });
+
+    this.version(14)
+      .stores({
+        meta: "key",
+        leads:
+          "id, tenantId, email, crmStatus, outreachStatus, active, normalizedCompanyName, websiteDomain, sourceImportId, [tenantId+email], [tenantId+normalizedCompanyName]",
+        customers: "id, tenantId, leadId, active, [tenantId+leadId]",
+        customerContacts: "id, tenantId, customerId, active, [tenantId+customerId]",
+        opportunities: "id, tenantId, leadId, customerId, [tenantId+leadId]",
+        quotes:
+          "id, tenantId, quoteNumber, leadId, customerId, status, active, simulationId, [tenantId+leadId]",
+        productionOrders:
+          "id, tenantId, orderNumber, quoteId, status, machineId, active, [tenantId+quoteId]",
+        outreachMessages: "id, tenantId, leadId, [tenantId+leadId]",
+        campaigns: "id, tenantId, status, createdAt, [tenantId+status]",
+        campaignRecipients:
+          "id, tenantId, campaignId, leadId, status, draftStatus, [tenantId+campaignId], [tenantId+leadId], [tenantId+draftStatus]",
+        activities: "id, tenantId, occurredAt, action, [tenantId+occurredAt]",
+        companyProfiles: "id, tenantId, [tenantId+id]",
+        userProfiles: "id, tenantId, email, active, [tenantId+email]",
+        senderIdentities:
+          "id, tenantId, userProfileId, companyProfileId, isDefault, active, [tenantId+isDefault]",
+        localAssets: "id, tenantId, assetType, [tenantId+assetType]",
+        products: "id, tenantId, sku, category, active, [tenantId+sku]",
+        machines: "id, tenantId, code, status, active, [tenantId+code]",
+        inventoryItems: "id, tenantId, sku, active, [tenantId+sku]",
+        stockMovements: "id, tenantId, inventoryItemId, [tenantId+inventoryItemId]",
+        customizerSimulations:
+          "id, tenantId, customerId, leadId, productId, quoteId, status, active, [tenantId+status]",
+        importBatches: "id, tenantId, fileFingerprint, status, createdAt, [tenantId+fileFingerprint]",
+        importRows: "id, tenantId, importBatchId, rowIndex, status, [tenantId+importBatchId]",
+        importMappingProfiles: "id, tenantId, label, sourceLabel, [tenantId+label]",
+        leadContacts:
+          "id, tenantId, leadId, normalizedEmail, active, isPrimary, [tenantId+leadId], [tenantId+normalizedEmail]",
+        emailSuppressions:
+          "id, tenantId, normalizedEmail, reason, source, active, campaignId, leadId, [tenantId+normalizedEmail], [tenantId+reason], [tenantId+source]",
+        outreachSendAttempts:
+          "id, tenantId, provider, deliveryMode, campaignId, campaignRecipientId, leadId, idempotencyKey, status, startedAt, providerMessageId, [tenantId+campaignId], [tenantId+campaignRecipientId], [tenantId+idempotencyKey], [tenantId+status]",
+        outreachProviderEvents:
+          "id, tenantId, provider, eventFingerprint, providerMessageId, eventType, receivedAt, campaignRecipientId, sendAttemptId, processingStatus, [tenantId+eventFingerprint], [tenantId+eventType], [tenantId+processingStatus], [tenantId+campaignRecipientId]",
+        outreachSendJobs:
+          "id, tenantId, campaignId, provider, deliveryMode, status, lockExpiresAt, [tenantId+campaignId], [tenantId+status]",
+        outreachSendJobRecipients:
+          "id, tenantId, sendJobId, campaignId, campaignRecipientId, leadId, normalizedEmail, status, idempotencyKey, nextAttemptAt, [tenantId+sendJobId], [tenantId+campaignRecipientId], [tenantId+idempotencyKey], [tenantId+status]",
+        outreachSendJobAttempts:
+          "id, tenantId, sendJobId, sendJobRecipientId, campaignId, campaignRecipientId, idempotencyKey, status, providerMessageId, [tenantId+sendJobId], [tenantId+idempotencyKey], [tenantId+campaignRecipientId]",
+        outreachSendJobDailyUsage:
+          "id, tenantId, provider, usageDate, [tenantId+provider+usageDate]",
+        outreachTestProfiles: "id, tenantId, [tenantId+id]"
+      })
+      .upgrade(async (tx) => {
+        await tx.table("meta").put({ key: "schemaVersion", value: "14" });
       });
   }
 }

@@ -39,6 +39,7 @@ export function createSupabaseStubRepositories(): Pick<
   | "outreachSendJobRecipients"
   | "outreachSendJobAttempts"
   | "outreachSendJobDailyUsage"
+  | "outreachTestProfiles"
 > {
   return {
     leads: stubRepo(["list", "getById", "getByEmail", "create", "createMany", "update", "duplicate", "archive", "restore"]),
@@ -66,7 +67,8 @@ export function createSupabaseStubRepositories(): Pick<
     outreachSendJobs: stubRepo(["list", "getById", "create", "update", "listActive"]),
     outreachSendJobRecipients: stubRepo(["listForJob", "getById", "createMany", "update", "listQueued"]),
     outreachSendJobAttempts: stubRepo(["listForJob", "create"]),
-    outreachSendJobDailyUsage: stubRepo(["getForDate", "increment"])
+    outreachSendJobDailyUsage: stubRepo(["getForDate", "increment"]),
+    outreachTestProfiles: stubRepo(["getForTenant", "upsert", "reset"])
   } as unknown as Pick<
     LocalRepositoryBundle,
     | "leads"
@@ -95,5 +97,6 @@ export function createSupabaseStubRepositories(): Pick<
     | "outreachSendJobRecipients"
     | "outreachSendJobAttempts"
     | "outreachSendJobDailyUsage"
+    | "outreachTestProfiles"
   >;
 }

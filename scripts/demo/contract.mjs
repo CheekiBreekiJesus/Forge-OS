@@ -54,6 +54,7 @@ export function buildDemoProcessEnv(overrides = {}) {
   }
 
   Object.assign(env, {
+    FORGEOS_DEMO_START: "true",
     FORGEOS_RUNTIME_MODE: "development",
     FORGEOS_PERSISTENCE_MODE: "local",
     NEXT_PUBLIC_FORGEOS_PERSISTENCE_MODE: "local",

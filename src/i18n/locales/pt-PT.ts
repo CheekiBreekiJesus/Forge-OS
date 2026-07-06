@@ -876,7 +876,40 @@ export const dictionary: Dictionary = {
         resultBlocked: "Auto-teste bloqueado",
         resultFailed: "Auto-teste falhou",
         defaultSubject: "Auto-teste de envio ForgeOS",
-        defaultBody: "Esta e uma mensagem de auto-teste de envio ForgeOS."
+        defaultBody: "Esta e uma mensagem de auto-teste de envio ForgeOS.",
+        runtimeStartupMode: "Modo de arranque do runtime",
+        demoStartWarning:
+          "npm run demo:start força sempre o modo simulation. Para testar Brevo, arranque com .\\node_modules\\.bin\\next.cmd dev --port 3000.",
+        lastEmailTestTitle: "Ultimo resultado de email de teste",
+        lastEmailTestEmpty: "Ainda nao foi executado nenhum auto-teste.",
+        testedAt: "Data/hora",
+        status: "Estado",
+        recipient: "Destinatario",
+        providerMessageId: "ID de mensagem do fornecedor",
+        error: "Erro"
+      },
+      outreachTestProfile: {
+        title: "Perfil de teste de outreach",
+        description:
+          "Guarde predefinicoes locais de outreach no IndexedDB para acelerar campanhas e auto-testes. Segredos nunca sao guardados aqui.",
+        companyName: "Nome da empresa",
+        companyWebsite: "Website da empresa",
+        senderDisplayName: "Nome do remetente",
+        senderEmail: "Email do remetente",
+        replyToEmail: "Email de resposta",
+        defaultTestRecipient: "Destinatario de teste predefinido",
+        defaultSignature: "Assinatura predefinida",
+        defaultOptOutLine: "Linha de opt-out predefinida",
+        defaultProductFocus: "Foco de produto predefinido",
+        campaignLanguage: "Idioma predefinido da campanha",
+        save: "Guardar perfil de teste de outreach",
+        saved: "Perfil de teste de outreach guardado.",
+        loadDefaults: "Carregar predefinicoes de teste JH Gomes",
+        loadedDefaults: "Predefinicoes de teste JH Gomes carregadas.",
+        reset: "Repor perfil de teste de outreach",
+        resetConfirm: "Limpar o perfil de teste de outreach guardado para este tenant?",
+        resetDone: "Perfil de teste de outreach limpo.",
+        loading: "A carregar perfil de teste de outreach..."
       }
     },
     backup: {

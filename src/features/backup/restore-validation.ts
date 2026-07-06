@@ -134,7 +134,8 @@ export function normalizeBackupTables(backup: ForgeOSBackup): ForgeOSBackup {
       outreachSendJobs: backup.tables.outreachSendJobs ?? [],
       outreachSendJobRecipients: backup.tables.outreachSendJobRecipients ?? [],
       outreachSendJobAttempts: backup.tables.outreachSendJobAttempts ?? [],
-      outreachSendJobDailyUsage: backup.tables.outreachSendJobDailyUsage ?? []
+      outreachSendJobDailyUsage: backup.tables.outreachSendJobDailyUsage ?? [],
+      outreachTestProfiles: backup.tables.outreachTestProfiles ?? []
     }
   };
 }
