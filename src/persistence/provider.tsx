@@ -13,13 +13,15 @@ import { DEFAULT_TENANT_ID, LOCAL_DB_NAME } from "@/domain/constants";
 import {
   destroyRepositories,
   initializeRepositories,
+  recoverLocalDatabase as recoverLocalDatabaseRegistry,
   type LocalRepositoryBundle
 } from "@/persistence/registry";
+import { PersistenceStartupError } from "@/persistence/startup";
 
 type PersistenceState =
   | { status: "loading" }
   | { status: "ready"; repos: LocalRepositoryBundle; tenantId: string }
-  | { status: "error"; message: string };
+  | { status: "error"; message: string; recoverable: boolean };
 
 type PersistenceContextValue = {
   state: PersistenceState;
@@ -31,6 +33,7 @@ type PersistenceContextValue = {
   reseedDemoData: () => Promise<void>;
   clearAllLocalData: () => Promise<void>;
   restoreDeterministicDemoState: () => Promise<void>;
+  recoverLocalDatabase: (options?: { deleteDatabase?: boolean }) => Promise<void>;
   localDbName: string;
 };
 
@@ -47,28 +50,54 @@ export function PersistenceProvider({
   const [version, setVersion] = useState(0);
   const [dataVersion, setDataVersion] = useState(0);
 
-  const load = useCallback(async () => {
-    setState({ status: "loading" });
+  const load = useCallback(async (isActive: () => boolean) => {
+    if (isActive()) {
+      setState({ status: "loading" });
+    }
     try {
       const repos = await initializeRepositories(tenantId);
-      setState({ status: "ready", repos, tenantId });
+      if (isActive()) {
+        setState({ status: "ready", repos, tenantId });
+      }
     } catch (error) {
-      setState({
-        status: "error",
-        message: error instanceof Error ? error.message : "Database initialization failed."
-      });
+      if (error instanceof Error && error.message.includes("interrupted")) {
+        try {
+          const repos = await initializeRepositories(tenantId);
+          if (isActive()) {
+            setState({ status: "ready", repos, tenantId });
+          }
+          return;
+        } catch (retryError) {
+          error = retryError;
+        }
+      }
+      const startupError =
+        error instanceof PersistenceStartupError
+          ? error
+          : new PersistenceStartupError(
+              error instanceof Error ? error.message : "Database initialization failed."
+            );
+      if (isActive()) {
+        setState({
+          status: "error",
+          message: startupError.message,
+          recoverable: startupError.recoverable
+        });
+      }
     }
   }, [tenantId]);
 
   useEffect(() => {
+    let active = true;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- IndexedDB init on mount
-    void load();
+    void load(() => active);
     return () => {
-      void destroyRepositories();
+      active = false;
     };
   }, [load, version]);
 
   const refresh = useCallback(async () => {
+    await destroyRepositories();
     setVersion((v) => v + 1);
   }, []);
 
@@ -100,6 +129,29 @@ export function PersistenceProvider({
     setVersion((v) => v + 1);
   }, [state, tenantId]);
 
+  const recoverLocalDatabase = useCallback(
+    async (options?: { deleteDatabase?: boolean }) => {
+      setState({ status: "loading" });
+      try {
+        const repos = await recoverLocalDatabaseRegistry(tenantId, options);
+        setState({ status: "ready", repos, tenantId });
+      } catch (error) {
+        const startupError =
+          error instanceof PersistenceStartupError
+            ? error
+            : new PersistenceStartupError(
+                error instanceof Error ? error.message : "Database recovery failed."
+              );
+        setState({
+          status: "error",
+          message: startupError.message,
+          recoverable: startupError.recoverable
+        });
+      }
+    },
+    [tenantId]
+  );
+
   const value = useMemo(
     () => ({
       state,
@@ -111,6 +163,7 @@ export function PersistenceProvider({
       reseedDemoData,
       clearAllLocalData,
       restoreDeterministicDemoState,
+      recoverLocalDatabase,
       localDbName: LOCAL_DB_NAME
     }),
     [
@@ -122,7 +175,8 @@ export function PersistenceProvider({
       resetDemoData,
       reseedDemoData,
       clearAllLocalData,
-      restoreDeterministicDemoState
+      restoreDeterministicDemoState,
+      recoverLocalDatabase
     ]
   );
 
@@ -155,6 +209,13 @@ export function usePersistenceReady(): boolean {
 export function usePersistenceError(): string | null {
   const { state } = usePersistence();
   return state.status === "error" ? state.message : null;
+}
+
+export function usePersistenceErrorState(): { message: string; recoverable: boolean } | null {
+  const { state } = usePersistence();
+  return state.status === "error"
+    ? { message: state.message, recoverable: state.recoverable }
+    : null;
 }
 
 export function usePersistenceLoading(): boolean {

@@ -662,7 +662,15 @@ export const dictionary: Dictionary = {
     openProduction: "Abrir ordem de produção",
     persistence: {
       loading: "A carregar base de dados local…",
-      unavailable: "Persistência local indisponível"
+      unavailable: "Persistência local indisponível",
+      activeDbName: "Base de dados IndexedDB ativa",
+      recoverableHint:
+        "Tente novamente primeiro. Se o arranque continuar a falhar, reinicie a base de dados local com a frase de confirmação abaixo. Isto remove os dados ForgeOS guardados no browser para esta demo.",
+      retry: "Tentar arranque novamente",
+      resetDatabase: "Reiniciar base de dados local",
+      resetConfirmLabel: "Escreva a frase de confirmação para reiniciar os dados locais",
+      resetConfirmPhrase: "RESET LOCAL DB",
+      resetDone: "Reinício da base de dados local concluído. Os dados demo foram repovoados."
     },
     status: {
       waiting: "Em espera",

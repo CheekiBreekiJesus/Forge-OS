@@ -328,6 +328,13 @@ export type Dictionary = {
     persistence: {
       loading: string;
       unavailable: string;
+      activeDbName: string;
+      recoverableHint: string;
+      retry: string;
+      resetDatabase: string;
+      resetConfirmLabel: string;
+      resetConfirmPhrase: string;
+      resetDone: string;
     };
     status: {
       waiting: string;

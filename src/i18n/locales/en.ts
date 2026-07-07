@@ -662,7 +662,15 @@ export const dictionary: Dictionary = {
     openProduction: "Open production order",
     persistence: {
       loading: "Loading local database…",
-      unavailable: "Local persistence unavailable"
+      unavailable: "Local persistence unavailable",
+      activeDbName: "Active IndexedDB database",
+      recoverableHint:
+        "Retry first. If startup still fails, reset the local database using the confirmation phrase below. This removes browser-stored ForgeOS data for this demo.",
+      retry: "Retry startup",
+      resetDatabase: "Reset local database",
+      resetConfirmLabel: "Type the confirmation phrase to reset local data",
+      resetConfirmPhrase: "RESET LOCAL DB",
+      resetDone: "Local database reset completed. Demo data was reseeded."
     },
     status: {
       waiting: "Waiting",
