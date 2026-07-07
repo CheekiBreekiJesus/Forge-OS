@@ -353,19 +353,69 @@ export const demoProductionOrders: DemoProductionOrder[] = [
 
 export const demoInventoryItems: DemoInventoryItem[] = [
   {
+    id: "inv_pp_250_clear",
+    tenantId: jhGomesTenant.id,
+    name: "Copo PP 250 ml",
+    sku: "PP-250-05601234000250",
+    quantityOnHand: 12000,
+    reservedQuantity: 0,
+    reorderPoint: 8000,
+    unit: "un"
+  },
+  {
     id: "inv_pp_330_clear",
     tenantId: jhGomesTenant.id,
-    name: "PP cups 330 ml clear",
-    sku: "STOCK-PP-330-CLEAR",
+    name: "Copo PP 330 ml",
+    sku: "PP-330-05601234000330",
     quantityOnHand: 18000,
     reservedQuantity: 12000,
     reorderPoint: 10000,
     unit: "un"
   },
   {
+    id: "inv_pp_500_clear",
+    tenantId: jhGomesTenant.id,
+    name: "Copo PP 500 ml",
+    sku: "PP-500-05601234000500",
+    quantityOnHand: 9000,
+    reservedQuantity: 0,
+    reorderPoint: 6000,
+    unit: "un"
+  },
+  {
+    id: "inv_cardboard_box",
+    tenantId: jhGomesTenant.id,
+    name: "Caixa de cartão",
+    sku: "STOCK-BOX-CARTON-M",
+    quantityOnHand: 1500,
+    reservedQuantity: 0,
+    reorderPoint: 500,
+    unit: "un"
+  },
+  {
+    id: "inv_uv_white",
+    tenantId: jhGomesTenant.id,
+    name: "Tinta UV branca",
+    sku: "INK-UV-WHITE",
+    quantityOnHand: 6,
+    reservedQuantity: 0,
+    reorderPoint: 4,
+    unit: "kg"
+  },
+  {
+    id: "inv_black_ink",
+    tenantId: jhGomesTenant.id,
+    name: "Tinta UV preta",
+    sku: "INK-UV-BLACK",
+    quantityOnHand: 4,
+    reservedQuantity: 1,
+    reorderPoint: 5,
+    unit: "kg"
+  },
+  {
     id: "inv_kraft_bag_m",
     tenantId: jhGomesTenant.id,
-    name: "Kraft paper bag M",
+    name: "Embalagem saco kraft M",
     sku: "STOCK-BAG-KRAFT-M",
     quantityOnHand: 3200,
     reservedQuantity: 2500,
@@ -373,14 +423,14 @@ export const demoInventoryItems: DemoInventoryItem[] = [
     unit: "un"
   },
   {
-    id: "inv_black_ink",
+    id: "inv_production_consumable",
     tenantId: jhGomesTenant.id,
-    name: "Black UV ink",
-    sku: "INK-UV-BLACK",
-    quantityOnHand: 4,
-    reservedQuantity: 1,
-    reorderPoint: 5,
-    unit: "kg"
+    name: "Consumível de produção (pano limpeza)",
+    sku: "CONS-WIPE-PROD",
+    quantityOnHand: 120,
+    reservedQuantity: 0,
+    reorderPoint: 40,
+    unit: "un"
   }
 ];
 
