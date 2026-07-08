@@ -374,12 +374,39 @@ export type Dictionary = {
     note: string;
     googleSignIn: string;
     microsoftSignIn: string;
+    loadingGoogle: string;
+    loadingMicrosoft: string;
     orContinueLocal: string;
+    hostedOnlyNote: string;
+    membershipNote: string;
+    errors: {
+      missing_code: string;
+      oauth_exchange_failed: string;
+      oauth_provider_failed: string;
+      supabase_not_configured: string;
+      tenant_access_denied: string;
+    };
     googleDialogTitle: string;
     googleDialogBody: string;
     microsoftDialogTitle: string;
     microsoftDialogBody: string;
     closeDialog: string;
+  };
+  authAccess: {
+    signOut: string;
+    pending: {
+      title: string;
+      body: string;
+    };
+    denied: {
+      title: string;
+      body: string;
+    };
+    tenants: {
+      title: string;
+      body: string;
+      select: string;
+    };
   };
   settings: {
     eyebrow: string;

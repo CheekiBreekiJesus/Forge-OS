@@ -709,7 +709,24 @@ export const dictionary: Dictionary = {
     note: "Supabase Auth deve substituir este placeholder no MVP persistente.",
     googleSignIn: "Continuar com Google",
     microsoftSignIn: "Continuar com Microsoft",
+    loadingGoogle: "A abrir login Google...",
+    loadingMicrosoft: "A abrir login Microsoft...",
     orContinueLocal: "ou continuar com demo local",
+    hostedOnlyNote:
+      "A autenticacao alojada esta ativa. Use Google ou Microsoft para confirmar identidade antes da verificacao da associacao ao tenant.",
+    membershipNote:
+      "OAuth confirma apenas a identidade. O acesso continua a exigir uma associacao ativa ao tenant ForgeOS.",
+    errors: {
+      missing_code: "O callback de login nao recebeu codigo de autorizacao. Tente novamente.",
+      oauth_exchange_failed:
+        "Nao foi possivel concluir o login. Tente novamente ou contacte o administrador ForgeOS.",
+      oauth_provider_failed:
+        "Nao foi possivel iniciar o login do fornecedor. Verifique a configuracao e tente novamente.",
+      supabase_not_configured:
+        "A configuracao publica de autenticacao Supabase nao esta definida para este ambiente.",
+      tenant_access_denied:
+        "A autenticacao foi concluida, mas esta conta nao tem uma associacao ativa ao tenant ForgeOS."
+    },
     googleDialogTitle: "Início de sessão Google (versão alojada)",
     googleDialogBody:
       "OAuth Google requer Supabase Auth e configuração do fornecedor na versão alojada do ForgeOS. Após o login, o perfil é pré-preenchido pela associação ao workspace e conclui o onboarding da empresa e identidades de remetente.",
@@ -717,6 +734,22 @@ export const dictionary: Dictionary = {
     microsoftDialogBody:
       "OAuth Microsoft requer Supabase Auth e configuração do fornecedor na versão alojada do ForgeOS. Após o login, o perfil é pré-preenchido pela associação ao workspace e conclui o onboarding da empresa e identidades de remetente.",
     closeDialog: "Fechar"
+  },
+  authAccess: {
+    signOut: "Terminar sessao",
+    pending: {
+      title: "Acesso a aguardar aprovacao",
+      body: "A identidade esta autenticada, mas o ForgeOS nao encontrou uma associacao ativa a um tenant para esta conta. Peca a um administrador do workspace para aprovar o acesso antes de consultar dados do tenant."
+    },
+    denied: {
+      title: "Acesso negado",
+      body: "Esta conta esta suspensa ou revogada nas associacoes de tenant disponiveis. Os dados do tenant nao estao disponiveis nesta sessao."
+    },
+    tenants: {
+      title: "Escolher workspace",
+      body: "Esta conta tem acesso a mais do que um workspace ForgeOS. Escolha uma associacao de tenant para continuar.",
+      select: "Selecionar"
+    }
   },
   settings: {
     eyebrow: "Configuração do workspace",

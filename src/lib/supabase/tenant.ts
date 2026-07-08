@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { PersistenceError } from "@/persistence/interfaces";
+import { isForgeOSRole } from "@/lib/auth/permissions";
 
 export type TenantRecord = {
   id: string;
@@ -64,53 +65,100 @@ export async function resolveTenantKeyByUuid(
   return data?.tenant_key ?? null;
 }
 
+export type TenantMembershipRecord = {
+  id: string;
+  tenantId: string;
+  tenantName: string | null;
+  tenantSlug: string | null;
+  tenantKey: string | null;
+  role: string;
+  permissions: string[];
+  status: "pending" | "active" | "suspended" | "revoked" | string;
+  createdAt: string | null;
+  updatedAt: string | null;
+};
+
 export async function resolveTenantMembership(
   client: SupabaseClient,
   userId: string,
   tenantUuid: string
-): Promise<{ role: string } | null> {
+): Promise<TenantMembershipRecord | null> {
   const { data, error } = await client
     .from("tenant_memberships")
-    .select("role")
+    .select("id, tenant_id, role, permissions, status, created_at, updated_at")
     .eq("user_id", userId)
     .eq("tenant_id", tenantUuid)
+    .eq("status", "active")
     .maybeSingle();
 
   if (error) {
     throw new PersistenceError("unavailable", "Tenant membership lookup failed.");
   }
-  return data ? { role: String(data.role) } : null;
+  return data ? mapTenantMembershipRow(data) : null;
 }
 
 export async function listTenantMemberships(
   client: SupabaseClient,
   userId: string
-): Promise<Array<{ tenantId: string; role: string }>> {
-  const { data, error } = await client
+): Promise<TenantMembershipRecord[]> {
+  return listTenantMembershipsForUser(client, userId, { activeOnly: true });
+}
+
+export async function listTenantMembershipsForUser(
+  client: SupabaseClient,
+  userId: string,
+  options: { activeOnly?: boolean } = {}
+): Promise<TenantMembershipRecord[]> {
+  let query = client
     .from("tenant_memberships")
-    .select("tenant_id, role")
+    .select(
+      "id, tenant_id, role, permissions, status, created_at, updated_at, tenants(name, slug, tenant_key)"
+    )
     .eq("user_id", userId);
+
+  if (options.activeOnly) {
+    query = query.eq("status", "active");
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new PersistenceError("unavailable", "Tenant membership lookup failed.");
   }
 
-  return (data ?? []).map((row) => ({
-    tenantId: String(row.tenant_id),
-    role: String(row.role)
-  }));
+  return (data ?? []).map((row) => mapTenantMembershipRow(row));
 }
 
-const ROLE_MAP: Record<string, import("@/lib/auth/types").ForgeOSAuthRole> = {
-  super_admin: "super_admin",
-  company_owner: "company_owner",
-  marketing_manager: "marketing_manager",
-  outreach_operator: "outreach_operator",
-  sales: "sales",
-  owner: "owner",
-  viewer: "viewer"
-};
+function mapTenantMembershipRow(row: {
+  id?: unknown;
+  tenant_id?: unknown;
+  tenants?: unknown;
+  role?: unknown;
+  permissions?: unknown;
+  status?: unknown;
+  created_at?: unknown;
+  updated_at?: unknown;
+}): TenantMembershipRecord {
+  const tenant = Array.isArray(row.tenants) ? row.tenants[0] : row.tenants;
+  const tenantRecord =
+    tenant && typeof tenant === "object" ? (tenant as Record<string, unknown>) : {};
+
+  return {
+    id: String(row.id ?? ""),
+    tenantId: String(row.tenant_id),
+    tenantKey: typeof tenantRecord.tenant_key === "string" ? tenantRecord.tenant_key : null,
+    tenantName: typeof tenantRecord.name === "string" ? tenantRecord.name : null,
+    tenantSlug: typeof tenantRecord.slug === "string" ? tenantRecord.slug : null,
+    role: String(row.role),
+    permissions: Array.isArray(row.permissions)
+      ? row.permissions.filter((permission): permission is string => typeof permission === "string")
+      : [],
+    status: String(row.status ?? "active"),
+    createdAt: typeof row.created_at === "string" ? row.created_at : null,
+    updatedAt: typeof row.updated_at === "string" ? row.updated_at : null
+  };
+}
 
 export function mapMembershipRoleToForgeOSRole(role: string): import("@/lib/auth/types").ForgeOSAuthRole | null {
-  return ROLE_MAP[role] ?? null;
+  return isForgeOSRole(role) ? role : null;
 }
