@@ -16,10 +16,17 @@ import {
 import { panelClass } from "@/components/app-frame";
 import { EmailCopyActions } from "@/components/leadops-email-composer";
 import type { CampaignRecipient, OutreachCampaign } from "@/domain/campaign-types";
+import type { EmailProviderDiagnostic } from "@/domain/email-delivery-types";
 import {
   isSupabasePersistenceModeClient,
   sendOutreachMessageViaServer
 } from "@/features/outreach/server-send";
+import {
+  executeProtectedTestSendFlow,
+  fetchEmailProviderDiagnostic,
+  isProtectedTestSendReady
+} from "@/features/outreach/protected-test-send-client-flow";
+import { PROTECTED_TEST_SEND_CONFIRMATION } from "@/features/outreach/protected-test-send-shared";
 import {
   buildGmailComposeUrl,
   buildMailtoUrl,
@@ -63,6 +70,12 @@ export function CampaignRecipientReviewPanel({
   const [feedback, setFeedback] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+  const [providerDiagnostic, setProviderDiagnostic] = useState<EmailProviderDiagnostic | null>(null);
+  const [testRecipientEmail, setTestRecipientEmail] = useState("");
+  const [testConfirmation, setTestConfirmation] = useState("");
+  const [showProtectedTest, setShowProtectedTest] = useState(false);
+
+  const protectedTestReady = isProtectedTestSendReady(providerDiagnostic);
 
   const canHandoff =
     (recipient.draftStatus === "APPROVED" || recipient.draftStatus === "OPENED_EXTERNALLY") &&
@@ -98,6 +111,17 @@ export function CampaignRecipientReviewPanel({
       cancelled = true;
     };
   }, [campaign, campaignId, copy.cooldownWarning, copy.duplicateBlocked, recipient, repos, tenantId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const diagnostic = await fetchEmailProviderDiagnostic();
+      if (!cancelled) setProviderDiagnostic(diagnostic);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [recipient.id, recipient.draftStatus]);
 
   const reasonLabels = useMemo(
     () => copy.blockReasons as Record<ApprovalBlockReason, string>,
@@ -205,6 +229,45 @@ export function CampaignRecipientReviewPanel({
     }
   }
 
+  async function handleProtectedTestSend() {
+    setBusy(true);
+    setFeedback(null);
+    try {
+      const result = await executeProtectedTestSendFlow(repos, {
+        campaign,
+        confirmation: testConfirmation,
+        initiatedBy: "local-user",
+        recipient,
+        tenantId,
+        testRecipientEmail
+      });
+
+      if (!result.ok) {
+        setFeedback(result.message);
+        return;
+      }
+
+      if (result.alreadyProcessed || result.delivery.status === "already_processed") {
+        setFeedback(copy.protectedTestAlreadyProcessed);
+      } else if (result.delivery.status === "blocked") {
+        setFeedback(copy.protectedTestBlocked);
+      } else if (result.delivery.status === "failed") {
+        setFeedback(copy.protectedTestFailed);
+      } else {
+        setFeedback(copy.protectedTestSuccess);
+      }
+
+      setShowProtectedTest(false);
+      setTestConfirmation("");
+      await refreshAll();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const protectedTestConfirmationValid = testConfirmation === PROTECTED_TEST_SEND_CONFIRMATION;
+  const protectedTestRecipientValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(testRecipientEmail.trim());
+
   return (
     <section className={`${panelClass} p-5 xl:col-span-2`} data-testid="campaign-recipient-review">
       <h3 className="text-lg font-bold">{copy.title}</h3>
@@ -296,6 +359,95 @@ export function CampaignRecipientReviewPanel({
             onFeedback={(message) => setFeedback(message)}
             recipientEmail={recipient.snapshotEmail}
           />
+          {recipient.draftStatus === "APPROVED" ? (
+            <div className="rounded-lg border border-sky-500/30 bg-sky-500/10 p-4" data-testid="protected-test-send-panel">
+              <h4 className="font-semibold text-sky-100">{copy.protectedTestTitle}</h4>
+              <p className="mt-2 text-sm text-slate-300">{copy.protectedTestDescription}</p>
+              {!protectedTestReady ? (
+                <p className="mt-3 text-sm text-amber-200">{copy.protectedTestUnavailable}</p>
+              ) : !showProtectedTest ? (
+                <button
+                  className="mt-4 rounded border border-sky-400 px-4 py-2 text-sm text-sky-200 disabled:opacity-50"
+                  data-testid="open-protected-test-send"
+                  disabled={busy}
+                  onClick={() => setShowProtectedTest(true)}
+                  type="button"
+                >
+                  {copy.protectedTestSend}
+                </button>
+              ) : (
+                <div className="mt-4 space-y-3" data-testid="protected-test-send-form">
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                        {copy.protectedTestPreviewPlain}
+                      </p>
+                      <pre className="mt-2 max-h-40 overflow-auto rounded border border-slate-800 bg-slate-950 p-3 text-xs text-slate-300">
+                        {recipient.personalizedPlainText}
+                      </pre>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                        {copy.protectedTestPreviewHtml}
+                      </p>
+                      <div
+                        className="mt-2 max-h-40 overflow-auto rounded border border-slate-800 bg-slate-950 p-3 text-xs text-slate-300"
+                        dangerouslySetInnerHTML={{ __html: recipient.personalizedHtml || "" }}
+                      />
+                    </div>
+                  </div>
+                  <label className="block text-sm">
+                    <span className="text-slate-400">{copy.protectedTestRecipient}</span>
+                    <input
+                      className="mt-1 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2"
+                      data-testid="protected-test-recipient-email"
+                      disabled={busy}
+                      onChange={(event) => setTestRecipientEmail(event.target.value)}
+                      type="email"
+                      value={testRecipientEmail}
+                    />
+                  </label>
+                  <label className="block text-sm">
+                    <span className="text-slate-400">{copy.protectedTestConfirmation}</span>
+                    <input
+                      className="mt-1 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2"
+                      data-testid="protected-test-confirmation"
+                      disabled={busy}
+                      onChange={(event) => setTestConfirmation(event.target.value)}
+                      value={testConfirmation}
+                    />
+                  </label>
+                  <p className="text-xs text-slate-500">{copy.protectedTestConfirmationHint}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      className="rounded bg-sky-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                      data-testid="submit-protected-test-send"
+                      disabled={
+                        busy ||
+                        !protectedTestRecipientValid ||
+                        !protectedTestConfirmationValid
+                      }
+                      onClick={() => void handleProtectedTestSend()}
+                      type="button"
+                    >
+                      {busy ? copy.protectedTestSending : copy.protectedTestSend}
+                    </button>
+                    <button
+                      className="rounded border border-slate-700 px-4 py-2 text-sm"
+                      disabled={busy}
+                      onClick={() => {
+                        setShowProtectedTest(false);
+                        setTestConfirmation("");
+                      }}
+                      type="button"
+                    >
+                      {dictionary.leadops.import.cancel}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : null}
           <div className="rounded-lg border border-slate-800 bg-slate-950 p-4">
             {!confirmSent ? (
               <button

@@ -1106,7 +1106,22 @@ export const dictionary: Dictionary = {
         invalidated: "Aprovação invalidada: {reason}",
         duplicateBlocked: "Envio duplicado bloqueado para este destinatário da campanha.",
         cooldownWarning: "Este contacto foi contactado recentemente. A anulação requer confirmação e motivo.",
-        cooldownOverride: "Anular cooldown de contacto recente"
+        cooldownOverride: "Anular cooldown de contacto recente",
+        protectedTestTitle: "Envio de teste protegido Brevo",
+        protectedTestDescription:
+          "Envie exatamente um email de teste interno para um endereço autorizado. O lead original nunca é contactado e o destinatário não é marcado como enviado.",
+        protectedTestRecipient: "Destinatário de teste autorizado",
+        protectedTestConfirmation: "Escreva SEND TEST para confirmar",
+        protectedTestConfirmationHint: "Frase de confirmação obrigatória: SEND TEST",
+        protectedTestSend: "Enviar email de teste protegido",
+        protectedTestSending: "A enviar teste protegido…",
+        protectedTestUnavailable: "O envio de teste protegido Brevo não está configurado no servidor.",
+        protectedTestSuccess: "Email de teste protegido aceite pela Brevo.",
+        protectedTestAlreadyProcessed: "Este teste protegido já foi enviado para o mesmo conteúdo aprovado.",
+        protectedTestBlocked: "Envio de teste protegido bloqueado pelas proteções do servidor.",
+        protectedTestFailed: "Falha no envio de teste protegido.",
+        protectedTestPreviewHtml: "Pré-visualização HTML",
+        protectedTestPreviewPlain: "Pré-visualização texto simples"
       },
       progress: {
         title: "Progresso da campanha",

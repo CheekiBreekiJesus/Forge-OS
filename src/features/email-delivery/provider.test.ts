@@ -61,7 +61,10 @@ describe("email delivery configuration", () => {
 });
 
 describe("BrevoEmailDeliveryProvider", () => {
-  it("blocks when real-send flag is disabled", async () => {
+  it("allows protected test sends when real-send flag is disabled", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ messageId: "<message@relay.example>" }), { status: 201 })
+    );
     const provider = new BrevoEmailDeliveryProvider(
       readEmailDeliveryConfig({
         BREVO_API_KEY: "test-api-key",
@@ -76,13 +79,10 @@ describe("BrevoEmailDeliveryProvider", () => {
         OUTREACH_TEST_SEND_ENABLED: "true"
       })
     );
-    const fetchSpy = vi.spyOn(globalThis, "fetch");
 
     const result = await provider.send(request);
 
-    expect(result.status).toBe("blocked");
-    expect(result.errorCode).toBe("real_send_disabled");
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(result.status).toBe("accepted");
   });
 
   it("blocks non-allowlisted test recipients", async () => {

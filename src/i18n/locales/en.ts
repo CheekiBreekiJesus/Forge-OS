@@ -1106,7 +1106,22 @@ export const dictionary: Dictionary = {
         invalidated: "Approval invalidated: {reason}",
         duplicateBlocked: "Duplicate send blocked for this campaign recipient.",
         cooldownWarning: "This contact was contacted recently. Override requires confirmation and reason.",
-        cooldownOverride: "Override recent-contact cooldown"
+        cooldownOverride: "Override recent-contact cooldown",
+        protectedTestTitle: "Protected Brevo test send",
+        protectedTestDescription:
+          "Send exactly one internal test email to an allowlisted address. The original lead is never contacted and the recipient is not marked as sent.",
+        protectedTestRecipient: "Allowlisted test recipient",
+        protectedTestConfirmation: "Type SEND TEST to confirm",
+        protectedTestConfirmationHint: "Required confirmation phrase: SEND TEST",
+        protectedTestSend: "Send protected test email",
+        protectedTestSending: "Sending protected test…",
+        protectedTestUnavailable: "Protected Brevo test send is not configured on the server.",
+        protectedTestSuccess: "Protected test email accepted by Brevo.",
+        protectedTestAlreadyProcessed: "This protected test was already sent for the same approved content.",
+        protectedTestBlocked: "Protected test send blocked by server safety gates.",
+        protectedTestFailed: "Protected test send failed.",
+        protectedTestPreviewHtml: "HTML preview",
+        protectedTestPreviewPlain: "Plain-text preview"
       },
       progress: {
         title: "Campaign progress",

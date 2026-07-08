@@ -2,6 +2,8 @@ import type { EmailDeliveryRequest, EmailDeliveryResponse } from "@/domain/email
 
 export type ProtectedTestSendInput = EmailDeliveryRequest & {
   confirmation: "SEND TEST";
+  snapshotEmail?: string;
+  language?: string;
 };
 
 export async function sendProtectedTestEmailViaApi(

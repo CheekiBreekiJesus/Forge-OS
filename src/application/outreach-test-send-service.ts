@@ -1,19 +1,17 @@
 import type { EmailDeliveryProvider } from "@/features/email-delivery/provider";
 import type {
-  EmailDeliveryRequest,
   EmailDeliveryResponse,
   OutreachSendAttemptStatus
 } from "@/domain/email-delivery-types";
-import type { CampaignRecipient, OutreachCampaign } from "@/domain/campaign-types";
+import type { CampaignRecipient } from "@/domain/campaign-types";
 import { isEmailSuppressed } from "@/application/suppression-service";
 import { buildApprovalContentHash } from "@/application/campaign-approval-service";
-import { readEmailDeliveryConfig } from "@/features/email-delivery/config";
-import { buildUnsubscribeUrl, createUnsubscribeToken } from "@/features/email-delivery/unsubscribe-token";
+import { buildProtectedTestSendRequest } from "@/features/email-delivery/build-protected-test-send-request";
 import { assertServerOnlyModule } from "@/features/email-delivery/server-only";
+import { buildTestSendIdempotencyKey } from "@/features/outreach/protected-test-send-shared";
 import { isValidEmailSyntax, normalizeEmail } from "@/features/leadops/import-normalization";
 import type { LocalRepositoryBundle } from "@/persistence/interfaces";
 import { PersistenceError } from "@/persistence/interfaces";
-import { createHash } from "node:crypto";
 
 assertServerOnlyModule();
 
@@ -35,19 +33,7 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
-export function buildTestSendIdempotencyKey(
-  campaignId: string,
-  recipient: CampaignRecipient,
-  testRecipientEmail: string
-): string {
-  return [
-    "test",
-    campaignId,
-    recipient.id,
-    recipient.approvalContentHash ?? "unapproved",
-    testRecipientEmail.trim().toLowerCase()
-  ].join(":");
-}
+export { buildTestSendIdempotencyKey } from "@/features/outreach/protected-test-send-shared";
 
 export async function sendProtectedTestEmail(
   repos: LocalRepositoryBundle,
@@ -99,14 +85,22 @@ export async function sendProtectedTestEmail(
   }
 
   const startedAt = nowIso();
-  const request = buildProviderRequest(
-    input.tenantId,
-    campaign,
-    recipient,
-    testRecipientEmail,
+  const request = buildProtectedTestSendRequest({
+    approvedContentHash: recipient.approvalContentHash!,
+    campaignId: campaign.id,
+    campaignRecipientId: recipient.id,
+    html: recipient.personalizedHtml,
     idempotencyKey,
-    input.initiatedBy ?? "local-user"
-  );
+    initiatedBy: input.initiatedBy ?? "local-user",
+    language: campaign.language || "pt-PT",
+    leadId: recipient.leadId,
+    plainText: recipient.personalizedPlainText,
+    snapshotEmail: recipient.snapshotEmail,
+    subject: recipient.personalizedSubject,
+    tenantId: input.tenantId,
+    toEmail: testRecipientEmail,
+    toName: `${recipient.snapshotContactName || recipient.snapshotCompanyName} (test)`
+  });
   const delivery = await provider.send(request);
   const completedAt = nowIso();
 
@@ -156,50 +150,6 @@ function validateApprovedRecipient(recipient: CampaignRecipient): void {
   if (buildApprovalContentHash(recipient) !== recipient.approvalContentHash) {
     throw new PersistenceError("invalid_transition", "Approved content changed since approval.");
   }
-}
-
-function buildProviderRequest(
-  tenantId: string,
-  campaign: OutreachCampaign,
-  recipient: CampaignRecipient,
-  testRecipientEmail: string,
-  idempotencyKey: string,
-  initiatedBy: string
-): EmailDeliveryRequest {
-  const config = readEmailDeliveryConfig();
-  const emailHash = hashNormalizedEmail(tenantId, recipient.snapshotEmail);
-  const unsubscribeToken = createUnsubscribeToken(
-    {
-      campaignId: campaign.id,
-      campaignRecipientId: recipient.id,
-      emailHash,
-      leadId: recipient.leadId,
-      tenantId
-    },
-    config.unsubscribeSigningSecret
-  );
-  return {
-    approvedContentHash: recipient.approvalContentHash!,
-    campaignId: campaign.id,
-    campaignRecipientId: recipient.id,
-    html: recipient.personalizedHtml,
-    idempotencyKey,
-    initiatedBy,
-    leadId: recipient.leadId,
-    mode: "provider_test",
-    plainText: recipient.personalizedPlainText,
-    subject: recipient.personalizedSubject,
-    tenantId,
-    toEmail: testRecipientEmail,
-    toName: `${recipient.snapshotContactName || recipient.snapshotCompanyName} (test)`,
-    unsubscribeUrl: buildUnsubscribeUrl(config.publicBaseUrl, campaign.language || "pt-PT", unsubscribeToken)
-  };
-}
-
-function hashNormalizedEmail(tenantId: string, email: string): string {
-  return createHash("sha256")
-    .update(`${tenantId}:${normalizeEmail(email)}`)
-    .digest("hex");
 }
 
 function mapAttemptStatus(status: EmailDeliveryResponse["status"]): OutreachSendAttemptStatus {

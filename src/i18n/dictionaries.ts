@@ -746,6 +746,20 @@ export type Dictionary = {
         duplicateBlocked: string;
         cooldownWarning: string;
         cooldownOverride: string;
+        protectedTestTitle: string;
+        protectedTestDescription: string;
+        protectedTestRecipient: string;
+        protectedTestConfirmation: string;
+        protectedTestConfirmationHint: string;
+        protectedTestSend: string;
+        protectedTestSending: string;
+        protectedTestUnavailable: string;
+        protectedTestSuccess: string;
+        protectedTestAlreadyProcessed: string;
+        protectedTestBlocked: string;
+        protectedTestFailed: string;
+        protectedTestPreviewHtml: string;
+        protectedTestPreviewPlain: string;
       };
       progress: {
         title: string;

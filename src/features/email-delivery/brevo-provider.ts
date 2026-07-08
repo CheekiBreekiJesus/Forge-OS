@@ -37,7 +37,7 @@ export class BrevoEmailDeliveryProvider implements EmailDeliveryProvider {
     if (!diagnostic.configured) {
       return blocked("configuration_missing", "Brevo email delivery is not fully configured.");
     }
-    if (!this.config.realSendEnabled) {
+    if (request.mode !== "provider_test" && !this.config.realSendEnabled) {
       return blocked("real_send_disabled", "Real email delivery is disabled.");
     }
     if (request.mode === "provider_test" && !this.config.testSendEnabled) {

@@ -67,7 +67,7 @@ describe("/api/leadops/email-provider/test-send", () => {
     vi.stubEnv("FORGEOS_PUBLIC_BASE_URL", "https://forgeos.example");
     vi.stubEnv("OUTREACH_UNSUBSCRIBE_SECRET", "test-secret-with-enough-entropy-for-hmac-signing");
     vi.stubEnv("BREVO_WEBHOOK_SECRET", "test-webhook-secret-with-enough-entropy");
-    vi.stubEnv("OUTREACH_REAL_SEND_ENABLED", "true");
+    vi.stubEnv("OUTREACH_REAL_SEND_ENABLED", "false");
     vi.stubEnv("OUTREACH_TEST_SEND_ENABLED", "true");
     vi.stubEnv("OUTREACH_TEST_RECIPIENT_ALLOWLIST", "qa@example.com");
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
@@ -81,5 +81,38 @@ describe("/api/leadops/email-provider/test-send", () => {
     expect(body.provider).toBe("brevo");
     expect(body.status).toBe("accepted");
     expect(body.providerMessageId).toBe("<message@relay.example>");
+  });
+
+  it("builds unsubscribe URLs server-side when snapshot email is provided", async () => {
+    vi.stubEnv("EMAIL_DELIVERY_PROVIDER", "brevo");
+    vi.stubEnv("BREVO_API_KEY", "test-api-key");
+    vi.stubEnv("BREVO_SENDER_EMAIL", "sender@example.com");
+    vi.stubEnv("BREVO_SENDER_NAME", "ForgeOS");
+    vi.stubEnv("FORGEOS_PUBLIC_BASE_URL", "https://forgeos.example");
+    vi.stubEnv("OUTREACH_UNSUBSCRIBE_SECRET", "test-secret-with-enough-entropy-for-hmac-signing");
+    vi.stubEnv("BREVO_WEBHOOK_SECRET", "test-webhook-secret-with-enough-entropy");
+    vi.stubEnv("OUTREACH_REAL_SEND_ENABLED", "false");
+    vi.stubEnv("OUTREACH_TEST_SEND_ENABLED", "true");
+    vi.stubEnv("OUTREACH_TEST_RECIPIENT_ALLOWLIST", "qa@example.com");
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ messageId: "<message@relay.example>" }), { status: 201 })
+    );
+
+    const { unsubscribeUrl, ...withoutUnsubscribe } = payload;
+    void unsubscribeUrl;
+    const response = await POST(
+      request({
+        ...withoutUnsubscribe,
+        language: "pt-PT",
+        snapshotEmail: "lead@example.invalid"
+      })
+    );
+    const body = await response.json();
+    const [, init] = fetchSpy.mock.calls[0]!;
+    const sentBody = JSON.parse(String(init?.body));
+
+    expect(response.status).toBe(200);
+    expect(body.status).toBe("accepted");
+    expect(sentBody.textContent).toContain("Opt-out: https://forgeos.example/pt-PT/unsubscribe?token=");
   });
 });
