@@ -5,6 +5,7 @@ import type {
   UserProfile
 } from "@/domain/profile-types";
 import type { Product } from "@/domain/product-types";
+import type { InventoryProductSnapshot } from "@/persistence/interfaces";
 import type {
   ActivityEvent,
   Campaign,
@@ -17,7 +18,7 @@ import type {
 } from "@/domain/types";
 import type { LocalRepositoryBundle } from "@/persistence/interfaces";
 
-export const BACKUP_VERSION = 2 as const;
+export const BACKUP_VERSION = 3 as const;
 
 export type ForgeOSBackup = {
   version: typeof BACKUP_VERSION;
@@ -36,6 +37,7 @@ export type ForgeOSBackup = {
     userProfiles: UserProfile[];
     senderIdentities: SenderIdentity[];
     products: Product[];
+    inventoryProduct: InventoryProductSnapshot;
   };
   localAssets?: Array<Omit<LocalAsset, "blob"> & { blobBase64: string }>;
 };
@@ -58,6 +60,7 @@ export async function exportBackup(
     userProfiles,
     senderIdentities,
     products,
+    inventoryProduct,
     assets
   ] = await Promise.all([
     repos.leads.list(tenantId),
@@ -72,6 +75,7 @@ export async function exportBackup(
     repos.userProfiles.list(tenantId),
     repos.senderIdentities.listAll(tenantId),
     repos.products.list(tenantId),
+    repos.inventoryProduct.getSnapshot(tenantId),
     includeAssets ? repos.localAssets.list(tenantId) : Promise.resolve([])
   ]);
 
@@ -87,6 +91,7 @@ export async function exportBackup(
       outreachMessages,
       productionOrders,
       products,
+      inventoryProduct,
       quotes,
       senderIdentities,
       userProfiles
@@ -127,9 +132,26 @@ export function validateBackup(data: unknown): data is ForgeOSBackup {
     "companyProfiles",
     "userProfiles",
     "senderIdentities",
-    "products"
+    "products",
+    "inventoryProduct"
   ];
-  return required.every((key) => Array.isArray(tables[key]));
+  if (!required.every((key) => tables[key] !== undefined)) return false;
+  if (!["leads", "customers", "companyProfiles", "userProfiles", "senderIdentities", "products"].every((key) => Array.isArray(tables[key]))) {
+    return false;
+  }
+  const inventoryProduct = tables.inventoryProduct as Record<string, unknown> | undefined;
+  if (!inventoryProduct || typeof inventoryProduct !== "object") return false;
+  return [
+    "unitOfMeasures",
+    "items",
+    "products",
+    "variants",
+    "transactions",
+    "entries",
+    "barcodes",
+    "labelTemplates",
+    "labelPrintJobs"
+  ].every((key) => Array.isArray(inventoryProduct[key]));
 }
 
 export async function importBackup(

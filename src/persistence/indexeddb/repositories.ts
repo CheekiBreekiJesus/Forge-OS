@@ -48,6 +48,11 @@ import {
   createMachineRepository,
   seedOperationsDefaults
 } from "./operations-repositories";
+import {
+  createInventoryProductRepository,
+  seedInventoryProductDefaults,
+  writeInventoryProductSnapshot
+} from "./inventory-product-repositories";
 import type { ForgeOSBackup } from "@/features/backup/service";
 import {
   PersistenceError,
@@ -1026,6 +1031,7 @@ export async function seedDatabase(
         if (machineCount === 0 && productRows.length > 0) {
           await seedOperationsDefaults(db, tenantId, productRows);
         }
+        await seedInventoryProductDefaults(db, tenantId);
         return false;
       }
     }
@@ -1071,7 +1077,25 @@ export async function seedDatabase(
     db.machines,
     db.inventoryItems,
     db.stockMovements,
-    db.customerContacts
+    db.customerContacts,
+    db.unitOfMeasures,
+    db.unitConversions,
+    db.inventoryItemMasters,
+    db.productMasters,
+    db.productVariants,
+    db.packagingConfigurations,
+    db.warehouses,
+    db.stockLocations,
+    db.inventoryLots,
+    db.inventoryTransactions,
+    db.inventoryLedgerEntries,
+    db.inventoryReservations,
+    db.stockCountSessions,
+    db.barcodeRecords,
+    db.labelTemplates,
+    db.labelPrintJobs,
+    db.importBatches,
+    db.importStagedRows
   ];
 
   await db.transaction("rw", allTables, async () => {
@@ -1093,6 +1117,24 @@ export async function seedDatabase(
       await db.inventoryItems.where("tenantId").equals(tenantId).delete();
       await db.stockMovements.where("tenantId").equals(tenantId).delete();
       await db.customerContacts.where("tenantId").equals(tenantId).delete();
+      await db.unitOfMeasures.where("tenantId").equals(tenantId).delete();
+      await db.unitConversions.where("tenantId").equals(tenantId).delete();
+      await db.inventoryItemMasters.where("tenantId").equals(tenantId).delete();
+      await db.productMasters.where("tenantId").equals(tenantId).delete();
+      await db.productVariants.where("tenantId").equals(tenantId).delete();
+      await db.packagingConfigurations.where("tenantId").equals(tenantId).delete();
+      await db.warehouses.where("tenantId").equals(tenantId).delete();
+      await db.stockLocations.where("tenantId").equals(tenantId).delete();
+      await db.inventoryLots.where("tenantId").equals(tenantId).delete();
+      await db.inventoryTransactions.where("tenantId").equals(tenantId).delete();
+      await db.inventoryLedgerEntries.where("tenantId").equals(tenantId).delete();
+      await db.inventoryReservations.where("tenantId").equals(tenantId).delete();
+      await db.stockCountSessions.where("tenantId").equals(tenantId).delete();
+      await db.barcodeRecords.where("tenantId").equals(tenantId).delete();
+      await db.labelTemplates.where("tenantId").equals(tenantId).delete();
+      await db.labelPrintJobs.where("tenantId").equals(tenantId).delete();
+      await db.importBatches.where("tenantId").equals(tenantId).delete();
+      await db.importStagedRows.where("tenantId").equals(tenantId).delete();
     }
 
     await db.campaigns.bulkPut(campaigns);
@@ -1124,6 +1166,7 @@ export async function seedDatabase(
   if (machineCount === 0 && productRows.length > 0) {
     await seedOperationsDefaults(db, tenantId, productRows);
   }
+  await seedInventoryProductDefaults(db, tenantId);
 
   return true;
 }
@@ -1237,7 +1280,25 @@ export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
       db.inventoryItems,
       db.stockMovements,
       db.customerContacts,
-      db.customizerSimulations
+      db.customizerSimulations,
+      db.unitOfMeasures,
+      db.unitConversions,
+      db.inventoryItemMasters,
+      db.productMasters,
+      db.productVariants,
+      db.packagingConfigurations,
+      db.warehouses,
+      db.stockLocations,
+      db.inventoryLots,
+      db.inventoryTransactions,
+      db.inventoryLedgerEntries,
+      db.inventoryReservations,
+      db.stockCountSessions,
+      db.barcodeRecords,
+      db.labelTemplates,
+      db.labelPrintJobs,
+      db.importBatches,
+      db.importStagedRows
     ],
     async () => {
       await db.meta.clear();
@@ -1259,6 +1320,24 @@ export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
       await db.stockMovements.clear();
       await db.customerContacts.clear();
       await db.customizerSimulations.clear();
+      await db.unitOfMeasures.clear();
+      await db.unitConversions.clear();
+      await db.inventoryItemMasters.clear();
+      await db.productMasters.clear();
+      await db.productVariants.clear();
+      await db.packagingConfigurations.clear();
+      await db.warehouses.clear();
+      await db.stockLocations.clear();
+      await db.inventoryLots.clear();
+      await db.inventoryTransactions.clear();
+      await db.inventoryLedgerEntries.clear();
+      await db.inventoryReservations.clear();
+      await db.stockCountSessions.clear();
+      await db.barcodeRecords.clear();
+      await db.labelTemplates.clear();
+      await db.labelPrintJobs.clear();
+      await db.importBatches.clear();
+      await db.importStagedRows.clear();
     }
   );
 }
@@ -1315,6 +1394,7 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
       await db.meta.put({ key: "seedVersion", value: String(SEED_VERSION) });
     }
   );
+  await writeInventoryProductSnapshot(db, tenantId, tables.inventoryProduct);
   const productRows = await db.products.where("tenantId").equals(tenantId).toArray();
   const machineCount = await db.machines.where("tenantId").equals(tenantId).count();
   if (machineCount === 0 && productRows.length > 0) {
@@ -1347,6 +1427,7 @@ export function createLocalRepositoryBundle(db: ForgeOSDatabase) {
   const localAssets = createLocalAssetRepository(db);
   const products = createProductRepository(db, activities);
   const customizerSimulations = createCustomizerSimulationRepository(db, activities);
+  const inventoryProduct = createInventoryProductRepository(db);
 
   return {
     meta,
@@ -1358,6 +1439,7 @@ export function createLocalRepositoryBundle(db: ForgeOSDatabase) {
     productionOrders,
     machines,
     inventory,
+    inventoryProduct,
     outreachMessages,
     campaigns,
     activities,

@@ -23,6 +23,26 @@ import type {
   UserProfile
 } from "@/domain/profile-types";
 import type { CustomizerSimulation } from "@/domain/customizer-types";
+import type {
+  BarcodeRecord,
+  ImportBatch,
+  ImportStagedRow,
+  InventoryItemMaster,
+  InventoryLedgerEntry,
+  InventoryLot,
+  InventoryReservation,
+  InventoryTransaction,
+  LabelPrintJob,
+  LabelTemplate,
+  PackagingConfiguration,
+  ProductMaster,
+  ProductVariant,
+  StockCountSession,
+  StockLocation,
+  UnitConversion,
+  UnitOfMeasure,
+  Warehouse
+} from "@/domain/inventory-product-types";
 import type { Product } from "@/domain/product-types";
 import { DEFAULT_ARCHIVABLE } from "@/persistence/archive-utils";
 
@@ -55,6 +75,24 @@ export class ForgeOSDatabase extends Dexie {
   inventoryItems!: Table<InventoryItem, string>;
   stockMovements!: Table<StockMovement, string>;
   customizerSimulations!: Table<CustomizerSimulation, string>;
+  unitOfMeasures!: Table<UnitOfMeasure, string>;
+  unitConversions!: Table<UnitConversion, string>;
+  inventoryItemMasters!: Table<InventoryItemMaster, string>;
+  productMasters!: Table<ProductMaster, string>;
+  productVariants!: Table<ProductVariant, string>;
+  packagingConfigurations!: Table<PackagingConfiguration, string>;
+  warehouses!: Table<Warehouse, string>;
+  stockLocations!: Table<StockLocation, string>;
+  inventoryLots!: Table<InventoryLot, string>;
+  inventoryTransactions!: Table<InventoryTransaction, string>;
+  inventoryLedgerEntries!: Table<InventoryLedgerEntry, string>;
+  inventoryReservations!: Table<InventoryReservation, string>;
+  stockCountSessions!: Table<StockCountSession, string>;
+  barcodeRecords!: Table<BarcodeRecord, string>;
+  labelTemplates!: Table<LabelTemplate, string>;
+  labelPrintJobs!: Table<LabelPrintJob, string>;
+  importBatches!: Table<ImportBatch, string>;
+  importStagedRows!: Table<ImportStagedRow, string>;
 
   constructor(name: string = LOCAL_DB_NAME) {
     super(name);
@@ -198,7 +236,33 @@ export class ForgeOSDatabase extends Dexie {
         inventoryItems: "id, tenantId, sku, active, [tenantId+sku]",
         stockMovements: "id, tenantId, inventoryItemId, [tenantId+inventoryItemId]",
         customizerSimulations:
-          "id, tenantId, customerId, leadId, productId, quoteId, status, active, [tenantId+status]"
+          "id, tenantId, customerId, leadId, productId, quoteId, status, active, [tenantId+status]",
+        unitOfMeasures: "id, tenantId, code, [tenantId+code]",
+        unitConversions:
+          "id, tenantId, itemId, packagingConfigurationId, fromUnitId, toUnitId",
+        inventoryItemMasters:
+          "id, tenantId, internalReference, itemType, active, [tenantId+internalReference]",
+        productMasters: "id, tenantId, productCode, active, [tenantId+productCode]",
+        productVariants: "id, tenantId, productId, outputItemId, customerId, status",
+        packagingConfigurations: "id, tenantId, itemId, productVariantId",
+        warehouses: "id, tenantId, code, active, [tenantId+code]",
+        stockLocations:
+          "id, tenantId, warehouseId, parentLocationId, code, locationType, active, [tenantId+code]",
+        inventoryLots: "id, tenantId, itemId, internalLotNumber, [tenantId+internalLotNumber]",
+        inventoryTransactions:
+          "id, tenantId, transactionType, status, idempotencyKey, occurredAt, [tenantId+idempotencyKey]",
+        inventoryLedgerEntries:
+          "id, tenantId, transactionId, itemId, productVariantId, warehouseId, locationId, lotId, stockCondition",
+        inventoryReservations:
+          "id, tenantId, itemId, productVariantId, warehouseId, locationId, lotId, status",
+        stockCountSessions: "id, tenantId, warehouseId, locationId, itemId, status",
+        barcodeRecords:
+          "id, tenantId, normalizedValue, ownershipType, itemId, productVariantId, status, [tenantId+normalizedValue]",
+        labelTemplates: "id, tenantId, purpose, customerId, active",
+        labelPrintJobs: "id, tenantId, templateId, itemId, productVariantId, status, requestedAt",
+        importBatches: "id, tenantId, importType, state",
+        importStagedRows:
+          "id, tenantId, importBatchId, sourceRowNumber, proposedAction, approvalState"
       })
       .upgrade(async (tx) => {
         await tx.table("quotes").toCollection().modify((row: Record<string, unknown>) => {

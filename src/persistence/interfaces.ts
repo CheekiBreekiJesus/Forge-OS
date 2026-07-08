@@ -29,6 +29,27 @@ import type {
 } from "@/domain/customizer-types";
 import type { CreateProductInput, Product, UpdateProductInput } from "@/domain/product-types";
 import type {
+  BarcodeRecord,
+  ImportBatch,
+  ImportStagedRow,
+  InventoryItemMaster,
+  InventoryLedgerEntry,
+  InventoryLot,
+  InventoryReservation,
+  InventoryTransaction,
+  LabelPrintJob,
+  LabelTemplate,
+  PackagingConfiguration,
+  ProductMaster,
+  ProductVariant,
+  StockCountSession,
+  StockLocation,
+  UnitConversion,
+  UnitOfMeasure,
+  Warehouse
+} from "@/domain/inventory-product-types";
+import type { PostTransactionInput } from "@/features/inventory-product/ledger";
+import type {
   ActivityEvent,
   Campaign,
   CreateActivityEventInput,
@@ -197,6 +218,45 @@ export interface InventoryRepository {
   listMovements(tenantId: string, inventoryItemId: string): Promise<StockMovement[]>;
 }
 
+export type InventoryProductSnapshot = {
+  unitOfMeasures: UnitOfMeasure[];
+  conversions: UnitConversion[];
+  items: InventoryItemMaster[];
+  products: ProductMaster[];
+  variants: ProductVariant[];
+  packaging: PackagingConfiguration[];
+  warehouses: Warehouse[];
+  locations: StockLocation[];
+  lots: InventoryLot[];
+  transactions: InventoryTransaction[];
+  entries: InventoryLedgerEntry[];
+  reservations: InventoryReservation[];
+  stockCounts: StockCountSession[];
+  barcodes: BarcodeRecord[];
+  labelTemplates: LabelTemplate[];
+  labelPrintJobs: LabelPrintJob[];
+  importBatch: ImportBatch | null;
+  importRows: ImportStagedRow[];
+};
+
+export interface InventoryProductRepository {
+  getSnapshot(tenantId: string): Promise<InventoryProductSnapshot>;
+  replaceSnapshot(tenantId: string, snapshot: InventoryProductSnapshot): Promise<void>;
+  seedDemoFoundation(tenantId: string): Promise<void>;
+  postTransaction(
+    tenantId: string,
+    input: PostTransactionInput
+  ): Promise<{ transaction: InventoryTransaction; entries: InventoryLedgerEntry[] }>;
+  reverseTransaction(
+    tenantId: string,
+    transactionId: string,
+    operatorId: string,
+    reasonCode: string
+  ): Promise<{ transaction: InventoryTransaction; entries: InventoryLedgerEntry[] }>;
+  recordLabelPrintJob(tenantId: string, job: LabelPrintJob): Promise<LabelPrintJob>;
+  validateIntegrity(tenantId: string): Promise<{ ok: boolean; issues: string[] }>;
+}
+
 export interface OutreachMessageRepository {
   listForLead(tenantId: string, leadId: string): Promise<OutreachMessage[]>;
   listAll(tenantId: string): Promise<OutreachMessage[]>;
@@ -295,6 +355,7 @@ export interface LocalRepositoryBundle {
   productionOrders: ProductionOrderRepository;
   machines: MachineRepository;
   inventory: InventoryRepository;
+  inventoryProduct: InventoryProductRepository;
   outreachMessages: OutreachMessageRepository;
   campaigns: CampaignRepository;
   activities: ActivityRepository;

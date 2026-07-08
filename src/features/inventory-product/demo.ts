@@ -7,6 +7,7 @@ import type {
   InventoryLot,
   InventoryReservation,
   InventoryTransaction,
+  LabelPrintJob,
   LabelTemplate,
   PackagingConfiguration,
   ProductMaster,
@@ -14,11 +15,13 @@ import type {
   StockCountSession,
   StockLocation,
   UnitConversion,
+  UnitOfMeasure,
   Warehouse
 } from "@/domain/inventory-product-types";
 import { createDefaultUnits, postInventoryTransaction } from "@/features/inventory-product/ledger";
 
 export type InventoryProductDemoState = {
+  unitOfMeasures: UnitOfMeasure[];
   items: InventoryItemMaster[];
   products: ProductMaster[];
   variants: ProductVariant[];
@@ -32,15 +35,18 @@ export type InventoryProductDemoState = {
   stockCounts: StockCountSession[];
   barcodes: BarcodeRecord[];
   labelTemplates: LabelTemplate[];
+  labelPrintJobs: LabelPrintJob[];
   importBatch: ImportBatch;
   importRows: ImportStagedRow[];
   conversions: UnitConversion[];
 };
 
-const tenantId = "tenant_jh_gomes";
+const defaultTenantId = "tenant_jh_gomes";
 const now = "2026-07-01T09:00:00.000Z";
 
-export function createInventoryProductDemoState(): InventoryProductDemoState {
+export function createInventoryProductDemoState(
+  tenantId = defaultTenantId
+): InventoryProductDemoState {
   const units = createDefaultUnits(tenantId, now);
   const unit = units.find((row) => row.code === "unit")!;
   const box = units.find((row) => row.code === "box")!;
@@ -452,6 +458,7 @@ export function createInventoryProductDemoState(): InventoryProductDemoState {
       }
     ],
     items,
+    labelPrintJobs: [],
     labelTemplates: [
       {
         active: true,
@@ -502,6 +509,7 @@ export function createInventoryProductDemoState(): InventoryProductDemoState {
       }
     ],
     transactions: ledger.transactions,
+    unitOfMeasures: units,
     variants,
     warehouses: [warehouse]
   };
