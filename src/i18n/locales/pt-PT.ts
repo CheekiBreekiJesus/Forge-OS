@@ -1846,7 +1846,9 @@ export const dictionary: Dictionary = {
       selectLead: "Selecionar lead (opcional)",
       required: "Selecione um produto de copo para continuar."
     },
-    printAreas: { wrap: "Volta completa", front: "Frente", back: "Verso" },
+    printAreas: { deg180: "180º", deg360: "360º" },
+    cupTypes: { reusable_pp: "Copo reutilizável em PP", paper: "Copo de papel" },
+    materials: { polypropylene: "Polipropileno (PP)", paper: "Papel" },
     artworkPositions: { left: "Esquerda", center: "Centro", right: "Direita" },
     artwork: {
       upload: "Carregar arte",
@@ -1860,7 +1862,21 @@ export const dictionary: Dictionary = {
     },
     preview: {
       label: "Pré-visualização do copo",
-      brokenProductImage: "Imagem do produto indisponível; a usar pré-visualização base."
+      generate: "Gerar pré-visualização",
+      generated: "Pré-visualização atualizada.",
+      stale: "A configuração mudou — gere novamente a pré-visualização antes de guardar.",
+      missingAsset: "Imagem modelo em falta; a mostrar modelo neutro.",
+      brokenProductImage: "Imagem do produto indisponível; a usar modelo de copo.",
+      metadata: {
+        cupType: "Tipo de copo",
+        cupSize: "Tamanho",
+        printArea: "Área de impressão",
+        quantity: "Quantidade",
+        artwork: "Arte"
+      },
+      inkCoverage: "Cobertura estimada de tinta",
+      inkCoverageTooltip:
+        "Estimativa visual aproximada com base na opacidade da arte carregada. Não é uma medição final de consumo de tinta em produção."
     },
     pricing: {
       estimateBadge: "Estimativa",

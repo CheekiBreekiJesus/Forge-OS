@@ -1846,7 +1846,9 @@ export const dictionary: Dictionary = {
       selectLead: "Select lead (optional)",
       required: "Select a cup product to continue."
     },
-    printAreas: { wrap: "Wrap", front: "Front", back: "Back" },
+    printAreas: { deg180: "180°", deg360: "360°" },
+    cupTypes: { reusable_pp: "Reusable PP cup", paper: "Paper cup" },
+    materials: { polypropylene: "Polypropylene (PP)", paper: "Paper" },
     artworkPositions: { left: "Left", center: "Centre", right: "Right" },
     artwork: {
       upload: "Upload artwork",
@@ -1860,7 +1862,21 @@ export const dictionary: Dictionary = {
     },
     preview: {
       label: "Cup preview",
-      brokenProductImage: "Product image unavailable; using fallback preview."
+      generate: "Generate preview",
+      generated: "Preview updated.",
+      stale: "Configuration changed — generate preview again before saving.",
+      missingAsset: "Template image missing; showing neutral fallback.",
+      brokenProductImage: "Product image unavailable; using cup template.",
+      metadata: {
+        cupType: "Cup type",
+        cupSize: "Size",
+        printArea: "Print area",
+        quantity: "Quantity",
+        artwork: "Artwork"
+      },
+      inkCoverage: "Estimated ink coverage",
+      inkCoverageTooltip:
+        "Approximate visual estimate based on uploaded artwork opacity. Not a final production ink consumption measurement."
     },
     pricing: {
       estimateBadge: "Estimate",

@@ -10,3 +10,33 @@ export type {
   CupCustomizerAdapterOutput,
   CupPricingEstimate
 } from "./domain/types";
+export {
+  CUP_TYPE_OPTIONS,
+  defaultSizeForCupType,
+  formatCupSizeLabel,
+  cupTypeFromProductCategory,
+  materialForCupType,
+  normalizeCupSize,
+  normalizeCupType,
+  PAPER_CUP_SIZES_ML,
+  REUSABLE_PP_SIZES_ML,
+  sizesForCupType,
+  type CupMaterialId,
+  type CupSizeMl,
+  type CupTypeId,
+  type PrintAreaId
+} from "./config/cup-catalog";
+export {
+  normalizePrintArea,
+  PRINT_AREA_OPTIONS,
+  printAreaLabelKey,
+  printableWidthFraction
+} from "./config/print-area";
+export {
+  buildCupBackgroundCandidateUrls,
+  CUP_BACKGROUND_BASE_PATH,
+  resolveCupBackgroundAssets,
+  type CupBackgroundResolveResult
+} from "./config/background-assets";
+export { buildPreviewExportBlob, buildPreviewExportSvg, loadImageAsDataUrl } from "./rendering/preview-export";
+export { estimateInkCoverage } from "./rendering/ink-coverage";

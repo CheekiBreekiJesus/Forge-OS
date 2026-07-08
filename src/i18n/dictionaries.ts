@@ -1417,7 +1417,9 @@ export type Dictionary = {
       selectLead: string;
       required: string;
     };
-    printAreas: Record<"wrap" | "front" | "back", string>;
+    printAreas: Record<"deg180" | "deg360", string>;
+    cupTypes: Record<"reusable_pp" | "paper", string>;
+    materials: Record<"polypropylene" | "paper", string>;
     artworkPositions: Record<"left" | "center" | "right", string>;
     artwork: {
       upload: string;
@@ -1431,7 +1433,20 @@ export type Dictionary = {
     };
     preview: {
       label: string;
+      generate: string;
+      generated: string;
+      stale: string;
+      missingAsset: string;
       brokenProductImage: string;
+      metadata: {
+        cupType: string;
+        cupSize: string;
+        printArea: string;
+        quantity: string;
+        artwork: string;
+      };
+      inkCoverage: string;
+      inkCoverageTooltip: string;
     };
     pricing: {
       estimateBadge: string;

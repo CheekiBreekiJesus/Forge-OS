@@ -41,7 +41,7 @@ describe("customizer integration persistence", () => {
         cupType: cup.category,
         desiredDeliveryDate: null,
         material: cup.material,
-        printArea: "wrap",
+        printArea: "deg_360",
         printColorCount: 1
       },
       pricing: {
@@ -95,7 +95,7 @@ describe("customizer integration persistence", () => {
         cupType: "personalized-cups",
         desiredDeliveryDate: null,
         material: "PP",
-        printArea: "wrap",
+        printArea: "deg_360",
         printColorCount: 1
       },
       pricing: {
