@@ -38,5 +38,21 @@ export {
   resolveCupBackgroundAssets,
   type CupBackgroundResolveResult
 } from "./config/background-assets";
+export {
+  CUP_CUSTOMIZER_SHOW_PAPER_CUPS,
+  CUP_PLACEMENT_BY_SIZE,
+  DEFAULT_PREVIEW_BACKGROUND,
+  isHiddenPaperCupSelection,
+  normalizeCustomizerCupTypeForUi,
+  normalizePreviewBackground,
+  previewBackgrounds,
+  reusablePPCups,
+  resolvePreviewSceneAssetPath,
+  resolveReusablePPCupAssetPath,
+  visibleCupTypesInCustomizer,
+  type CupPlacementConfig,
+  type CupSizeSlug,
+  type PreviewBackground
+} from "./config/visual-assets";
 export { buildPreviewExportBlob, buildPreviewExportSvg, loadImageAsDataUrl } from "./rendering/preview-export";
 export { estimateInkCoverage } from "./rendering/ink-coverage";

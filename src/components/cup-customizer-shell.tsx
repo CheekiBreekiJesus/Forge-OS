@@ -10,17 +10,22 @@ import {
   defaultSizeForCupType,
   estimateInkCoverage,
   formatCupSizeLabel,
+  isHiddenPaperCupSelection,
   loadImageAsDataUrl,
   materialForCupType,
+  normalizeCustomizerCupTypeForUi,
   normalizeCupSize,
   normalizeCupType,
+  normalizePreviewBackground,
   normalizePrintArea,
   PRINT_AREA_OPTIONS,
   printAreaLabelKey,
   sizesForCupType,
+  visibleCupTypesInCustomizer,
   type CupCustomizerAdapterInput,
   type CupSizeMl,
-  type CupTypeId
+  type CupTypeId,
+  type PreviewBackground
 } from "@cup-customizer";
 import { AppFrame, panelClass } from "@/components/app-frame";
 import {
@@ -67,7 +72,7 @@ const ARTWORK_POSITIONS = ["left", "center", "right"];
 const DEFAULT_ARTWORK_SCALE = 1;
 const DEFAULT_ARTWORK_OFFSET = 0;
 const DEFAULT_ARTWORK_ROTATION = 0;
-const CUP_TYPE_OPTIONS: CupTypeId[] = ["reusable_pp", "paper"];
+const VISIBLE_CUP_TYPES = visibleCupTypesInCustomizer();
 
 function isCupProduct(product: Product): boolean {
   return (
@@ -91,7 +96,8 @@ function defaultConfiguration(product: Product | null): CustomizerConfiguration 
     desiredDeliveryDate: null,
     material: materialForCupType(cupType),
     printArea: "deg_180",
-    printColorCount: 1
+    printColorCount: 1,
+    previewScene: "day"
   };
 }
 
@@ -104,7 +110,7 @@ function normalizeConfiguration(
   product: Product | null
 ): CustomizerConfiguration {
   const defaults = defaultConfiguration(product);
-  const cupType = normalizeCupType(configuration.cupType ?? defaults.cupType);
+  const cupType = normalizeCustomizerCupTypeForUi(configuration.cupType ?? defaults.cupType);
   const cupSize = formatCupSizeLabel(
     normalizeCupSize(configuration.cupSize ?? defaults.cupSize, cupType),
     "en"
@@ -120,6 +126,7 @@ function normalizeConfiguration(
     cupType,
     desiredDeliveryDate: configuration.desiredDeliveryDate ?? defaults.desiredDeliveryDate,
     material: materialForCupType(cupType),
+    previewScene: normalizePreviewBackground(configuration.previewScene ?? defaults.previewScene),
     printArea: normalizePrintArea(configuration.printArea ?? defaults.printArea),
     printColorCount: finiteNumber(configuration.printColorCount, defaults.printColorCount)
   };
@@ -131,7 +138,9 @@ function resolveProductPreviewUrl(product: Product | null): string | null {
 }
 
 function configurationSignature(configuration: CustomizerConfiguration, quantity: number, artworkAssetId: string | null): string {
-  return JSON.stringify({ ...configuration, artworkAssetId, quantity });
+  const { previewScene, ...manufacturing } = configuration;
+  void previewScene;
+  return JSON.stringify({ ...manufacturing, artworkAssetId, quantity });
 }
 
 function buildPricingSnapshot(
@@ -201,7 +210,8 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
   const [artworkFileName, setArtworkFileName] = useState<string | null>(null);
   const [previewStale, setPreviewStale] = useState(true);
   const [previewSignature, setPreviewSignature] = useState<string | null>(null);
-  const [resolvedBackgroundUrl, setResolvedBackgroundUrl] = useState<string | null>(null);
+  const [resolvedSceneUrl, setResolvedSceneUrl] = useState<string | null>(null);
+  const [resolvedCupUrl, setResolvedCupUrl] = useState<string | null>(null);
   const [inkCoveragePercent, setInkCoveragePercent] = useState<number | null>(null);
   const [manualUnitPriceOverride, setManualUnitPriceOverride] = useState<number | null>(null);
   const [overrideReason, setOverrideReason] = useState("");
@@ -216,7 +226,9 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
     [cupProducts, productId]
   );
 
-  const activeCupType = normalizeCupType(configuration.cupType) as CupTypeId;
+  const activeCupType = normalizeCustomizerCupTypeForUi(configuration.cupType) as CupTypeId;
+  const activePreviewScene = normalizePreviewBackground(configuration.previewScene) as PreviewBackground;
+  const legacyPaperSelection = isHiddenPaperCupSelection(configuration.cupType);
   const activeCupSizes = sizesForCupType(activeCupType);
   const activeSizeMl = normalizeCupSize(configuration.cupSize, activeCupType);
   const activePrintArea = normalizePrintArea(configuration.printArea);
@@ -250,7 +262,8 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
       setArtworkFileName(null);
       setPreviewStale(true);
       setPreviewSignature(null);
-      setResolvedBackgroundUrl(null);
+      setResolvedSceneUrl(null);
+      setResolvedCupUrl(null);
       setInkCoveragePercent(null);
       setManualUnitPriceOverride(null);
       setOverrideReason("");
@@ -449,7 +462,8 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
 
   async function buildMockupBlob(): Promise<Blob | null> {
     if (!selectedProduct || !pricing) return null;
-    const backgroundDataUrl = resolvedBackgroundUrl ? await loadImageAsDataUrl(resolvedBackgroundUrl) : null;
+    const sceneBackgroundDataUrl = resolvedSceneUrl ? await loadImageAsDataUrl(resolvedSceneUrl) : null;
+    const cupImageDataUrl = resolvedCupUrl ? await loadImageAsDataUrl(resolvedCupUrl) : null;
     const artworkDataUrl = artworkPreviewUrl?.startsWith("data:")
       ? artworkPreviewUrl
       : artworkPreviewUrl
@@ -462,7 +476,8 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
       artworkPosition: configuration.artworkPosition,
       artworkRotation: configuration.artworkRotation,
       artworkScale: configuration.artworkScale,
-      backgroundDataUrl,
+      cupImageDataUrl,
+      cupSizeMl: activeSizeMl,
       cupSizeLabel: formatCupSizeLabel(activeSizeMl, locale),
       cupTypeLabel: copy.cupTypes[activeCupType],
       printArea: activePrintArea,
@@ -470,6 +485,7 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
       productName: selectedProduct.name,
       productSku: selectedProduct.sku,
       quantity,
+      sceneBackgroundDataUrl,
       totalLabel: new Intl.NumberFormat(locale, { currency: "EUR", style: "currency" }).format(pricing.total)
     });
   }
@@ -750,7 +766,7 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
                     }}
                     value={activeCupType}
                   >
-                    {CUP_TYPE_OPTIONS.map((cupType) => (
+                    {VISIBLE_CUP_TYPES.map((cupType) => (
                       <option key={cupType} value={cupType}>
                         {copy.cupTypes[cupType]}
                       </option>
@@ -1050,6 +1066,32 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
                   {copy.preview.generate}
                 </button>
               </div>
+              {legacyPaperSelection ? (
+                <p className="mb-3 text-xs font-medium text-amber-300">{copy.preview.legacyPaperWarning}</p>
+              ) : null}
+              <FormField label={copy.form.previewScene}>
+                <div className="flex gap-2">
+                  {(["day", "night"] as const).map((scene) => (
+                    <button
+                      className={`rounded-lg border px-3 py-2 text-sm font-semibold ${
+                        activePreviewScene === scene
+                          ? "border-orange-500/60 bg-orange-500/15 text-orange-100"
+                          : "border-slate-700 text-slate-200 hover:bg-slate-800"
+                      }`}
+                      key={scene}
+                      onClick={() =>
+                        setConfiguration({
+                          ...configuration,
+                          previewScene: scene
+                        })
+                      }
+                      type="button"
+                    >
+                      {scene === "day" ? copy.preview.sceneDay : copy.preview.sceneNight}
+                    </button>
+                  ))}
+                </div>
+              </FormField>
               <CupPreview
                 artworkDataUrl={artworkPreviewUrl}
                 artworkOffsetX={configuration.artworkOffsetX}
@@ -1058,7 +1100,6 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
                 artworkRotation={configuration.artworkRotation}
                 artworkScale={configuration.artworkScale}
                 cupSize={configuration.cupSize}
-                cupType={configuration.cupType}
                 metadata={{
                   inkCoverageLabel: copy.preview.inkCoverage,
                   inkCoveragePercent,
@@ -1066,6 +1107,10 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
                   items: [
                     { label: copy.preview.metadata.cupType, value: copy.cupTypes[activeCupType] },
                     { label: copy.preview.metadata.cupSize, value: formatCupSizeLabel(activeSizeMl, locale) },
+                    {
+                      label: copy.preview.metadata.scene,
+                      value: activePreviewScene === "day" ? copy.preview.sceneDay : copy.preview.sceneNight
+                    },
                     { label: copy.preview.metadata.printArea, value: copy.printAreas[printAreaCopyKey] },
                     { label: copy.preview.metadata.quantity, value: quantity.toLocaleString(locale) },
                     ...(artworkFileName
@@ -1075,7 +1120,11 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
                   missingAssetLabel: copy.preview.missingAsset,
                   staleLabel: previewStale ? copy.preview.stale : null
                 }}
-                onBackgroundResolved={setResolvedBackgroundUrl}
+                onPreviewResolved={({ sceneUrl, cupUrl }) => {
+                  setResolvedSceneUrl(sceneUrl);
+                  setResolvedCupUrl(cupUrl);
+                }}
+                previewScene={configuration.previewScene}
                 printArea={configuration.printArea}
               />
             </section>

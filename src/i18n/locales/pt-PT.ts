@@ -1857,6 +1857,7 @@ export const dictionary: Dictionary = {
       artworkRotation: "Rotação da arte",
       deliveryDate: "Data de entrega desejada",
       notes: "Notas",
+      previewScene: "Ambiente",
       selectCustomer: "Selecionar cliente (opcional)",
       selectLead: "Selecionar lead (opcional)",
       required: "Selecione um produto de copo para continuar."
@@ -1882,12 +1883,17 @@ export const dictionary: Dictionary = {
       stale: "A configuração mudou — gere novamente a pré-visualização antes de guardar.",
       missingAsset: "Imagem modelo em falta; a mostrar modelo neutro.",
       brokenProductImage: "Imagem do produto indisponível; a usar modelo de copo.",
+      sceneDay: "Dia",
+      sceneNight: "Noite",
+      legacyPaperWarning:
+        "Esta simulação usava um copo de papel oculto nesta versão. Reveja a configuração antes de guardar.",
       metadata: {
         cupType: "Tipo de copo",
         cupSize: "Tamanho",
         printArea: "Área de impressão",
         quantity: "Quantidade",
-        artwork: "Arte"
+        artwork: "Arte",
+        scene: "Ambiente"
       },
       inkCoverage: "Cobertura estimada de tinta",
       inkCoverageTooltip:

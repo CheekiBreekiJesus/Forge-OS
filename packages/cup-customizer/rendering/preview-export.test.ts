@@ -10,7 +10,9 @@ describe("preview-export", () => {
       artworkPosition: "center",
       artworkRotation: 12,
       artworkScale: 1.25,
-      backgroundDataUrl: null,
+      cupImageDataUrl: "data:image/png;base64,cup",
+      cupSizeMl: 330,
+      sceneBackgroundDataUrl: "data:image/png;base64,scene",
       cupSizeLabel: "330 ml",
       cupTypeLabel: "Reusable PP cup",
       printArea: "deg_180",
@@ -23,6 +25,8 @@ describe("preview-export", () => {
 
     expect(svg).toContain('rotate(12)');
     expect(svg).toContain("data:image/png;base64,abc");
+    expect(svg).toContain("data:image/png;base64,scene");
+    expect(svg).toContain("data:image/png;base64,cup");
     expect(svg).toContain("180°");
   });
 
@@ -34,12 +38,14 @@ describe("preview-export", () => {
       artworkPosition: "center",
       artworkRotation: 0,
       artworkScale: 1,
-      backgroundDataUrl: null,
+      cupImageDataUrl: null,
+      cupSizeMl: 250,
+      sceneBackgroundDataUrl: null,
       cupSizeLabel: "250 ml",
-      cupTypeLabel: "Paper cup",
+      cupTypeLabel: "Reusable PP cup",
       printArea: "deg_180",
       printAreaLabel: "180°",
-      productName: "Paper",
+      productName: "Cup",
       productSku: "P-1",
       quantity: 500,
       totalLabel: "EUR 100"
@@ -51,12 +57,14 @@ describe("preview-export", () => {
       artworkPosition: "center",
       artworkRotation: 0,
       artworkScale: 1,
-      backgroundDataUrl: null,
+      cupImageDataUrl: null,
+      cupSizeMl: 250,
+      sceneBackgroundDataUrl: null,
       cupSizeLabel: "250 ml",
-      cupTypeLabel: "Paper cup",
+      cupTypeLabel: "Reusable PP cup",
       printArea: "deg_360",
       printAreaLabel: "360°",
-      productName: "Paper",
+      productName: "Cup",
       productSku: "P-1",
       quantity: 500,
       totalLabel: "EUR 100"

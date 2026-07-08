@@ -14,6 +14,8 @@ export type CustomizerConfiguration = {
   artworkOffsetY: number;
   artworkRotation: number;
   desiredDeliveryDate: string | null;
+  /** Visual preview preference only — not a manufacturing parameter. */
+  previewScene?: string;
 };
 
 export type CustomizerPricingSnapshot = {

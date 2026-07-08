@@ -2,11 +2,18 @@
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
-  resolveCupBackgroundAssets,
-  warnMissingBackgroundAsset
-} from "../config/background-assets";
+  CUP_IMAGE_FALLBACK_URL,
+  CUP_PLACEMENT_BY_SIZE,
+  DEFAULT_PREVIEW_BACKGROUND,
+  normalizePreviewBackground,
+  resolvePreviewSceneAssetPath,
+  resolveReusablePPCupAssetPath,
+  SCENE_IMAGE_FALLBACK_URL,
+  warnMissingCupCustomizerAsset,
+  type PreviewBackground
+} from "../config/visual-assets";
+import { normalizeCupSize, type PrintAreaId } from "../config/cup-catalog";
 import { normalizePrintArea, printableWidthFraction } from "../config/print-area";
-import type { PrintAreaId } from "../config/cup-catalog";
 
 export type CupPreviewMetadataItem = {
   label: string;
@@ -23,8 +30,8 @@ export type CupPreviewMetadata = {
 };
 
 type CupPreviewProps = {
-  cupType: string;
   cupSize: string;
+  previewScene?: string;
   printArea?: string;
   artworkDataUrl?: string | null;
   artworkPosition?: string;
@@ -34,18 +41,46 @@ type CupPreviewProps = {
   artworkRotation?: number;
   label?: string;
   metadata?: CupPreviewMetadata;
-  onBackgroundResolved?: (url: string | null) => void;
+  onPreviewResolved?: (payload: {
+    sceneUrl: string | null;
+    cupUrl: string | null;
+  }) => void;
 };
 
-function artworkAnchorX(position: string): string {
-  if (position === "left") return "22%";
-  if (position === "right") return "62%";
-  return "42%";
+function artworkAnchorX(position: string, centerXPercent: number): string {
+  if (position === "left") return `${centerXPercent - 18}%`;
+  if (position === "right") return `${centerXPercent + 12}%`;
+  return `${centerXPercent - 4}%`;
+}
+
+async function resolveImageUrl(primaryUrl: string, fallbackUrl: string): Promise<{
+  url: string;
+  missing: boolean;
+}> {
+  try {
+    const response = await fetch(primaryUrl, { method: "HEAD" });
+    if (response.ok) {
+      return { url: primaryUrl, missing: false };
+    }
+  } catch {
+    // try fallback below
+  }
+
+  try {
+    const response = await fetch(fallbackUrl, { method: "HEAD" });
+    if (response.ok) {
+      return { url: fallbackUrl, missing: true };
+    }
+  } catch {
+    // no asset available
+  }
+
+  return { url: fallbackUrl, missing: true };
 }
 
 export function CupPreview({
-  cupType,
   cupSize,
+  previewScene = DEFAULT_PREVIEW_BACKGROUND,
   printArea = "deg_180",
   artworkDataUrl,
   artworkPosition = "center",
@@ -55,51 +90,67 @@ export function CupPreview({
   artworkRotation = 0,
   label,
   metadata,
-  onBackgroundResolved
+  onPreviewResolved
 }: CupPreviewProps) {
   const resolvedPrintArea = normalizePrintArea(printArea) as PrintAreaId;
-  const background = useMemo(() => resolveCupBackgroundAssets({ cupType, cupSize }), [cupType, cupSize]);
-  const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
-  const [missingAsset, setMissingAsset] = useState(false);
+  const sizeMl = normalizeCupSize(cupSize, "reusable_pp");
+  const scene = normalizePreviewBackground(previewScene) as PreviewBackground;
+  const placement = CUP_PLACEMENT_BY_SIZE[sizeMl];
+  const scenePath = resolvePreviewSceneAssetPath(scene);
+  const cupPath = resolveReusablePPCupAssetPath(sizeMl);
+
+  const [sceneUrl, setSceneUrl] = useState<string | null>(null);
+  const [cupUrl, setCupUrl] = useState<string | null>(null);
+  const [missingScene, setMissingScene] = useState(false);
+  const [missingCup, setMissingCup] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function loadBackground() {
-      for (const candidate of background.candidateUrls) {
-        try {
-          const response = await fetch(candidate, { method: "HEAD" });
-          if (response.ok) {
-            if (!cancelled) {
-              setBackgroundUrl(candidate);
-              setMissingAsset(false);
-              onBackgroundResolved?.(candidate);
-            }
-            return;
-          }
-        } catch {
-          // try next extension
-        }
+    async function loadLayers() {
+      const [sceneResult, cupResult] = await Promise.all([
+        resolveImageUrl(scenePath, SCENE_IMAGE_FALLBACK_URL),
+        resolveImageUrl(cupPath, CUP_IMAGE_FALLBACK_URL)
+      ]);
+
+      if (cancelled) return;
+
+      setSceneUrl(sceneResult.url);
+      setCupUrl(cupResult.url);
+      setMissingScene(sceneResult.missing);
+      setMissingCup(cupResult.missing);
+
+      if (sceneResult.missing) {
+        warnMissingCupCustomizerAsset("scene background", scenePath, process.env.NODE_ENV === "development");
+      }
+      if (cupResult.missing) {
+        warnMissingCupCustomizerAsset("reusable PP cup", cupPath, process.env.NODE_ENV === "development");
       }
 
-      if (!cancelled) {
-        setBackgroundUrl(background.fallbackUrl);
-        setMissingAsset(true);
-        warnMissingBackgroundAsset(background, null, process.env.NODE_ENV === "development");
-        onBackgroundResolved?.(background.fallbackUrl);
-      }
+      onPreviewResolved?.({
+        sceneUrl: sceneResult.missing ? null : sceneResult.url,
+        cupUrl: cupResult.missing ? null : cupResult.url
+      });
     }
 
-    void loadBackground();
+    void loadLayers();
     return () => {
       cancelled = true;
     };
-  }, [background, onBackgroundResolved]);
+  }, [cupPath, onPreviewResolved, scenePath]);
 
-  const bandWidth = `${printableWidthFraction(resolvedPrintArea) * 100}%`;
+  const bandWidth = `${printableWidthFraction(resolvedPrintArea) * placement.artworkRegion.bandWidthPercent * 100}%`;
+  const artworkRegionStyle: CSSProperties = {
+    height: `${placement.artworkRegion.heightPercent}%`,
+    left: `${placement.artworkRegion.centerXPercent}%`,
+    top: `${placement.artworkRegion.topPercent}%`,
+    transform: "translateX(-50%)",
+    width: bandWidth
+  };
+
   const artworkStyle: CSSProperties = {
     height: "72%",
-    left: `calc(${artworkAnchorX(artworkPosition)} + ${artworkOffsetX}%)`,
+    left: `calc(${artworkAnchorX(artworkPosition, placement.artworkRegion.centerXPercent)} + ${artworkOffsetX}%)`,
     objectFit: "contain",
     position: "absolute",
     top: `calc(14% + ${artworkOffsetY}%)`,
@@ -107,6 +158,22 @@ export function CupPreview({
     transformOrigin: "center",
     width: "48%"
   };
+
+  const cupStyle: CSSProperties = useMemo(
+    () => ({
+      bottom: `${placement.cupTransform.bottomPercent}%`,
+      height: "auto",
+      left: `calc(50% + ${placement.cupTransform.translateXPercent}%)`,
+      maxHeight: "82%",
+      objectFit: "contain",
+      position: "absolute",
+      transform: "translateX(-50%)",
+      width: `${placement.cupTransform.widthPercent}%`
+    }),
+    [placement.cupTransform.bottomPercent, placement.cupTransform.translateXPercent, placement.cupTransform.widthPercent]
+  );
+
+  const missingAsset = missingScene || missingCup;
 
   return (
     <div className="relative mx-auto w-full max-w-xs" data-testid="cup-preview-root">
@@ -116,48 +183,63 @@ export function CupPreview({
         </p>
       ) : null}
       <div
-        className="relative aspect-[3/4] overflow-hidden rounded-2xl border border-slate-700 bg-gradient-to-b from-slate-800 to-slate-950"
+        className="relative aspect-square overflow-hidden rounded-2xl border border-slate-700 bg-gradient-to-b from-slate-800 to-slate-950"
+        data-preview-scene={scene}
         data-testid="cup-preview-frame"
       >
-        {backgroundUrl ? (
+        {sceneUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- local static scene background
+          <img
+            alt=""
+            className="absolute inset-0 z-0 size-full object-cover object-center"
+            data-testid="cup-preview-scene"
+            src={sceneUrl}
+          />
+        ) : (
+          <div className="absolute inset-0 z-0 bg-gradient-to-b from-slate-700 to-slate-950" data-testid="cup-preview-scene" />
+        )}
+
+        {cupUrl ? (
           // eslint-disable-next-line @next/next/no-img-element -- local static cup template
           <img
             alt=""
-            className="absolute inset-0 size-full object-contain p-3"
-            data-testid="cup-preview-background"
-            src={backgroundUrl}
+            className="z-10"
+            data-cup-size={sizeMl}
+            data-testid="cup-preview-cup"
+            src={cupUrl}
+            style={cupStyle}
           />
         ) : (
           <div
-            className="absolute inset-x-8 top-10 bottom-16 rounded-t-[3rem] border-2 border-slate-500/60 bg-slate-700/30"
-            data-testid="cup-preview-background"
+            className="absolute inset-x-8 top-10 bottom-16 z-10 rounded-t-[3rem] border-2 border-slate-500/60 bg-slate-700/30"
+            data-testid="cup-preview-cup"
           />
         )}
 
         <div
-          className="pointer-events-none absolute top-[24%] left-1/2 h-[34%] -translate-x-1/2 rounded-md border border-dashed border-sky-400/40"
+          className="pointer-events-none absolute z-20 -translate-x-1/2 rounded-md border border-dashed border-sky-400/40"
           data-print-area={resolvedPrintArea}
           data-testid="cup-preview-print-band"
-          style={{ width: bandWidth }}
+          style={artworkRegionStyle}
         />
 
         <div
-          className="absolute top-[24%] left-1/2 h-[34%] -translate-x-1/2 overflow-hidden"
+          className="pointer-events-none absolute z-30 -translate-x-1/2 overflow-hidden"
           data-testid="cup-preview-print-clip"
-          style={{ width: bandWidth }}
+          style={artworkRegionStyle}
         >
           {artworkDataUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- blob/data preview only
             <img
               alt="Artwork preview"
-              className="z-10"
+              className="z-30"
               data-testid="cup-preview-artwork"
               src={artworkDataUrl}
               style={artworkStyle}
             />
           ) : (
             <div
-              className="absolute z-10 grid place-items-center rounded border border-dashed border-orange-400/50 bg-orange-500/10 text-[10px] font-semibold text-orange-200"
+              className="absolute z-30 grid place-items-center rounded border border-dashed border-orange-400/50 bg-orange-500/10 text-[10px] font-semibold text-orange-200"
               data-testid="cup-preview-artwork"
               style={artworkStyle}
             >
@@ -167,7 +249,7 @@ export function CupPreview({
         </div>
 
         {missingAsset && metadata?.missingAssetLabel ? (
-          <div className="absolute inset-x-3 top-2 rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-center text-[10px] font-medium text-amber-100">
+          <div className="absolute inset-x-3 top-2 z-40 rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-center text-[10px] font-medium text-amber-100">
             {metadata.missingAssetLabel}
           </div>
         ) : null}

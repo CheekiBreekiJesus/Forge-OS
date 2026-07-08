@@ -1857,6 +1857,7 @@ export const dictionary: Dictionary = {
       artworkRotation: "Artwork rotation",
       deliveryDate: "Desired delivery date",
       notes: "Notes",
+      previewScene: "Scene",
       selectCustomer: "Select customer (optional)",
       selectLead: "Select lead (optional)",
       required: "Select a cup product to continue."
@@ -1882,12 +1883,17 @@ export const dictionary: Dictionary = {
       stale: "Configuration changed — generate preview again before saving.",
       missingAsset: "Template image missing; showing neutral fallback.",
       brokenProductImage: "Product image unavailable; using cup template.",
+      sceneDay: "Day",
+      sceneNight: "Night",
+      legacyPaperWarning:
+        "This simulation used a paper cup type that is hidden in the current release. Review the configuration before saving.",
       metadata: {
         cupType: "Cup type",
         cupSize: "Size",
         printArea: "Print area",
         quantity: "Quantity",
-        artwork: "Artwork"
+        artwork: "Artwork",
+        scene: "Scene"
       },
       inkCoverage: "Estimated ink coverage",
       inkCoverageTooltip:

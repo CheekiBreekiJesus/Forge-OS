@@ -1427,6 +1427,7 @@ export type Dictionary = {
       artworkRotation: string;
       deliveryDate: string;
       notes: string;
+      previewScene: string;
       selectCustomer: string;
       selectLead: string;
       required: string;
@@ -1452,12 +1453,16 @@ export type Dictionary = {
       stale: string;
       missingAsset: string;
       brokenProductImage: string;
+      sceneDay: string;
+      sceneNight: string;
+      legacyPaperWarning: string;
       metadata: {
         cupType: string;
         cupSize: string;
         printArea: string;
         quantity: string;
         artwork: string;
+        scene: string;
       };
       inkCoverage: string;
       inkCoverageTooltip: string;
