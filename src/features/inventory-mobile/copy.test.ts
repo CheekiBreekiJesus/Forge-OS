@@ -2,16 +2,17 @@ import { describe, expect, it } from "vitest";
 import { getInventoryMobileCopy } from "@/features/inventory-mobile/copy";
 
 describe("inventory mobile copy", () => {
-  it("renders Portuguese copy with correct diacritics", () => {
-    const copy = getInventoryMobileCopy("pt-PT");
-    expect(copy.scanner.title).toMatch(/código de barras/i);
-    expect(copy.scanner.scanStatus.insecureContext).toMatch(/câmara/i);
-    expect(copy.unknown.registrationNote).toMatch(/autorizada/i);
+  it("returns localized scanner strings", () => {
+    expect(getInventoryMobileCopy("en").scanner.title).toBe("Scan barcode");
+    expect(getInventoryMobileCopy("pt-PT").scanner.title).toBe("Ler código de barras");
+    expect(getInventoryMobileCopy("pt-PT").desktop.openScanner).toBe("Leitor móvel");
   });
 
-  it("renders English copy", () => {
+  it("includes offline and movement action labels", () => {
     const copy = getInventoryMobileCopy("en");
-    expect(copy.scanner.title).toBe("Scan barcode");
-    expect(copy.transaction.typeReceipt).toBe("Receipt");
+    expect(copy.transaction.typeIssue).toBe("Issue");
+    expect(copy.transaction.typeTransfer).toBe("Transfer");
+    expect(copy.offline.pendingTitle).toBe("Pending sync");
+    expect(copy.unknown.linkBarcode).toContain("Link barcode");
   });
 });
