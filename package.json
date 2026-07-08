@@ -29,7 +29,8 @@
     "agent:maintain": "tsx scripts/agent-orchestrator/maintain.ts",
     "agent:health": "tsx scripts/agent-orchestrator/health.ts",
     "agent:test": "vitest run scripts/agent-orchestrator",
-    "agent:canary": "tsx scripts/agent-orchestrator/canary.ts"
+    "agent:canary": "tsx scripts/agent-orchestrator/canary.ts",
+    "outreach:hosted:migration:check": "tsx scripts/outreach-hosted-runtime/check-migrations.ts"
   },
   "dependencies": {
     "@sentry/nextjs": "^10.64.0",
