@@ -10,10 +10,14 @@ export type ProductImportSourceType =
 export type ProductImportBatchStatus =
   | "uploaded"
   | "parsed"
+  | "needs_mapping"
   | "mapped"
   | "validated"
+  | "approved"
+  | "importing"
   | "staged"
   | "partially_committed"
+  | "completed"
   | "committed"
   | "failed";
 
@@ -31,6 +35,7 @@ export type ProductImportRowStatus =
 export type ProductImportProposedAction =
   | "create_new"
   | "update_missing_only"
+  | "update"
   | "link_source_reference"
   | "attach_barcode"
   | "preserve_existing"
@@ -80,9 +85,23 @@ export type ProductImportFieldKey =
   | "dimensions"
   | "barcode"
   | "ean"
-  | "alternativeBarcode";
+  | "alternativeBarcode"
+  | "inventoryType"
+  | "minimumStock"
+  | "defaultLocation"
+  | "taxRate"
+  | "supplierReference";
 
 export type ProductImportValueMap = Partial<Record<ProductImportFieldKey, string>>;
+
+/** Lightweight inventory item snapshot for duplicate detection during import. */
+export type ImportExistingItem = {
+  id: string;
+  internalReference: string;
+  name: string;
+  barcode?: string | null;
+  salePrice?: number | null;
+};
 
 export type ProductImportConflictField = {
   field: ProductImportFieldKey;

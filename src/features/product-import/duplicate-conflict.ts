@@ -1,4 +1,5 @@
 import type { Product } from "@/domain/product-types";
+import type { ImportExistingItem } from "@/domain/product-import-types";
 import type {
   ProductImportConflictField,
   ProductImportDuplicateMatch,
@@ -15,6 +16,7 @@ import { descriptionsSimilar, isEmptyPlaceholder } from "@/features/product-impo
 
 export type DuplicateAnalysisContext = {
   existingProducts: Product[];
+  existingInventoryItems?: ImportExistingItem[];
   stagedRows: ProductImportRow[];
   sourceLabel: string;
 };
@@ -83,6 +85,17 @@ function findDuplicateMatches(
     }
   }
 
+  for (const item of context.existingInventoryItems ?? []) {
+    if (ref && item.internalReference.toUpperCase() === ref.toUpperCase()) {
+      matches.push({
+        confidence: "strong",
+        label: `Exact inventory reference match: ${item.internalReference}`,
+        matchType: "exact_reference",
+        productId: item.id
+      });
+    }
+  }
+
   if (barcode) {
     for (const product of context.existingProducts) {
       if (product.sku === barcode) {
@@ -91,6 +104,16 @@ function findDuplicateMatches(
           label: `Barcode matches product SKU: ${product.sku}`,
           matchType: "exact_barcode",
           productId: product.id
+        });
+      }
+    }
+    for (const item of context.existingInventoryItems ?? []) {
+      if (item.barcode && item.barcode === barcode) {
+        matches.push({
+          confidence: "strong",
+          label: `Barcode matches inventory item: ${item.internalReference}`,
+          matchType: "exact_barcode",
+          productId: item.id
         });
       }
     }
@@ -111,7 +134,7 @@ function findDuplicateMatches(
     }
   }
 
-  if (values.description && values.baseUnit) {
+  if (values.description && (values.baseUnit || values.internalReference)) {
     for (const product of context.existingProducts) {
       if (descriptionsSimilar(values.description, product.name)) {
         matches.push({
@@ -119,6 +142,16 @@ function findDuplicateMatches(
           label: `Similar description: ${product.name.slice(0, 40)}…`,
           matchType: "possible_description",
           productId: product.id
+        });
+      }
+    }
+    for (const item of context.existingInventoryItems ?? []) {
+      if (descriptionsSimilar(values.description, item.name)) {
+        matches.push({
+          confidence: "possible",
+          label: `Similar inventory name: ${item.name.slice(0, 40)}…`,
+          matchType: "possible_description",
+          productId: item.id
         });
       }
     }
@@ -220,7 +253,16 @@ export function validateRowRequiredFields(values: ProductImportValueMap): string
     errors.push("Missing internal reference.");
   }
   if (isEmptyPlaceholder(values.description)) {
-    errors.push("Missing description.");
+    errors.push("Missing product name or description.");
+  }
+  if (values.minimumStock && Number.isNaN(Number(values.minimumStock))) {
+    errors.push("Invalid minimum stock value.");
+  }
+  if (values.purchaseCost && Number.isNaN(Number(values.purchaseCost))) {
+    errors.push("Invalid purchase cost value.");
+  }
+  if (values.salePrice && Number.isNaN(Number(values.salePrice))) {
+    errors.push("Invalid sale price value.");
   }
   return errors;
 }

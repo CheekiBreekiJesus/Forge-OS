@@ -59,7 +59,11 @@ export const PRODUCT_FIELD_ALIASES: Record<ProductImportFieldKey, string[]> = {
   dimensions: ["dimensions", "dimensoes", "dimensões"],
   barcode: ["cod. barras", "codigo barras", "código barras", "barcode", "cod barras"],
   ean: ["ean", "ean13", "gtin"],
-  alternativeBarcode: ["alternative barcode", "codigo alternativo", "barcode alternativo"]
+  alternativeBarcode: ["alternative barcode", "codigo alternativo", "barcode alternativo"],
+  inventoryType: ["inventory type", "item type", "tipo inventario", "tipo de artigo", "tipo artigo"],
+  minimumStock: ["minimum stock", "stock minimo", "stock mínimo", "min stock", "minimum_stock"],
+  defaultLocation: ["default location", "localizacao", "localização", "location", "armazem"],
+  taxRate: ["tax rate", "taxa iva", "iva", "vat rate", "imposto"]
 };
 
 export function normalizeHeader(header: string): string {
