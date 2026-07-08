@@ -4,18 +4,16 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { AppFrame, panelClass, panelMutedClass } from "@/components/app-frame";
+import { InventoryWorkflowPanels } from "@/components/inventory-workflow-panels";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import {
   buildStockBalances,
   createLabelPrintJob,
   mockPrintTransport,
-  postInventoryTransaction,
   renderHtmlLabel,
   renderZplLabel,
-  resolveBarcode,
-  reverseInventoryTransaction,
-  type PostTransactionInput
+  resolveBarcode
 } from "@/features/inventory-product/ledger";
 import { getInventoryProductCopy } from "@/features/inventory-product/copy";
 import { createInventoryProductDemoState } from "@/features/inventory-product/demo";
@@ -32,6 +30,8 @@ export type InventoryProductSection =
   | "stock"
   | "receipts"
   | "transfers"
+  | "adjustments"
+  | "reservations"
   | "barcodes"
   | "labels"
   | "imports";
@@ -60,6 +60,8 @@ const inventorySections: InventoryProductSection[] = [
   "stock",
   "receipts",
   "transfers",
+  "adjustments",
+  "reservations",
   "barcodes",
   "labels",
   "imports"
@@ -117,132 +119,6 @@ export function InventoryProductWorkspaceShell({ dictionary, locale, mode, secti
     title: state.items[0]?.name ?? ""
   };
   const htmlLabel = renderHtmlLabel(template, labelData);
-
-  async function postReceipt() {
-    const input: PostTransactionInput = {
-      entries: [
-        {
-          baseQuantityDelta: 1000,
-          costBasis: 0.042,
-          itemId: "item_clear_cup_330",
-          itemReferenceSnapshot: "FG-CUP-330-CLR",
-          locationId: "loc_a_r1_s1",
-          lotId: "lot_cup_330_001",
-          productVariantId: "variant_clear_cup_330_box",
-          productVariantSnapshot: "PROD-CUP-330 / 1000-unit box",
-          quantityDelta: 1000,
-          stockCondition: "available",
-          unitOfMeasureId: "uom_unit",
-          warehouseId: "wh_main"
-        }
-      ],
-      idempotencyKey: `ui:receipt:${state.transactions.length}`,
-      occurredAt: new Date().toISOString(),
-      operatorId: "operator_preview",
-      reasonCode: "receipt",
-      sourceDocumentId: "receipt_preview",
-      sourceDocumentType: "receipt",
-      tenantId,
-      transactionType: "receipt"
-    };
-
-    if (persistenceState.status === "ready") {
-      await persistenceState.repos.inventoryProduct.postTransaction(tenantId, input);
-      setState(await persistenceState.repos.inventoryProduct.getSnapshot(tenantId));
-      notifyDataChanged();
-    } else {
-      const next = postInventoryTransaction(
-        state,
-        input,
-        (prefix) =>
-          `${prefix}_ui_${state.entries.length}_${prefix === "ile" ? "entry" : "receipt"}`
-      );
-      setState((current) => ({ ...current, entries: next.entries, transactions: next.transactions }));
-    }
-    setMessage(copy.messages.receiptPosted);
-  }
-
-  async function postTransfer() {
-    const input: PostTransactionInput = {
-      entries: [
-        {
-          baseQuantityDelta: -500,
-          costBasis: 0.041,
-          itemId: "item_clear_cup_330",
-          itemReferenceSnapshot: "FG-CUP-330-CLR",
-          locationId: "loc_a_r1_s1",
-          lotId: "lot_cup_330_001",
-          productVariantId: "variant_clear_cup_330_box",
-          productVariantSnapshot: "PROD-CUP-330 / 1000-unit box",
-          quantityDelta: -500,
-          stockCondition: "available",
-          unitOfMeasureId: "uom_unit",
-          warehouseId: "wh_main"
-        },
-        {
-          baseQuantityDelta: 500,
-          costBasis: 0.041,
-          itemId: "item_clear_cup_330",
-          itemReferenceSnapshot: "FG-CUP-330-CLR",
-          locationId: "loc_quarantine",
-          lotId: "lot_cup_330_001",
-          productVariantId: "variant_clear_cup_330_box",
-          productVariantSnapshot: "PROD-CUP-330 / 1000-unit box",
-          quantityDelta: 500,
-          stockCondition: "quarantine",
-          unitOfMeasureId: "uom_unit",
-          warehouseId: "wh_main"
-        }
-      ],
-      idempotencyKey: `ui:transfer:${state.transactions.length}`,
-      occurredAt: new Date().toISOString(),
-      operatorId: "operator_preview",
-      reasonCode: "quality_hold",
-      tenantId,
-      transactionType: "location_transfer"
-    };
-
-    if (persistenceState.status === "ready") {
-      await persistenceState.repos.inventoryProduct.postTransaction(tenantId, input);
-      setState(await persistenceState.repos.inventoryProduct.getSnapshot(tenantId));
-      notifyDataChanged();
-    } else {
-      const next = postInventoryTransaction(
-        state,
-        input,
-        (prefix) =>
-          `${prefix}_ui_${state.entries.length}_${prefix === "ile" ? "entry" : "transfer"}`
-      );
-      setState((current) => ({ ...current, entries: next.entries, transactions: next.transactions }));
-    }
-    setMessage(copy.messages.transferPosted);
-  }
-
-  async function reverseLast() {
-    const last = [...state.transactions].reverse().find((row) => row.transactionType !== "reversal");
-    if (!last) return;
-    if (persistenceState.status === "ready") {
-      await persistenceState.repos.inventoryProduct.reverseTransaction(
-        tenantId,
-        last.id,
-        "operator_preview",
-        "preview_reversal"
-      );
-      setState(await persistenceState.repos.inventoryProduct.getSnapshot(tenantId));
-      notifyDataChanged();
-    } else {
-      const next = reverseInventoryTransaction(
-        state,
-        last.id,
-        tenantId,
-        "operator_preview",
-        "preview_reversal",
-        (prefix) => `${prefix}_ui_${state.entries.length}_reverse`
-      );
-      setState((current) => ({ ...current, entries: next.entries, transactions: next.transactions }));
-    }
-    setMessage(copy.actions.reverseLast);
-  }
 
   function handleResolveBarcode() {
     const result = resolveBarcode(state.barcodes, barcodeInput);
@@ -369,24 +245,24 @@ export function InventoryProductWorkspaceShell({ dictionary, locale, mode, secti
           </Panel>
         ) : null}
 
-        {section === "stock" ? (
-          <Panel title={copy.table.movements}>
-            <LedgerTable entries={state.entries} locale={locale} />
-          </Panel>
-        ) : null}
-
-        {section === "receipts" ? (
-          <Panel title={copy.cards.receipt}>
-            <WorkflowButton onClick={() => void postReceipt()}>{copy.actions.postReceipt}</WorkflowButton>
-          </Panel>
-        ) : null}
-
-        {section === "transfers" ? (
-          <Panel title={copy.cards.transfer}>
-            <div className="flex flex-wrap gap-2">
-              <WorkflowButton onClick={() => void postTransfer()}>{copy.actions.postTransfer}</WorkflowButton>
-              <WorkflowButton onClick={() => void reverseLast()}>{copy.actions.reverseLast}</WorkflowButton>
-            </div>
+        {section === "stock" || section === "receipts" || section === "transfers" || section === "adjustments" || section === "reservations" ? (
+          <Panel
+            title={
+              section === "adjustments"
+                ? "Adjustments"
+                : section === "reservations"
+                  ? "Reservations"
+                  : copy.tabs[section]
+            }
+          >
+            <InventoryWorkflowPanels
+              locale={locale}
+              onSnapshotChange={async (snapshot) => {
+                setState(snapshot);
+              }}
+              section={section}
+              snapshot={state}
+            />
           </Panel>
         ) : null}
 
@@ -493,40 +369,5 @@ function WorkflowButton({ children, onClick }: { children: ReactNode; onClick: (
     >
       {children}
     </button>
-  );
-}
-
-function LedgerTable({
-  entries,
-  locale
-}: {
-  entries: InventoryProductSnapshot["entries"];
-  locale: Locale;
-}) {
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[760px] text-left text-sm">
-        <thead className="text-xs uppercase text-[var(--forge-text-muted)]">
-          <tr>
-            <th className="py-2">Item</th>
-            <th>Location</th>
-            <th>Lot</th>
-            <th>Condition</th>
-            <th>Delta</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-[var(--forge-border)]">
-          {entries.map((entry) => (
-            <tr key={entry.id}>
-              <td className="py-3 font-mono text-xs">{entry.itemReferenceSnapshot}</td>
-              <td>{entry.locationId}</td>
-              <td>{entry.lotId ?? "-"}</td>
-              <td>{entry.stockCondition}</td>
-              <td>{entry.baseQuantityDelta.toLocaleString(locale)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
   );
 }

@@ -11,6 +11,8 @@ const inventorySections = [
   "stock",
   "receipts",
   "transfers",
+  "adjustments",
+  "reservations",
   "barcodes",
   "labels",
   "imports"

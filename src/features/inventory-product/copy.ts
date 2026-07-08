@@ -18,10 +18,12 @@ export type InventoryProductCopy = {
     | "variants"
     | "references"
     | "packaging"
-    | "stock"
-    | "receipts"
-    | "transfers"
-    | "barcodes"
+  | "stock"
+  | "receipts"
+  | "transfers"
+  | "adjustments"
+  | "reservations"
+  | "barcodes"
     | "labels"
     | "imports",
     string
@@ -160,6 +162,7 @@ const en: InventoryProductCopy = {
     products: "Products and variants"
   },
   tabs: {
+    adjustments: "Adjustments",
     barcodes: "Barcodes",
     imports: "Imports",
     items: "Items",
@@ -169,6 +172,7 @@ const en: InventoryProductCopy = {
     products: "Products",
     receipts: "Receipts",
     references: "References",
+    reservations: "Reservations",
     stock: "Stock",
     transfers: "Transfers",
     variants: "Variants"
@@ -248,6 +252,7 @@ const pt: InventoryProductCopy = {
     products: "Produtos e variantes"
   },
   tabs: {
+    adjustments: "Ajustes",
     barcodes: "Códigos",
     imports: "Importações",
     items: "Artigos",
@@ -257,6 +262,7 @@ const pt: InventoryProductCopy = {
     products: "Produtos",
     receipts: "Receções",
     references: "Referências",
+    reservations: "Reservas",
     stock: "Stock",
     transfers: "Transferências",
     variants: "Variantes"
