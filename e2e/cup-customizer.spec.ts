@@ -135,6 +135,31 @@ test.describe("Cup Customizer workflows", () => {
 
   test("onboarding checklist shows customizer step", async ({ page }) => {
     await page.goto("/pt-PT");
+    await page.evaluate(() => {
+      const prefs = {
+        visiblePanels: [
+          "oee",
+          "inventory",
+          "alerts",
+          "productionOrders",
+          "onboarding"
+        ],
+        panelOrder: [
+          "oee",
+          "inventory",
+          "alerts",
+          "productionOrders",
+          "revenue",
+          "copilot",
+          "marketing",
+          "onboarding"
+        ],
+        density: "compact",
+        defaultDateRange: "week"
+      };
+      window.localStorage.setItem("forgeos:dashboard-preferences", JSON.stringify(prefs));
+    });
+    await page.reload();
     await waitForPersistence(page);
     await expect(page.getByTestId("onboarding-checklist")).toBeVisible();
     await expect(page.getByText("Testar Personalizador de Copos")).toBeVisible();
