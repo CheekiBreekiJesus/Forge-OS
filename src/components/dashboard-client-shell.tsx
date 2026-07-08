@@ -109,7 +109,7 @@ export function DashboardClientShell({ dictionary, locale }: DashboardClientShel
     [inventory, inventoryHref, locale]
   );
   const orderRows = useMemo(
-    () => deriveProductionOrderRows(orders, locale, productionHref),
+    () => deriveProductionOrderRows(orders, locale, productionHref).slice(0, 4),
     [locale, orders, productionHref]
   );
   const revenue = useMemo(() => deriveRevenueSeries(quotes), [quotes]);
@@ -139,7 +139,7 @@ export function DashboardClientShell({ dictionary, locale }: DashboardClientShel
   }));
 
   const alerts = useMemo(
-    () => deriveDashboardAlerts(notifications, activities, locale, fallbackAlerts),
+    () => deriveDashboardAlerts(notifications, activities, locale, fallbackAlerts).slice(0, 5),
     [activities, fallbackAlerts, locale, notifications]
   );
 
