@@ -33,9 +33,14 @@ export function AppFrameClient({
 }: AppFrameClientProps) {
   const activeRoute = supplementalRoute ?? moduleRoutes[activeModule];
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [previewRole, setPreviewRole] = useState<PreviewRole>(() => readPreviewRole());
+  const [previewRole, setPreviewRole] = useState<PreviewRole>("owner");
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync preview role after hydration
+    setPreviewRole(readPreviewRole());
+  }, []);
 
   const openPalette = useCallback(() => setPaletteOpen(true), []);
   const closePalette = useCallback(() => setPaletteOpen(false), []);
@@ -189,9 +194,12 @@ export function AppFrameClient({
 }
 
 export function usePreviewRole(): PreviewRole {
-  const [role, setRole] = useState<PreviewRole>(() => readPreviewRole());
+  const [role, setRole] = useState<PreviewRole>("owner");
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync preview role after hydration
+    setRole(readPreviewRole());
+
     function handleChange(event: Event) {
       const detail = (event as CustomEvent<PreviewRole>).detail;
       if (detail) setRole(detail);

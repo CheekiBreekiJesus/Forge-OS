@@ -11,7 +11,7 @@ import {
   requireSendJobPermission,
   type SendJobPermission
 } from "@/features/email-delivery/send-job-authorization";
-import type { TrustedSendJobActorContext } from "@/features/email-delivery/send-job-actor-context";
+import type { TrustedSendJobActorContext } from "@/features/email-delivery/send-job-actor-types";
 import type { LocalRepositoryBundle } from "@/persistence/interfaces";
 import { PersistenceError } from "@/persistence/interfaces";
 

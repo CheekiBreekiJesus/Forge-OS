@@ -1,4 +1,4 @@
-import type { TrustedSendJobActorContext } from "./send-job-actor-context";
+import type { TrustedSendJobActorContext } from "./send-job-actor-types";
 
 export type SendJobPermission =
   | "send_job:view"
