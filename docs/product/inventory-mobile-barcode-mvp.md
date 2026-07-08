@@ -1,118 +1,113 @@
 # Inventory mobile barcode MVP
 
-## Scope implemented
+## Architecture
 
-This milestone delivers a narrow vertical slice for JH Gomes warehouse operators:
+### 1. Reused branch code
 
-- Desktop inventory workspace summary (active items, low-stock count, reorder status, recent movements)
-- Smartphone route at `/[locale]/inventory/scan`
-- Camera scanning when the browser exposes `BarcodeDetector` in a secure context
-- Manual barcode entry and USB keyboard-wedge scanner support
-- Stock receipt, consumption, and adjustment through the existing IndexedDB `InventoryRepository`
-- Movement history per item
-- Unknown barcode handling without auto-creating items or permanent mappings
+Cherry-picked from `6a99030` and adapted to Inventory Foundation on `main`:
 
-## Barcode resolution (MVP fallback)
+- `inventory-barcode-scanner.tsx` — native `BarcodeDetector` camera loop, manual entry, torch, device picker
+- `camera-context.ts` — secure-context checks, `getUserMedia`, detection helpers
+- `scan-cooldown.ts` — duplicate frame suppression
+- `inventory/scan` route and mobile-first shell layout
+- `e2e/inventory-mobile-scan.spec.ts` structure
 
-A durable barcode registry exists in the in-memory inventory-product preview (`resolveBarcode` in `src/features/inventory-product/ledger.ts`) but is **not persisted** in Dexie.
+### 2. Scanner library
 
-For this MVP:
+No additional npm dependency. Uses the browser-native [`BarcodeDetector`](https://developer.mozilla.org/en-US/docs/Web/API/BarcodeDetector) API when available in a secure context. Manual entry and USB keyboard-wedge scanners remain the fallback.
 
-- Internal barcode value = inventory item `sku` (string, leading zeroes preserved)
-- Resolver interface: `src/features/inventory-mobile/barcode-resolver.ts`
-- Implementation: `createSkuBarcodeResolver` — tenant-scoped, active items only
-- Supplier/packaging barcode mappings are **deferred**
+### 3. Camera permission flow
 
-Replace the resolver implementation when a persisted barcode registry ships; UI and transaction flows should remain stable.
+1. Operator taps **Start camera**
+2. `isSecureCameraContext()` gates insecure HTTP LAN access
+3. `isBarcodeDetectorSupported()` gates unsupported browsers
+4. `requestCameraStream()` calls `getUserMedia`
+5. `NotAllowedError` → permission-denied state with manual entry
+6. `NotFoundError` → no-camera state
+7. Tracks stop on detect, stop button, unmount, or navigation
 
-## Smartphone route
+### 4. Offline queue design
 
-| Locale | Path |
-|--------|------|
-| Portuguese | `/pt-PT/inventory/scan` |
-| English | `/en/inventory/scan` |
+Limited MVP queue in `localStorage` (`forgeos:inventory-mobile:queue:{tenantId}`):
 
-Entry points:
+- Stores confirmed movements only (after operator confirmation)
+- Each entry carries the movement payload and `idempotencyKey`
+- Pending / failed states are visible in `PendingSyncIndicator`
+- `online` event and initial load trigger `syncQueue()`
+- Failures remain visible with last error text
 
-- Desktop inventory header button **Mobile scanner** / **Leitor móvel**
-- Mobile inventory summary card
+### 5. Idempotency strategy
 
-## Secure context requirement
+- Client generates `mobile:{uuid}` keys per confirmed movement
+- `InventoryProductRepository.postTransaction` deduplicates on `(tenantId, idempotencyKey)`
+- Queued offline movements reuse the same key on retry
+- UI disables duplicate submission while `submitting` is true
 
-`navigator.mediaDevices.getUserMedia` requires a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts) (HTTPS or `localhost`).
+### 6. Inventory API dependencies
 
-When ForgeOS is opened over an insecure LAN HTTP URL on a phone, the scanner shows an explicit message and keeps manual entry available. Real smartphone camera validation should use HTTPS (or localhost during development).
+All stock changes use Inventory Foundation repositories — no second ledger:
 
-## Camera privacy
+| Mobile action | Repository method | Foundation builder |
+|---------------|-------------------|--------------------|
+| Receive | `receiveStock` | `buildReceiptTransaction` |
+| Issue | `issueStock` | `buildIssueTransaction` |
+| Transfer | `transferStock` | `buildTransferTransaction` |
+| Lookup | read-only snapshot | — |
 
-- No camera frames, photos, or scan results are sent to external services
-- No image upload for recognition
-- Media tracks stop when: scan succeeds, operator stops camera, component unmounts, or navigation occurs
-- Duplicate frame detections are suppressed with a short cooldown; posting requires explicit quantity/type confirmation
+Barcode resolution uses persisted `BarcodeRecord` rows via `resolveBarcode()` in `inventory-product/ledger.ts`.
 
-## Supported barcode formats (native `BarcodeDetector`)
+Permissions use `assertInventoryPermission()` with preview-role mapping (`receive`, `adjust` for issue, `transfer`, `manage_products` for barcode linking).
 
-When available: Code 128, Code 39, Code 93, EAN-13, EAN-8, UPC-A, UPC-E, ITF, Codabar, QR Code, Data Matrix.
+### 7. UI components
 
-No additional scanner npm dependency was added; manual entry covers unsupported browsers.
+| Component | Purpose |
+|-----------|---------|
+| `inventory-scan-shell.tsx` | Route orchestration |
+| `inventory-barcode-scanner.tsx` | Camera + manual entry |
+| `inventory-item-stock-panel.tsx` | Item card, actions, quantity, locations, confirm |
+| `inventory-unknown-barcode-panel.tsx` | Unknown code, session pick, authorised link |
+| `pending-sync-indicator.tsx` | Offline queue + failures |
+| `inventory-movement-history.tsx` | Item summary + recent transactions |
 
-## Stock operations
+Entry points: `/[locale]/inventory/scan`, legacy `/[locale]/inventory` header link, inventory workspace header link.
 
-All mutations use existing repository methods:
+### 8. Testing strategy
 
-| UI action | Repository method |
-|-----------|-------------------|
-| Receipt | `recordReceipt` |
-| Consumption | `recordConsumption` |
-| Adjustment | `adjustStock` |
+- Unit: resolver, movement service, offline queue, permissions, idempotency, cooldown, copy
+- Integration: IndexedDB inventory foundation posting via `movement-service.test.ts`
+- E2E: Playwright mobile viewport manual-entry flows (no real camera)
+- CI: `npm run typecheck`, `npm run lint`, `npm run build`, targeted vitest, Playwright spec
 
-Adjustment UI supports:
+## Supported barcode formats
 
-- **Add/subtract quantity** — signed delta passed to `adjustStock`
-- **Set balance to** — delta computed as `target - currentQuantity`
+When `BarcodeDetector` is available: Code 128, Code 39, Code 93, EAN-13, EAN-8, UPC-A, UPC-E, ITF, Codabar, QR Code, Data Matrix.
 
-Negative stock is blocked unless the repository receives `allowNegative: true` (not exposed in this MVP).
+## Demo barcodes
 
-## Unknown barcode workflow
+| Barcode | Item |
+|---------|------|
+| `05601234001005` | Clear cup 330 ml blank |
+| `0001234567890` | Clear cup 330 ml blank (supplier alias) |
 
-1. Show scanned value
-2. Offer rescan and manual inventory search
-3. Allow selecting an existing item for the current session only
-4. Display note that permanent registration requires authorised review
-5. Do **not** auto-create items or persist barcode mappings
+## Deferred
 
-## Data preservation
-
-- Demo seed items are inserted only when the tenant has **zero** inventory rows (`seedOperationsDefaults`)
-- Existing user inventory data is not overwritten on startup
-- Stock balance changes go through repository movement logic (atomic item + movement write)
-
-## Deferred features
-
-- Supplier barcode registry (persisted)
-- Package-level barcode hierarchy
-- GS1 parsing
-- Offline command queue and conflict resolution (Milestone 3)
-- Direct label printer integration
-- Supabase / mobile synchronisation
+- Full offline cache of all items/locations
+- Conflict resolution across devices
+- Supabase-hosted mobile API routes (local IndexedDB MVP uses repository permission checks)
+- GS1 parsing, label printing from scanner
 
 ## Local validation
 
 ```powershell
 Set-Location "C:\Users\J35U5\Desktop\VS Code\Forge-OS-inventory-mobile"
-npm run lint
 npm run typecheck
-npm test
+npm test -- src/features/inventory-mobile
+npm run lint
 npm run build
-.\node_modules\.bin\next.cmd dev --hostname 0.0.0.0 --port 3011
+npx playwright test e2e/inventory-mobile-scan.spec.ts
 ```
 
-Manual checks in Chrome:
+Manual checks:
 
-- `/pt-PT/inventory`, `/en/inventory`
 - `/pt-PT/inventory/scan`, `/en/inventory/scan`
-
-## Tests
-
-- `src/features/inventory-mobile/*.test.ts` — resolver, transactions, cooldown, copy, camera utilities
-- `e2e/inventory-mobile-scan.spec.ts` — manual entry flow (no real camera)
+- `/pt-PT/inventory` → **Leitor móvel** link
