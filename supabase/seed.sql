@@ -1,11 +1,12 @@
 -- ForgeOS JH Gomes synthetic demo seed data.
 -- Emails use .invalid domains and do not represent private customer data.
 
-insert into public.tenants (id, name, slug, default_locale)
-values ('11111111-1111-1111-1111-111111111111', 'JH Gomes', 'jh-gomes', 'pt-PT')
+insert into public.tenants (id, name, slug, tenant_key, default_locale)
+values ('11111111-1111-1111-1111-111111111111', 'JH Gomes', 'jh-gomes', 'tenant_jh_gomes', 'pt-PT')
 on conflict (id) do update set
   name = excluded.name,
   slug = excluded.slug,
+  tenant_key = excluded.tenant_key,
   default_locale = excluded.default_locale;
 
 insert into public.products (
