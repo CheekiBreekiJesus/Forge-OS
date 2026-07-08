@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AppFrame } from "@/components/app-frame";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
@@ -30,7 +29,6 @@ import {
 import { deriveLocalNotifications } from "@/features/notifications/local-notifications";
 import { useActivities, useDashboardMetrics } from "@/persistence/hooks";
 import { usePersistence, usePersistenceLoading } from "@/persistence/provider";
-import { formatDateTime } from "@/i18n/format-datetime";
 import type { Dictionary } from "@/i18n/dictionaries";
 import type { Locale } from "@/i18n/config";
 import { getLocalizedModuleHref } from "@/modules/config";
@@ -88,7 +86,6 @@ export function DashboardClientShell({ dictionary, locale }: DashboardClientShel
   const copy = dictionary.dashboardModule;
   const inventoryHref = getLocalizedModuleHref(locale, "inventory");
   const productionHref = getLocalizedModuleHref(locale, "production");
-  const outreachHref = `/${locale}/leadops`;
   const marketingHref = getLocalizedModuleHref(locale, "marketing");
 
   const kpis = useMemo(
@@ -112,7 +109,7 @@ export function DashboardClientShell({ dictionary, locale }: DashboardClientShel
     [inventory, inventoryHref, locale]
   );
   const orderRows = useMemo(
-    () => deriveProductionOrderRows(orders, locale, productionHref),
+    () => deriveProductionOrderRows(orders, locale, productionHref).slice(0, 4),
     [locale, orders, productionHref]
   );
   const revenue = useMemo(() => deriveRevenueSeries(quotes), [quotes]);
@@ -142,7 +139,7 @@ export function DashboardClientShell({ dictionary, locale }: DashboardClientShel
   }));
 
   const alerts = useMemo(
-    () => deriveDashboardAlerts(notifications, activities, locale, fallbackAlerts),
+    () => deriveDashboardAlerts(notifications, activities, locale, fallbackAlerts).slice(0, 5),
     [activities, fallbackAlerts, locale, notifications]
   );
 
@@ -164,23 +161,15 @@ export function DashboardClientShell({ dictionary, locale }: DashboardClientShel
 
   return (
     <AppFrame activeModule="dashboard" dictionary={dictionary} locale={locale}>
-      <section className="mb-5">
+      <section className="mb-3">
         <h1 className="text-2xl font-bold tracking-tight text-[var(--forge-text-primary)] sm:text-3xl">
           {dictionary.dashboard.greeting}
         </h1>
-        <div className="mt-2 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-[var(--forge-text-muted)]">{dictionary.dashboard.title}</p>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-2 text-sm text-[var(--forge-text-secondary)]">
-              {dictionary.dashboard.dateRangeThisWeek}
-            </span>
-            <Link
-              className="rounded-lg bg-[var(--forge-accent-orange)] px-4 py-2 text-sm font-bold text-white"
-              href={outreachHref}
-            >
-              {copy.openOutreach}
-            </Link>
-          </div>
+          <span className="w-fit rounded-lg border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-1.5 text-sm text-[var(--forge-text-secondary)]">
+            {dictionary.dashboard.dateRangeThisWeek}
+          </span>
         </div>
       </section>
 
@@ -222,9 +211,7 @@ export function DashboardClientShell({ dictionary, locale }: DashboardClientShel
                 leadsReadyLabel={copy.marketing.leadsReady}
                 marketingHref={marketingHref}
                 openMarketingLabel={copy.marketing.openMarketing}
-                openOutreachLabel={copy.marketing.openOutreach}
                 openedLabel={copy.marketing.opened}
-                outreachHref={outreachHref}
                 summary={marketingSummary}
                 suppressedLabel={copy.marketing.suppressed}
                 title={copy.marketing.title}
@@ -263,7 +250,7 @@ export function DashboardClientShell({ dictionary, locale }: DashboardClientShel
                 items={alerts}
                 title={dictionary.dashboard.activity.title}
                 viewAllLabel={dictionary.dashboard.activity.viewAll}
-                viewHref={outreachHref}
+                viewHref={productionHref}
               />
             ) : null}
           </section>
@@ -300,27 +287,6 @@ export function DashboardClientShell({ dictionary, locale }: DashboardClientShel
                 title={dictionary.dashboard.copilot.title}
               />
             ) : null}
-          </section>
-
-          <section className={`${panelClass} mt-4 min-w-0 p-5`}>
-            <h2 className="text-lg font-bold">{copy.recentActivity}</h2>
-            <div className="mt-4 space-y-3">
-              {activities.length === 0 ? (
-                <p className="text-sm text-[var(--forge-text-muted)]">{copy.noActivity}</p>
-              ) : (
-                activities.slice(0, 5).map((event) => (
-                  <div
-                    className="rounded-lg border border-[var(--forge-border-subtle)] bg-[var(--forge-surface-muted)] p-4"
-                    key={event.id}
-                  >
-                    <div className="text-sm font-semibold">{event.title}</div>
-                    <div className="mt-1 text-xs text-[var(--forge-text-muted)]">
-                      {event.action} · {formatDateTime(event.occurredAt, locale)}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
           </section>
         </>
       )}

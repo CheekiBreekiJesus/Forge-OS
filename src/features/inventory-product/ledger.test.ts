@@ -278,6 +278,40 @@ describe("inventory product ledger foundation", () => {
     expect(available?.availableStock).toBe(9000);
   });
 
+  it("blocks postings that would drive available stock below reserved quantity", () => {
+    const demo = createInventoryProductDemoState();
+    const entry = {
+      baseQuantityDelta: -9500,
+      costBasis: 0.042,
+      itemId: "item_clear_cup_330",
+      itemReferenceSnapshot: "FG-CUP-330-CLR",
+      locationId: "loc_a_r1_s1",
+      lotId: "lot_cup_330_001",
+      productVariantId: null,
+      productVariantSnapshot: null,
+      quantityDelta: -9500,
+      stockCondition: "available" as const,
+      unitOfMeasureId: "uom_unit",
+      warehouseId: "wh_main"
+    };
+
+    expect(() =>
+      postInventoryTransaction(
+        { entries: demo.entries, reservations: demo.reservations, transactions: demo.transactions },
+        {
+          entries: [entry],
+          idempotencyKey: "issue-over-reserved",
+          occurredAt: now,
+          operatorId: "operator",
+          reasonCode: "issue",
+          tenantId,
+          transactionType: "adjustment_decrease"
+        },
+        idFactory()
+      )
+    ).toThrow("Negative available stock is blocked by default.");
+  });
+
   it("preserves barcode strings and detects unknown or invalid barcode records", () => {
     const demo = createInventoryProductDemoState();
     expect(normalizeBarcode(" 0001234567890 ")).toBe("0001234567890");

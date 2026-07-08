@@ -10,7 +10,15 @@ export type LeadOpsStatus =
 
 export type LeadOpsQuality = "high" | "medium" | "low";
 
-export type LeadOpsCampaignStatus = "active" | "paused" | "completed";
+export type LeadOpsCampaignStatus =
+  | "draft"
+  | "ready_for_review"
+  | "approved"
+  | "in_progress"
+  | "completed"
+  | "paused"
+  | "cancelled"
+  | "active";
 
 export type LeadOpsConsentStatus = "unknown" | "subscribed" | "unsubscribed";
 
@@ -47,9 +55,14 @@ export type LeadOpsCampaign = {
   id: string;
   tenantId: string;
   name: string;
+  description?: string;
+  language?: string;
   status: LeadOpsCampaignStatus;
   sentCount: number;
   totalCount: number;
+  recipientSnapshotCount?: number;
+  deliveryMode?: "simulation" | "provider_handoff";
+  createdAt?: string;
 };
 
 export type LeadOpsActivityKind =
@@ -80,6 +93,16 @@ export type LeadOpsFilters = {
   quality: string;
   sourceDatabase: string;
   language: string;
+  region: string;
+  country: string;
+  emailValidity: "" | "valid" | "missing" | "invalid";
+  suppressionStatus: "" | "none" | "unsubscribed" | "bounced";
+  sourceImportId: string;
+  campaignAssignment: "" | "unassigned" | "assigned";
+  neverContacted: "" | "true";
+  contactedWithinDays: "" | "7" | "30" | "90";
+  notContactedWithinDays: "" | "7" | "30" | "90";
+  sendability: "" | "sendable" | "blocked";
 };
 
 export const EMPTY_LEADOPS_FILTERS: LeadOpsFilters = {
@@ -87,7 +110,17 @@ export const EMPTY_LEADOPS_FILTERS: LeadOpsFilters = {
   status: "",
   quality: "",
   sourceDatabase: "",
-  language: ""
+  language: "",
+  region: "",
+  country: "",
+  emailValidity: "",
+  suppressionStatus: "",
+  sourceImportId: "",
+  campaignAssignment: "",
+  neverContacted: "",
+  contactedWithinDays: "",
+  notContactedWithinDays: "",
+  sendability: ""
 };
 
 export type LeadOpsKpis = {

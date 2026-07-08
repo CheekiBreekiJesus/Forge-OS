@@ -1,10 +1,11 @@
 import type {
   CreateCustomerContactInput,
-  CreateInventoryItemInput,
+  CreateInventoryItemInput as LegacyCreateInventoryItemInput,
   CreateMachineInput,
   CustomerContact,
   InventoryItem,
   Machine,
+  StockChangeInput,
   StockMovement,
   UpdateInventoryItemInput,
   UpdateMachineInput
@@ -30,6 +31,32 @@ import type {
 import type { CreateProductInput, Product, UpdateProductInput } from "@/domain/product-types";
 import type { ProductImportRepositoryBundle } from "@/persistence/indexeddb/product-import-repositories";
 import type {
+  BarcodeRecord,
+  ImportBatch,
+  ImportStagedRow,
+  InventoryItemMaster,
+  InventoryLedgerEntry,
+  InventoryLot,
+  InventoryReservation,
+  InventoryTransaction,
+  LabelPrintJob,
+  LabelTemplate,
+  PackagingConfiguration,
+  ProductMaster,
+  ProductVariant,
+  StockCountSession,
+  StockLocation,
+  UnitConversion,
+  UnitOfMeasure,
+  Warehouse
+} from "@/domain/inventory-product-types";
+import type { PostTransactionInput } from "@/features/inventory-product/ledger";
+import type {
+  CreateInventoryItemMasterInput,
+  CreateReservationInput,
+  StockMovementRequest
+} from "@/features/inventory-product/operations";
+import type {
   ActivityEvent,
   Campaign,
   CreateActivityEventInput,
@@ -47,7 +74,26 @@ import type {
   UpdateQuoteInput
 } from "@/domain/types";
 import type { ArchiveInput, ListOptions } from "@/persistence/archive-utils";
-import type { StockChangeInput } from "@/domain/operations-types";
+import type { OutreachCampaign } from "@/domain/campaign-types";
+import type {
+  CampaignRecipientRepository,
+  OutreachCampaignRepository
+} from "@/persistence/indexeddb/campaign-repositories";
+import type { EmailSuppressionRepository } from "@/persistence/indexeddb/suppression-repositories";
+import type { OutreachProviderEventRepository } from "@/persistence/indexeddb/provider-event-repositories";
+import type { OutreachSendAttemptRepository } from "@/persistence/indexeddb/send-attempt-repositories";
+import type {
+  OutreachSendJobAttemptRepository,
+  OutreachSendJobDailyUsageRepository,
+  OutreachSendJobRecipientRepository,
+  OutreachSendJobRepository
+} from "@/persistence/indexeddb/send-job-repositories";
+import type {
+  ImportBatchRepository,
+  ImportRowRepository,
+  LeadContactRepository
+} from "@/persistence/indexeddb/import-repositories";
+import type { ImportMappingProfileRepository } from "@/persistence/indexeddb/import-mapping-profile-repositories";
 
 export type { ListOptions, ArchiveInput };
 
@@ -176,7 +222,7 @@ export interface MachineRepository {
 export interface InventoryRepository {
   list(tenantId: string, options?: ListOptions): Promise<InventoryItem[]>;
   getById(tenantId: string, id: string): Promise<InventoryItem | null>;
-  create(tenantId: string, input: CreateInventoryItemInput): Promise<InventoryItem>;
+  create(tenantId: string, input: LegacyCreateInventoryItemInput): Promise<InventoryItem>;
   update(tenantId: string, id: string, input: UpdateInventoryItemInput): Promise<InventoryItem>;
   archive(tenantId: string, id: string, input?: ArchiveInput): Promise<InventoryItem>;
   restore(tenantId: string, id: string): Promise<InventoryItem>;
@@ -196,6 +242,74 @@ export interface InventoryRepository {
     input: StockChangeInput
   ): Promise<{ item: InventoryItem; movement: StockMovement }>;
   listMovements(tenantId: string, inventoryItemId: string): Promise<StockMovement[]>;
+}
+
+export type InventoryProductSnapshot = {
+  unitOfMeasures: UnitOfMeasure[];
+  conversions: UnitConversion[];
+  items: InventoryItemMaster[];
+  products: ProductMaster[];
+  variants: ProductVariant[];
+  packaging: PackagingConfiguration[];
+  warehouses: Warehouse[];
+  locations: StockLocation[];
+  lots: InventoryLot[];
+  transactions: InventoryTransaction[];
+  entries: InventoryLedgerEntry[];
+  reservations: InventoryReservation[];
+  stockCounts: StockCountSession[];
+  barcodes: BarcodeRecord[];
+  labelTemplates: LabelTemplate[];
+  labelPrintJobs: LabelPrintJob[];
+  importBatch: ImportBatch | null;
+  importRows: ImportStagedRow[];
+};
+
+export interface InventoryProductRepository {
+  getSnapshot(tenantId: string): Promise<InventoryProductSnapshot>;
+  replaceSnapshot(tenantId: string, snapshot: InventoryProductSnapshot): Promise<void>;
+  seedDemoFoundation(tenantId: string): Promise<void>;
+  postTransaction(
+    tenantId: string,
+    input: PostTransactionInput
+  ): Promise<{ transaction: InventoryTransaction; entries: InventoryLedgerEntry[] }>;
+  reverseTransaction(
+    tenantId: string,
+    transactionId: string,
+    operatorId: string,
+    reasonCode: string
+  ): Promise<{ transaction: InventoryTransaction; entries: InventoryLedgerEntry[] }>;
+  recordLabelPrintJob(tenantId: string, job: LabelPrintJob): Promise<LabelPrintJob>;
+  validateIntegrity(tenantId: string): Promise<{ ok: boolean; issues: string[] }>;
+  createItem(tenantId: string, input: CreateInventoryItemMasterInput): Promise<InventoryItemMaster>;
+  updateItem(
+    tenantId: string,
+    itemId: string,
+    input: Partial<CreateInventoryItemMasterInput>
+  ): Promise<InventoryItemMaster>;
+  receiveStock(tenantId: string, request: StockMovementRequest): Promise<{
+    transaction: InventoryTransaction;
+    entries: InventoryLedgerEntry[];
+  }>;
+  issueStock(tenantId: string, request: StockMovementRequest): Promise<{
+    transaction: InventoryTransaction;
+    entries: InventoryLedgerEntry[];
+  }>;
+  transferStock(tenantId: string, request: StockMovementRequest): Promise<{
+    transaction: InventoryTransaction;
+    entries: InventoryLedgerEntry[];
+  }>;
+  adjustStock(
+    tenantId: string,
+    request: StockMovementRequest,
+    direction: "increase" | "decrease"
+  ): Promise<{ transaction: InventoryTransaction; entries: InventoryLedgerEntry[] }>;
+  createReservation(tenantId: string, input: CreateReservationInput): Promise<InventoryReservation>;
+  releaseReservation(
+    tenantId: string,
+    reservationId: string,
+    status?: "released" | "consumed"
+  ): Promise<InventoryReservation>;
 }
 
 export interface OutreachMessageRepository {
@@ -256,10 +370,7 @@ export interface ProductRepository {
   listEmailPromotable(tenantId: string): Promise<Product[]>;
 }
 
-export interface CampaignRepository {
-  list(tenantId: string): Promise<Campaign[]>;
-  getById(tenantId: string, campaignId: string): Promise<Campaign | null>;
-}
+export type CampaignRepository = OutreachCampaignRepository;
 
 export interface ActivityRepository {
   list(tenantId: string): Promise<ActivityEvent[]>;
@@ -296,8 +407,10 @@ export interface LocalRepositoryBundle {
   productionOrders: ProductionOrderRepository;
   machines: MachineRepository;
   inventory: InventoryRepository;
+  inventoryProduct: InventoryProductRepository;
   outreachMessages: OutreachMessageRepository;
   campaigns: CampaignRepository;
+  campaignRecipients: CampaignRecipientRepository;
   activities: ActivityRepository;
   meta: MetaRepository;
   companyProfiles: CompanyProfileRepository;
@@ -307,6 +420,17 @@ export interface LocalRepositoryBundle {
   products: ProductRepository;
   customizerSimulations: CustomizerSimulationRepository;
   productImport: ProductImportRepositoryBundle;
+  importBatches: ImportBatchRepository;
+  importRows: ImportRowRepository;
+  importMappingProfiles: ImportMappingProfileRepository;
+  leadContacts: LeadContactRepository;
+  emailSuppressions: EmailSuppressionRepository;
+  outreachSendAttempts: OutreachSendAttemptRepository;
+  outreachProviderEvents: OutreachProviderEventRepository;
+  outreachSendJobs: OutreachSendJobRepository;
+  outreachSendJobRecipients: OutreachSendJobRecipientRepository;
+  outreachSendJobAttempts: OutreachSendJobAttemptRepository;
+  outreachSendJobDailyUsage: OutreachSendJobDailyUsageRepository;
   reset(): Promise<void>;
   resetDemoData(tenantId: string): Promise<void>;
   seed(tenantId: string): Promise<void>;
@@ -322,7 +446,8 @@ export type PersistenceErrorCode =
   | "not_found"
   | "duplicate"
   | "invalid_transition"
-  | "missing_link";
+  | "missing_link"
+  | "forbidden";
 
 export class PersistenceError extends Error {
   constructor(

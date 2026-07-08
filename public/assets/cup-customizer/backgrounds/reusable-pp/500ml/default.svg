@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="640" viewBox="0 0 480 640" role="img" aria-label="Reusable PP cup 500 ml placeholder">
+  <defs>
+    <linearGradient id="ppBody500" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#bae6fd" stop-opacity="0.35"/>
+      <stop offset="50%" stop-color="#f0f9ff" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#7dd3fc" stop-opacity="0.35"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="240" cy="96" rx="140" ry="26" fill="#e0f2fe" stroke="#38bdf8" stroke-width="2"/>
+  <path d="M100 96 L140 588 Q240 626 340 588 L380 96 Z" fill="url(#ppBody500)" stroke="#38bdf8" stroke-width="2"/>
+  <ellipse cx="240" cy="588" rx="104" ry="17" fill="#e0f2fe" stroke="#38bdf8" stroke-width="1"/>
+</svg>

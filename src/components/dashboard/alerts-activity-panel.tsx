@@ -27,7 +27,7 @@ export function AlertsActivityPanel({
       }
       title={title}
     >
-      <div className="mt-4 space-y-3">
+      <div className="mt-4 max-h-52 space-y-3 overflow-y-auto pr-1">
         {items.length === 0 ? (
           <p className="text-sm text-[var(--forge-text-muted)]">{emptyLabel}</p>
         ) : (

@@ -21,16 +21,7 @@ export type DashboardPreferences = {
 };
 
 export const DEFAULT_DASHBOARD_PREFERENCES: DashboardPreferences = {
-  visiblePanels: [
-    "oee",
-    "inventory",
-    "alerts",
-    "productionOrders",
-    "revenue",
-    "copilot",
-    "marketing",
-    "onboarding"
-  ],
+  visiblePanels: ["oee", "inventory", "alerts", "productionOrders"],
   panelOrder: [
     "oee",
     "inventory",
@@ -41,7 +32,7 @@ export const DEFAULT_DASHBOARD_PREFERENCES: DashboardPreferences = {
     "marketing",
     "onboarding"
   ],
-  density: "comfortable",
+  density: "compact",
   defaultDateRange: "week"
 };
 

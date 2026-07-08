@@ -17,7 +17,8 @@ export async function assertGenerateUsesDeterministicProvider(
 ): Promise<void> {
   const responsePromise = page.waitForResponse(
     (response) =>
-      response.url().includes("/api/leadops/generate") && response.request().method() === "POST"
+      response.url().includes("/api/leadops/generate") && response.request().method() === "POST",
+    { timeout: 30000 }
   );
   await action();
   const response = await responsePromise;

@@ -8,7 +8,7 @@ import { HostedFeaturesDialog } from "@/components/hosted-features";
 import { renderSignature } from "@/features/email-composition/signature";
 import { validateLocalAsset } from "@/features/email-composition/local-asset";
 import { isValidPublicUrl, normalizeUrl } from "@/features/email-composition/url-utils";
-import type { CompanyProfile, UserProfile } from "@/domain/profile-types";
+import type { CompanyProfile, SenderIdentity, UserProfile } from "@/domain/profile-types";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import {
@@ -18,6 +18,7 @@ import {
   useUserProfiles
 } from "@/persistence/profile-hooks";
 import { usePersistence } from "@/persistence/provider";
+import type { EmailProviderDiagnostic } from "@/domain/email-delivery-types";
 
 type SettingsSection =
   | "company"
@@ -288,6 +289,8 @@ function SendersSection({ locale, s }: { locale: Locale; s: Dictionary["settings
   const { profile: user } = useCurrentUserProfile();
   const [feedback, setFeedback] = useState<string | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "failed">("idle");
 
   const preview = useMemo(() => {
     const identity = identities.find((i) => i.id === previewId);
@@ -327,51 +330,30 @@ function SendersSection({ locale, s }: { locale: Locale; s: Dictionary["settings
       </div>
       <div className="space-y-3">
         {identities.map((identity) => (
-          <div className="rounded-lg border border-slate-800 bg-slate-950/40 p-4" key={identity.id}>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <div className="font-semibold">{identity.displayName}</div>
-                <div className="text-sm text-slate-400">{identity.fromEmail}</div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {identity.isDefault ? <Badge>{s.senders.defaultBadge}</Badge> : null}
-                {!identity.active ? <Badge>{s.senders.inactive}</Badge> : null}
-                <button className="text-sm text-blue-300" onClick={() => setPreviewId(identity.id)} type="button">{s.senders.preview}</button>
-                {!identity.isDefault ? (
-                  <button
-                    className="text-sm text-slate-300"
-                    onClick={async () => {
-                      if (state.status !== "ready") return;
-                      await state.repos.senderIdentities.setDefault(tenantId, identity.id);
-                      notifyDataChanged();
-                      await reload();
-                    }}
-                    type="button"
-                  >
-                    {s.senders.setDefault}
-                  </button>
-                ) : null}
-                <button
-                  className="text-sm text-slate-300"
-                  onClick={async () => {
-                    if (state.status !== "ready") return;
-                    const count = await state.repos.outreachMessages.countBySenderIdentity(tenantId, identity.id);
-                    if (count > 0) {
-                      await state.repos.senderIdentities.archive(tenantId, identity.id);
-                      setFeedback(s.senders.archived);
-                    } else {
-                      await state.repos.senderIdentities.archive(tenantId, identity.id);
-                    }
-                    notifyDataChanged();
-                    await reload();
-                  }}
-                  type="button"
-                >
-                  {s.senders.archive}
-                </button>
-              </div>
-            </div>
-          </div>
+          <SenderIdentityEditor
+            company={company}
+            feedback={feedback}
+            identity={identity}
+            isEditing={editingId === identity.id}
+            key={identity.id}
+            locale={locale}
+            onPreview={() => setPreviewId(identity.id)}
+            onSaved={async (message) => {
+              setFeedback(message);
+              notifyDataChanged();
+              await reload();
+            }}
+            onStartEdit={() => {
+              setEditingId(identity.id);
+              setSaveState("idle");
+            }}
+            onStopEdit={() => setEditingId(null)}
+            saveState={editingId === identity.id ? saveState : "idle"}
+            s={s}
+            setSaveState={setSaveState}
+            state={state}
+            tenantId={tenantId}
+          />
         ))}
       </div>
       {preview ? (
@@ -382,6 +364,138 @@ function SendersSection({ locale, s }: { locale: Locale; s: Dictionary["settings
       ) : null}
       {feedback ? <p className="mt-3 text-sm text-emerald-300">{feedback}</p> : null}
     </Panel>
+  );
+}
+
+function SenderIdentityEditor({
+  identity,
+  company,
+  isEditing,
+  locale,
+  onPreview,
+  onSaved,
+  onStartEdit,
+  onStopEdit,
+  saveState,
+  setSaveState,
+  s,
+  state,
+  tenantId
+}: {
+  identity: SenderIdentity;
+  company: CompanyProfile | null;
+  isEditing: boolean;
+  locale: Locale;
+  onPreview: () => void;
+  onSaved: (message: string) => Promise<void>;
+  onStartEdit: () => void;
+  onStopEdit: () => void;
+  saveState: "idle" | "saving" | "saved" | "failed";
+  setSaveState: (value: "idle" | "saving" | "saved" | "failed") => void;
+  s: Dictionary["settings"];
+  state: ReturnType<typeof usePersistence>["state"];
+  tenantId: string;
+  feedback: string | null;
+}) {
+  const [form, setForm] = useState(identity);
+
+  async function saveIdentity(e: FormEvent) {
+    e.preventDefault();
+    if (state.status !== "ready") return;
+    setSaveState("saving");
+    try {
+      const updated = await state.repos.senderIdentities.update(tenantId, form.id, {
+        displayName: form.displayName.trim(),
+        fromEmail: form.fromEmail.trim(),
+        replyToEmail: form.replyToEmail.trim(),
+        phone: form.phone.trim(),
+        jobTitle: form.jobTitle.trim()
+      });
+      const reloaded = await state.repos.senderIdentities.getById(tenantId, updated.id);
+      if (
+        reloaded?.displayName !== form.displayName.trim() ||
+        reloaded?.fromEmail !== form.fromEmail.trim()
+      ) {
+        setSaveState("failed");
+        return;
+      }
+      setSaveState("saved");
+      onStopEdit();
+      await onSaved(s.senders.saved);
+    } catch {
+      setSaveState("failed");
+    }
+  }
+
+  return (
+    <div className="rounded-lg border border-slate-800 bg-slate-950/40 p-4" data-testid={`sender-identity-${identity.id}`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <div className="font-semibold">{identity.displayName}</div>
+          <div className="text-sm text-slate-400">{identity.fromEmail}</div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {identity.isDefault ? <Badge>{s.senders.defaultBadge}</Badge> : null}
+          {!identity.active ? <Badge>{s.senders.inactive}</Badge> : null}
+          <button className="text-sm text-blue-300" onClick={onPreview} type="button">{s.senders.preview}</button>
+          {!isEditing ? (
+            <button
+              className="text-sm text-slate-300"
+              onClick={() => {
+                setForm(identity);
+                onStartEdit();
+              }}
+              type="button"
+            >
+              {s.save}
+            </button>
+          ) : null}
+          {!identity.isDefault ? (
+            <button
+              className="text-sm text-slate-300"
+              onClick={async () => {
+                if (state.status !== "ready") return;
+                await state.repos.senderIdentities.setDefault(tenantId, identity.id);
+                await onSaved(s.senders.saved);
+              }}
+              type="button"
+            >
+              {s.senders.setDefault}
+            </button>
+          ) : null}
+          <button
+            className="text-sm text-slate-300"
+            onClick={async () => {
+              if (state.status !== "ready") return;
+              await state.repos.senderIdentities.archive(tenantId, identity.id);
+              await onSaved(s.senders.archived);
+            }}
+            type="button"
+          >
+            {s.senders.archive}
+          </button>
+        </div>
+      </div>
+      {isEditing ? (
+        <form className="mt-4 grid gap-3 md:grid-cols-2" onSubmit={saveIdentity}>
+          <TextField label={s.senders.displayName} onChange={(v) => setForm({ ...form, displayName: v })} value={form.displayName} />
+          <TextField label={s.senders.fromEmail} onChange={(v) => setForm({ ...form, fromEmail: v })} value={form.fromEmail} />
+          <TextField label={s.senders.replyToEmail} onChange={(v) => setForm({ ...form, replyToEmail: v })} value={form.replyToEmail} />
+          <TextField label={s.senders.phone} onChange={(v) => setForm({ ...form, phone: v })} value={form.phone} />
+          <TextField label={s.senders.jobTitle} onChange={(v) => setForm({ ...form, jobTitle: v })} value={form.jobTitle} />
+          <div className="md:col-span-2 flex flex-wrap items-center gap-3">
+            <button className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-bold text-white" type="submit">
+              {saveState === "saving" ? s.saving : s.save}
+            </button>
+            <button className="rounded-lg border border-slate-700 px-4 py-2 text-sm" onClick={onStopEdit} type="button">
+              Cancelar
+            </button>
+            {saveState === "saved" ? <span className="text-sm text-emerald-300">{s.saved}</span> : null}
+            {saveState === "failed" ? <span className="text-sm text-red-300">{s.saveFailed}</span> : null}
+          </div>
+        </form>
+      ) : null}
+    </div>
   );
 }
 
@@ -464,9 +578,90 @@ function IntegrationsSection({
           />
         ))}
       </div>
+      <ProviderDiagnosticPanel s={s} />
       {diag ? <p className="mt-4 text-sm text-slate-300">{diag}</p> : null}
       <HostedFeaturesDialog card={hostedCard} dictionary={dictionary} onClose={() => setHostedCard(null)} />
     </Panel>
+  );
+}
+
+function ProviderDiagnosticPanel({ s }: { s: Dictionary["settings"] }) {
+  const t = s.integrations.provider;
+  const [diagnostic, setDiagnostic] = useState<EmailProviderDiagnostic | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function refresh() {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/leadops/email-provider/diagnostic", {
+        method: "GET"
+      });
+      if (!response.ok) throw new Error("diagnostic_failed");
+      setDiagnostic((await response.json()) as EmailProviderDiagnostic);
+    } catch {
+      setError(t.unavailable);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- provider diagnostic is loaded from an external API on mount
+    void refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load diagnostic once on panel mount
+  }, []);
+
+  return (
+    <article className="mt-4 rounded-lg border border-slate-800 bg-slate-950/40 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="font-semibold">{t.title}</h3>
+          <p className="mt-1 text-sm text-slate-400">{t.description}</p>
+        </div>
+        <button className="text-sm text-blue-300" onClick={() => void refresh()} type="button">
+          {t.refresh}
+        </button>
+      </div>
+      {loading ? <p className="mt-3 text-sm text-slate-400">{t.loading}</p> : null}
+      {error ? <p className="mt-3 text-sm text-red-300">{error}</p> : null}
+      {diagnostic ? (
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <DiagnosticRow label={t.provider} value={diagnostic.provider} />
+          <DiagnosticRow label={t.configured} value={diagnostic.configured ? t.yes : t.no} />
+          <DiagnosticRow label={t.realSend} value={diagnostic.realSendEnabled ? t.yes : t.no} />
+          <DiagnosticRow label={t.testSend} value={diagnostic.testSendEnabled ? t.yes : t.no} />
+          <DiagnosticRow label={t.apiKey} value={diagnostic.apiKeyPresent ? t.yes : t.no} />
+          <DiagnosticRow
+            label={t.sender}
+            value={diagnostic.senderEmailConfigured && diagnostic.senderNameConfigured ? t.yes : t.no}
+          />
+          <DiagnosticRow
+            label={t.allowlist}
+            value={`${diagnostic.allowlistConfigured ? t.yes : t.no} (${diagnostic.allowlistCount})`}
+          />
+          <DiagnosticRow
+            label={t.missing}
+            value={diagnostic.missing.length > 0 ? diagnostic.missing.join(", ") : t.no}
+          />
+          {diagnostic.warnings.length > 0 ? (
+            <p className="md:col-span-2 text-sm text-amber-300">
+              {t.warnings}: {diagnostic.warnings.join(" ")}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
+function DiagnosticRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border border-slate-800 bg-slate-900/50 px-3 py-2">
+      <div className="text-xs uppercase tracking-wide text-slate-500">{label}</div>
+      <div className="mt-1 text-sm font-semibold text-slate-100">{value}</div>
+    </div>
   );
 }
 

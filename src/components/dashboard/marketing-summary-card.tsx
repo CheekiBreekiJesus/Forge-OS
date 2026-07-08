@@ -10,9 +10,7 @@ type MarketingSummaryCardProps = {
   approvedLabel: string;
   openedLabel: string;
   suppressedLabel: string;
-  outreachHref: string;
   marketingHref: string;
-  openOutreachLabel: string;
   openMarketingLabel: string;
   demoLabel?: string;
   isDemo?: boolean;
@@ -32,9 +30,7 @@ export function MarketingSummaryCard({
   approvedLabel,
   openedLabel,
   suppressedLabel,
-  outreachHref,
   marketingHref,
-  openOutreachLabel,
   openMarketingLabel,
   demoLabel,
   isDemo,
@@ -67,15 +63,9 @@ export function MarketingSummaryCard({
           </div>
         ))}
       </div>
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-4">
         <Link
-          className="rounded-lg bg-[var(--forge-accent-orange)] px-4 py-2 text-sm font-bold text-white"
-          href={outreachHref}
-        >
-          {openOutreachLabel}
-        </Link>
-        <Link
-          className="rounded-lg border border-[var(--forge-border)] px-4 py-2 text-sm font-semibold text-[var(--forge-text-secondary)]"
+          className="text-sm font-semibold text-[var(--forge-accent-blue)]"
           href={marketingHref}
         >
           {openMarketingLabel}

@@ -53,3 +53,11 @@ export async function waitForCupCatalog(page: Page): Promise<void> {
     timeout: 45000
   });
 }
+
+/** Lead detail loads campaigns after persistence init; generation is a no-op until then. */
+export async function waitForLeadOutreachReady(page: Page): Promise<void> {
+  const generateButton = page.getByRole("button", { name: /gerar email/i });
+  await expect(generateButton).toBeVisible({ timeout: 15000 });
+  await expect(generateButton).toBeEnabled();
+  await expect(page.locator("select option").first()).toBeAttached({ timeout: 15000 });
+}

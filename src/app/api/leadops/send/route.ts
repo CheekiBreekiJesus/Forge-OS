@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { deliverOutreachMessage } from "@/features/leadops/providers";
+import { deliverOutreachMessage } from "@/features/leadops/server-delivery";
 import type { LeadOpsWorkflowState } from "@/features/leadops/types";
 
 export async function POST(request: Request) {

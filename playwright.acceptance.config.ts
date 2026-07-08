@@ -1,9 +1,18 @@
 import { defineConfig, devices } from "@playwright/test";
+import {
+  ACCEPTANCE_BASE_URL,
+  ACCEPTANCE_DB_NAME,
+  buildPlaywrightWebServerEnv,
+  PLAYWRIGHT_RUNTIME
+} from "./e2e/helpers/runtime";
 
 const acceptanceDbName =
   process.env.FORGEOS_LOCAL_DB_NAME ??
   process.env.NEXT_PUBLIC_FORGEOS_LOCAL_DB_NAME ??
-  "forgeos:e2e:acceptance";
+  ACCEPTANCE_DB_NAME;
+
+process.env.FORGEOS_LOCAL_DB_NAME = acceptanceDbName;
+process.env.NEXT_PUBLIC_FORGEOS_LOCAL_DB_NAME = acceptanceDbName;
 
 export default defineConfig({
   testDir: "./e2e/acceptance",
@@ -19,7 +28,7 @@ export default defineConfig({
   ],
   outputDir: "qa/acceptance/results/test-results",
   use: {
-    baseURL: "http://localhost:3001",
+    baseURL: ACCEPTANCE_BASE_URL,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure"
@@ -31,20 +40,10 @@ export default defineConfig({
     }
   ],
   webServer: {
-    command: "npm run dev -- --port 3001",
-    env: {
-      ...process.env,
-      FORGEOS_E2E: "true",
-      FORGEOS_LOCAL_DB_NAME: acceptanceDbName,
-      NEXT_PUBLIC_FORGEOS_LOCAL_DB_NAME: acceptanceDbName,
-      ABACUS_API_KEY: "",
-      AI_DEFAULT_PROVIDER: "deterministic",
-      AI_FALLBACK_PROVIDER: "deterministic",
-      AI_OUTREACH_PROVIDER: "deterministic",
-      OUTREACH_DELIVERY_PROVIDER: "simulation"
-    },
+    command: `npm run dev -- --port ${PLAYWRIGHT_RUNTIME.acceptance.port}`,
+    env: buildPlaywrightWebServerEnv(acceptanceDbName),
     reuseExistingServer: false,
     timeout: 180000,
-    url: "http://localhost:3001/pt-PT"
+    url: `${ACCEPTANCE_BASE_URL}${PLAYWRIGHT_RUNTIME.acceptance.entryPath}`
   }
 });

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="640" viewBox="0 0 480 640" role="img" aria-label="Neutral cup placeholder">
+  <defs>
+    <linearGradient id="cupBody" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#cbd5e1"/>
+      <stop offset="45%" stop-color="#f8fafc"/>
+      <stop offset="100%" stop-color="#94a3b8"/>
+    </linearGradient>
+    <linearGradient id="cupRim" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#e2e8f0"/>
+      <stop offset="100%" stop-color="#94a3b8"/>
+    </linearGradient>
+  </defs>
+  <rect width="480" height="640" fill="none"/>
+  <ellipse cx="240" cy="118" rx="118" ry="22" fill="url(#cupRim)" stroke="#64748b" stroke-width="2"/>
+  <path d="M122 118 L154 560 Q240 590 326 560 L358 118 Z" fill="url(#cupBody)" stroke="#64748b" stroke-width="2"/>
+  <path d="M154 200 H326" stroke="#94a3b8" stroke-width="1" opacity="0.5"/>
+  <ellipse cx="240" cy="560" rx="86" ry="14" fill="#cbd5e1" stroke="#64748b" stroke-width="1"/>
+</svg>

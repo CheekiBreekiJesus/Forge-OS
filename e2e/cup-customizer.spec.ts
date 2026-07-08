@@ -110,6 +110,31 @@ test.describe("Cup Customizer workflows", () => {
     await expect(page.getByRole("heading", { name: "Personalizador de Copos" })).toBeVisible();
   });
 
+  test("scene preview loads reusable PP cup assets", async ({ page }) => {
+    await page.goto("/pt-PT/quotations/customizer");
+    await waitForPersistence(page);
+    await expect(page.getByRole("button", { name: "Dia", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Noite", exact: true })).toBeVisible();
+    await expect(page.getByTestId("cup-preview-scene")).toHaveAttribute(
+      "src",
+      /\/assets\/cup-customizer\/backgrounds\/day\.png/
+    );
+    await page.getByRole("button", { name: "Noite", exact: true }).click();
+    await expect(page.getByTestId("cup-preview-scene")).toHaveAttribute(
+      "src",
+      /\/assets\/cup-customizer\/backgrounds\/night\.png/
+    );
+    await expect(page.getByTestId("cup-preview-cup")).toHaveAttribute(
+      "src",
+      /\/assets\/cup-customizer\/cups\/reusable-pp\//
+    );
+    await page.locator('select').filter({ has: page.locator('option[value="500"]') }).first().selectOption("500");
+    await expect(page.getByTestId("cup-preview-cup")).toHaveAttribute(
+      "src",
+      /\/assets\/cup-customizer\/cups\/reusable-pp\/500ml\.png/
+    );
+  });
+
   test("can save and convert an artwork simulation", async ({ page }) => {
     await page.goto("/pt-PT/quotations/customizer");
     await waitForPersistence(page);
@@ -118,7 +143,9 @@ test.describe("Cup Customizer workflows", () => {
     await expect(page.getByText(/Arte carregada/i)).toBeVisible({ timeout: 10000 });
     await page.getByLabel(/Escala da arte/i).fill("1.25");
     await page.getByLabel(/Desvio horizontal/i).fill("8");
-    await page.getByLabel(/Desvio vertical/i).fill("-6");
+    const verticalOffset = page.getByLabel(/Desvio vertical/i);
+    const verticalMin = Number(await verticalOffset.getAttribute("min"));
+    await verticalOffset.fill(String(Math.max(verticalMin, -5)));
     await page.getByLabel(/Rota/i).fill("12");
     await expect(page.getByTestId("cup-preview-artwork")).toBeVisible();
     await page.getByRole("button", { name: /Guardar simula/i }).click();
@@ -135,6 +162,31 @@ test.describe("Cup Customizer workflows", () => {
 
   test("onboarding checklist shows customizer step", async ({ page }) => {
     await page.goto("/pt-PT");
+    await page.evaluate(() => {
+      const prefs = {
+        visiblePanels: [
+          "oee",
+          "inventory",
+          "alerts",
+          "productionOrders",
+          "onboarding"
+        ],
+        panelOrder: [
+          "oee",
+          "inventory",
+          "alerts",
+          "productionOrders",
+          "revenue",
+          "copilot",
+          "marketing",
+          "onboarding"
+        ],
+        density: "compact",
+        defaultDateRange: "week"
+      };
+      window.localStorage.setItem("forgeos:dashboard-preferences", JSON.stringify(prefs));
+    });
+    await page.reload();
     await waitForPersistence(page);
     await expect(page.getByTestId("onboarding-checklist")).toBeVisible();
     await expect(page.getByText("Testar Personalizador de Copos")).toBeVisible();
