@@ -41,6 +41,10 @@ function escapeHtml(text: string): string {
     .replace(/"/g, "&quot;");
 }
 
+function isAllowedAssetUrl(value: string): boolean {
+  return value.startsWith("/assets/email-outreach/");
+}
+
 /** Lightweight HTML sanitizer for email output — strips scripts and unsafe attributes. */
 export function sanitizeEmailHtml(html: string): string {
   if (!html.includes("<")) {
@@ -65,7 +69,13 @@ export function sanitizeEmailHtml(html: string): string {
         const value = m[3] ?? m[4] ?? m[5] ?? "";
         if (!allowed.has(name)) continue;
         if (name === "href" || name === "src") {
-          if (!/^https?:\/\//i.test(value) && !value.startsWith("mailto:")) continue;
+          if (
+            !/^https?:\/\//i.test(value) &&
+            !value.startsWith("mailto:") &&
+            !isAllowedAssetUrl(value)
+          ) {
+            continue;
+          }
         }
         safeAttrs.push(`${name}="${escapeHtml(value)}"`);
       }

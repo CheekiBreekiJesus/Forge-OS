@@ -3,7 +3,10 @@ import {
   buildBroaderRangeLine,
   buildPersonalizedIntro,
   buildPortfolioImageHtml,
-  buildRecommendedProducts
+  buildPortfolioImageLine,
+  buildPortfolioPlainTextLine,
+  buildRecommendedProducts,
+  DEFAULT_PORTFOLIO_IMAGE_ALT_PT
 } from "@/features/leadops/outreach-template-derived-content";
 
 describe("outreach template derived content", () => {
@@ -33,18 +36,51 @@ describe("outreach template derived content", () => {
     expect(line).toContain("embalagens take-away");
   });
 
-  it("renders portfolio placeholder HTML when URL is missing", () => {
-    const html = buildPortfolioImageHtml("", "Exemplo de copo personalizado JH Gomes");
-    expect(html).toContain("<em>");
-    expect(html).not.toContain('src=""');
+  it("lists cup sizes in plain text without placeholders", () => {
+    const line = buildPortfolioImageLine("", DEFAULT_PORTFOLIO_IMAGE_ALT_PT, "pt-PT");
+    expect(line).toBe("Formatos disponíveis: 250 ml, 330 ml, 430 ml e 500 ml.");
+    expect(line).not.toContain("[");
+    expect(line).not.toContain("http");
+  });
+
+  it("omits portfolio HTML when no renderable URL is available", () => {
+    const html = buildPortfolioImageHtml("", DEFAULT_PORTFOLIO_IMAGE_ALT_PT);
+    expect(html).toBe("");
+    expect(html).not.toContain("<em>");
+  });
+
+  it("renders email-safe portfolio HTML with width 600 and responsive styles", () => {
+    const html = buildPortfolioImageHtml(
+      "https://forgeos.example/assets/email-outreach/jh-gomes/custom-cups-banner.png",
+      DEFAULT_PORTFOLIO_IMAGE_ALT_PT,
+      { width: 600 }
+    );
+    expect(html).toContain('role="presentation"');
+    expect(html).toContain('width="600"');
+    expect(html).toContain("max-width:600px");
+    expect(html).toContain(DEFAULT_PORTFOLIO_IMAGE_ALT_PT);
+  });
+
+  it("allows relative preview URLs in local application previews", () => {
+    const html = buildPortfolioImageHtml(
+      "",
+      DEFAULT_PORTFOLIO_IMAGE_ALT_PT,
+      { previewUrl: "/assets/email-outreach/jh-gomes/custom-cups-banner.png", width: 600 }
+    );
+    expect(html).toContain('src="/assets/email-outreach/jh-gomes/custom-cups-banner.png"');
   });
 
   it("escapes unsafe characters in portfolio image URLs", () => {
     const html = buildPortfolioImageHtml(
       'https://cdn.example.pt/x" onerror="alert(1)',
-      "Exemplo de copo personalizado JH Gomes"
+      DEFAULT_PORTFOLIO_IMAGE_ALT_PT
     );
     expect(html).toContain("https://cdn.example.pt/");
     expect(html).not.toContain('onerror="alert(1)"');
+  });
+
+  it("keeps plain-text cup sizes independent of image availability", () => {
+    expect(buildPortfolioPlainTextLine("pt-PT")).toContain("250 ml");
+    expect(buildPortfolioPlainTextLine("en")).toContain("250 ml");
   });
 });

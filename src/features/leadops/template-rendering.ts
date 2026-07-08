@@ -17,8 +17,10 @@ import {
   buildPortfolioImageAlt,
   buildPortfolioImageHtml,
   buildPortfolioImageLine,
+  buildPortfolioSupportingLine,
   buildRecommendedProducts
 } from "@/features/leadops/outreach-template-derived-content";
+import { resolvePortfolioImageUrls } from "@/features/leadops/outreach-email-assets";
 import { resolveSalutation } from "@/features/leadops/salutation-resolver";
 import {
   defaultUnsubscribeInstruction,
@@ -50,6 +52,11 @@ export type TemplateRenderInput = {
   unsubscribeInstruction?: string;
   /** Public HTTPS URL only. Blob and local paths are rejected for email safety. */
   portfolioImageUrl?: string;
+  /** Optional override for FORGEOS_PUBLIC_BASE_URL / NEXT_PUBLIC_APP_URL. */
+  publicBaseUrl?: string;
+  tenantId?: string;
+  /** Delivery mode omits relative-only banner URLs; preview mode may use local asset paths. */
+  renderMode?: "preview" | "delivery";
 };
 
 export type TemplateRenderResult = {
@@ -98,6 +105,7 @@ const ALLOWED_KEYS = new Set([
   "portfolioImageAlt",
   "portfolioImageLine",
   "portfolioImageHtml",
+  "portfolioSupportingLine",
   "broaderRangeLine",
   "categoryLine",
   "regionLine",
@@ -219,14 +227,29 @@ function buildVariableMap(
 
   const recommendedProducts = buildRecommendedProducts(category, input.language);
   const broaderRangeLine = buildBroaderRangeLine(localizedCategory, input.language);
-  const portfolioImageUrl = resolvePublicPortfolioImageUrl(input.portfolioImageUrl);
+  const portfolioAsset = resolvePortfolioImageUrls({
+    portfolioImageUrl: input.portfolioImageUrl,
+    publicBaseUrl: input.publicBaseUrl,
+    tenantId: input.tenantId ?? input.company.tenantId
+  });
+  const portfolioImageUrl = portfolioAsset?.absoluteUrl ?? "";
   const portfolioImageAlt = buildPortfolioImageAlt(input.language);
   const portfolioImageLine = buildPortfolioImageLine(
     portfolioImageUrl,
     portfolioImageAlt,
     input.language
   );
-  const portfolioImageHtml = buildPortfolioImageHtml(portfolioImageUrl, portfolioImageAlt);
+  const portfolioSupportingLine = buildPortfolioSupportingLine(input.language);
+  const portfolioImageHtml = buildPortfolioImageHtml(portfolioImageUrl, portfolioImageAlt, {
+    width: portfolioAsset?.width,
+    previewUrl: input.renderMode === "preview" ? portfolioAsset?.previewUrl : undefined
+  });
+
+  if (portfolioAsset && !portfolioImageUrl && portfolioAsset.relativePath) {
+    warnings.push(
+      "Portfolio banner omitted from delivered HTML until FORGEOS_PUBLIC_BASE_URL is configured."
+    );
+  }
 
   const companyWebsiteLine =
     companyWebsite && input.language.startsWith("pt")
@@ -257,6 +280,7 @@ function buildVariableMap(
   usedVariables.add("personalizedIntro");
   usedVariables.add("recommendedProducts");
   usedVariables.add("portfolioImageAlt");
+  if (portfolioSupportingLine) usedVariables.add("portfolioSupportingLine" as TemplateVariableKey);
   if (senderName) usedVariables.add("senderName");
   else warnings.push("Missing sender name in Settings.");
   if (companySenderName) usedVariables.add("companySenderName");
@@ -295,6 +319,7 @@ function buildVariableMap(
       portfolioImageAlt,
       portfolioImageLine,
       portfolioImageHtml,
+      portfolioSupportingLine,
       broaderRangeLine,
       categoryLine,
       regionLine,
@@ -390,10 +415,4 @@ export function countUnresolvedInTemplate(
     `${subjectTemplate}\n${plainTextTemplate}\n${htmlTemplate}`,
     ALLOWED_KEYS
   );
-}
-
-function resolvePublicPortfolioImageUrl(candidate: string | undefined): string {
-  const value = candidate?.trim() ?? "";
-  if (!value) return "";
-  return /^https:\/\//i.test(value) ? value : "";
 }

@@ -1,4 +1,3 @@
-import { PORTFOLIO_IMAGE_INTEGRATION_NOTE } from "@/features/leadops/outreach-template-derived-content";
 import { type TemplateVariableKey } from "@/features/leadops/template-variables";
 
 /**
@@ -13,7 +12,7 @@ export const DEFAULT_PT_CUP_OUTREACH_SUBJECT_OPTIONS = [
 
 export const DEFAULT_PT_CUP_OUTREACH_TEMPLATE = {
   language: "pt-PT" as const,
-  templateVersion: 3,
+  templateVersion: 4,
   subjectTemplate: DEFAULT_PT_CUP_OUTREACH_SUBJECT_OPTIONS[0],
   plainTextTemplate: `{{greeting}}
 
@@ -27,6 +26,8 @@ Na {{companySenderName}} especializamo-nos em copos reutilizáveis de plástico 
 {{regionLine}}
 
 {{portfolioImageLine}}
+
+{{portfolioSupportingLine}}
 
 Gostaria de saber se faz sentido preparar-lhe um orçamento ou um mockup com o vosso logótipo. Pode responder a este email com o ficheiro de arte ou indicar quantidades e referências.
 
@@ -48,13 +49,9 @@ Com os melhores cumprimentos,
 <p>{{broaderRangeLine}}</p>
 {{regionLineHtml}}
 
-<!--
-  PORTFOLIO_IMAGE_SLOT
-  ${PORTFOLIO_IMAGE_INTEGRATION_NOTE}
-  Placeholders: {{portfolioImageUrl}} (public HTTPS image) and {{portfolioImageAlt}} (accessible description).
-  Replace the URL after Cup Customizer generates a mockup; keep alt text aligned with the lead context.
--->
-<p style="text-align:center;margin:20px 0;">{{portfolioImageHtml}}</p>
+{{portfolioImageHtml}}
+
+<p>{{portfolioSupportingLine}}</p>
 
 <p>Gostaria de saber se faz sentido preparar-lhe um <strong>orçamento</strong> ou um <strong>mockup</strong> com o vosso logótipo. Pode responder a este email com o ficheiro de arte ou indicar quantidades e referências.</p>
 
@@ -82,7 +79,7 @@ export function buildDefaultCampaignTemplate(language: string): CampaignTemplate
 
   return {
     language: "en",
-    templateVersion: 3,
+    templateVersion: 4,
     subjectTemplate: "Personalized cups for {{subjectOrganizationTarget}}",
     plainTextTemplate: `{{greeting}}
 
@@ -96,6 +93,8 @@ At {{companySenderName}}, we specialize in personalized reusable plastic cups an
 {{regionLine}}
 
 {{portfolioImageLine}}
+
+{{portfolioSupportingLine}}
 
 Would it be helpful if we prepared a quotation or a mockup with your logo? You can reply with artwork or let us know typical quantities and references.
 
@@ -117,11 +116,9 @@ Kind regards,
 <p>{{broaderRangeLine}}</p>
 {{regionLineHtml}}
 
-<!--
-  PORTFOLIO_IMAGE_SLOT
-  ${PORTFOLIO_IMAGE_INTEGRATION_NOTE}
--->
-<p style="text-align:center;margin:20px 0;">{{portfolioImageHtml}}</p>
+{{portfolioImageHtml}}
+
+<p>{{portfolioSupportingLine}}</p>
 
 <p>Would it be helpful if we prepared a <strong>quotation</strong> or a <strong>mockup</strong> with your logo? Reply with artwork or typical quantities and references.</p>
 
@@ -147,6 +144,7 @@ export const DERIVED_TEMPLATE_VARIABLES = [
   "portfolioImageAlt",
   "portfolioImageLine",
   "portfolioImageHtml",
+  "portfolioSupportingLine",
   "greeting",
   "organizationDisplayName",
   "subjectOrganizationTarget",

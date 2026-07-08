@@ -74,12 +74,25 @@ const EN_DEFAULT_EXTRAS = [
   "bakery bases and accessories"
 ];
 
-export const PORTFOLIO_IMAGE_INTEGRATION_NOTE = `Cup Customizer integration: replace portfolioImageUrl with a public HTTPS URL exported from a CustomizerSimulation mockupAssetId. Until then, the renderer shows a text placeholder when the URL is empty.`;
+export const PORTFOLIO_IMAGE_INTEGRATION_NOTE = `Portfolio banner served from /assets/email-outreach/jh-gomes/custom-cups-banner.png. Override portfolioImageUrl with a public HTTPS URL when a tenant uses a different campaign image.`;
 
 export const DEFAULT_PORTFOLIO_IMAGE_ALT_PT =
-  "Exemplo de copo personalizado JH Gomes";
+  "Exemplos de copos reutilizáveis personalizados JH Gomes: 250 ml, 330 ml, 430 ml e 500 ml";
 
-export const DEFAULT_PORTFOLIO_IMAGE_ALT_EN = "JH Gomes personalized cup sample";
+export const DEFAULT_PORTFOLIO_IMAGE_ALT_EN =
+  "JH Gomes personalized reusable cup examples: 250 ml, 330 ml, 430 ml, and 500 ml";
+
+export const DEFAULT_PORTFOLIO_PLAIN_TEXT_PT =
+  "Formatos disponíveis: 250 ml, 330 ml, 430 ml e 500 ml.";
+
+export const DEFAULT_PORTFOLIO_PLAIN_TEXT_EN =
+  "Available sizes: 250 ml, 330 ml, 430 ml, and 500 ml.";
+
+export const DEFAULT_PORTFOLIO_SUPPORTING_LINE_PT =
+  "Disponibilizamos copos reutilizáveis em PP nos formatos de 250 ml, 330 ml, 430 ml e 500 ml, com personalização adaptada à identidade da sua marca.";
+
+export const DEFAULT_PORTFOLIO_SUPPORTING_LINE_EN =
+  "We supply reusable PP cups in 250 ml, 330 ml, 430 ml, and 500 ml sizes, customized to match your brand identity.";
 
 export function buildPersonalizedIntro(input: {
   organizationDisplayName: string;
@@ -146,24 +159,59 @@ export function buildPortfolioImageAlt(locale: string): string {
   return locale.startsWith("pt") ? DEFAULT_PORTFOLIO_IMAGE_ALT_PT : DEFAULT_PORTFOLIO_IMAGE_ALT_EN;
 }
 
-export function buildPortfolioImageLine(imageUrl: string, alt: string, locale: string): string {
-  if (imageUrl.trim()) {
-    return locale.startsWith("pt")
-      ? `Exemplo de produto: ${imageUrl}`
-      : `Product sample: ${imageUrl}`;
-  }
-
-  return locale.startsWith("pt") ? `[${alt}]` : `[${alt}]`;
+export function buildPortfolioPlainTextLine(locale: string): string {
+  return locale.startsWith("pt")
+    ? DEFAULT_PORTFOLIO_PLAIN_TEXT_PT
+    : DEFAULT_PORTFOLIO_PLAIN_TEXT_EN;
 }
 
-export function buildPortfolioImageHtml(imageUrl: string, alt: string): string {
-  const safeUrl = imageUrl.trim();
+export function buildPortfolioSupportingLine(locale: string): string {
+  return locale.startsWith("pt")
+    ? DEFAULT_PORTFOLIO_SUPPORTING_LINE_PT
+    : DEFAULT_PORTFOLIO_SUPPORTING_LINE_EN;
+}
+
+export function buildPortfolioImageLine(_imageUrl: string, _alt: string, locale: string): string {
+  return buildPortfolioPlainTextLine(locale);
+}
+
+export function buildPortfolioImageHtml(
+  imageUrl: string,
+  alt: string,
+  options?: { width?: number; previewUrl?: string }
+): string {
+  const deliveredUrl = imageUrl.trim();
+  const previewUrl = options?.previewUrl?.trim() ?? "";
+  const renderUrl = deliveredUrl || previewUrl;
   const safeAlt = escapeHtmlText(alt);
-  if (safeUrl && /^https:\/\//i.test(safeUrl)) {
-    return `<img src="${escapeHtmlAttribute(safeUrl)}" alt="${safeAlt}" style="max-width:320px;height:auto;border-radius:8px;" />`;
+  const width = options?.width ?? 600;
+
+  if (!renderUrl || !isRenderablePortfolioImageUrl(renderUrl)) {
+    return "";
   }
 
-  return `<em>${safeAlt}</em>`;
+  const safeUrl = escapeHtmlAttribute(renderUrl);
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0;">
+  <tr>
+    <td align="center">
+      <img src="${safeUrl}" alt="${safeAlt}" width="${width}" style="display:block;width:100%;max-width:${width}px;height:auto;border:0;border-radius:8px;" />
+    </td>
+  </tr>
+</table>`;
+}
+
+function isRenderablePortfolioImageUrl(url: string): boolean {
+  if (url.startsWith("/")) return true;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === "https:") return true;
+    return (
+      parsed.protocol === "http:" &&
+      (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1")
+    );
+  } catch {
+    return false;
+  }
 }
 
 function escapeHtmlAttribute(value: string): string {

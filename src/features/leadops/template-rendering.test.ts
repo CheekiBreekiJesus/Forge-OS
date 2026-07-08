@@ -1,5 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { DEFAULT_PT_CUP_OUTREACH_TEMPLATE } from "@/features/leadops/default-templates";
+import { JH_GOMES_CUSTOM_CUPS_BANNER } from "@/features/leadops/outreach-email-assets";
+import {
+  DEFAULT_PORTFOLIO_IMAGE_ALT_PT,
+  DEFAULT_PORTFOLIO_SUPPORTING_LINE_PT
+} from "@/features/leadops/outreach-template-derived-content";
 import {
   cleanupRenderedText,
   countUnresolvedInTemplate,
@@ -26,7 +31,7 @@ const company: CompanyProfileSnapshot = {
   logoPublicUrl: "",
   postalCode: "1000",
   region: "",
-  tenantId: "tenant_a",
+  tenantId: "tenant_jh_gomes",
   tradingName: "Forge Cups",
   vatNumber: "PT1",
   websiteUrl: "https://example.pt"
@@ -45,7 +50,7 @@ const sender: SenderIdentitySnapshot = {
   replyToEmail: "maria@example.pt",
   signatureHtml: "",
   signatureText: "",
-  tenantId: "tenant_a",
+  tenantId: "tenant_jh_gomes",
   userProfileId: "u1"
 };
 
@@ -62,6 +67,14 @@ const recipient = {
 };
 
 describe("template rendering", () => {
+  beforeEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("substitutes every supported variable", () => {
     const template = TEMPLATE_VARIABLES.map((key) => `{{${key}}}`).join(" | ");
     const result = renderCampaignTemplate({
@@ -168,6 +181,7 @@ describe("template rendering", () => {
   });
 
   it("renders the default PT template without unresolved variables", () => {
+    vi.stubEnv("FORGEOS_PUBLIC_BASE_URL", "https://forgeos.example");
     const result = renderCampaignTemplate({
       subjectTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.subjectTemplate,
       plainTextTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.plainTextTemplate,
@@ -175,7 +189,8 @@ describe("template rendering", () => {
       language: "pt-PT",
       recipient,
       sender,
-      company
+      company,
+      tenantId: company.tenantId
     });
 
     expect(result.hasUnresolvedVariables).toBe(false);
@@ -183,7 +198,10 @@ describe("template rendering", () => {
     expect(result.plainText).toContain("copos reutilizáveis");
     expect(result.plainText).toContain("orçamento");
     expect(result.plainText).toContain("mockup");
-    expect(result.html).toContain("Exemplo de copo personalizado JH Gomes");
+    expect(result.plainText).toContain("250 ml");
+    expect(result.html).toContain(DEFAULT_PORTFOLIO_IMAGE_ALT_PT);
+    expect(result.html).toContain(DEFAULT_PORTFOLIO_SUPPORTING_LINE_PT);
+    expect(result.html).not.toContain("Exemplo de copo personalizado JH Gomes");
   });
 
   it("supports snake_case template aliases", () => {
@@ -216,10 +234,11 @@ describe("template rendering", () => {
     });
 
     expect(result.html).toContain(`src="${portfolioUrl}"`);
-    expect(result.plainText).toContain(portfolioUrl);
+    expect(result.plainText).toContain("250 ml");
+    expect(result.plainText).not.toContain(portfolioUrl);
   });
 
-  it("rejects non-HTTPS portfolio URLs and keeps accessible placeholder", () => {
+  it("places the banner before the CTA and uses an absolute URL for delivery", () => {
     const result = renderCampaignTemplate({
       subjectTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.subjectTemplate,
       plainTextTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.plainTextTemplate,
@@ -228,14 +247,19 @@ describe("template rendering", () => {
       recipient,
       sender,
       company,
-      portfolioImageUrl: "blob:http://localhost/mockup"
+      tenantId: company.tenantId,
+      publicBaseUrl: "https://forgeos.example"
     });
 
-    expect(result.html).toContain("<em>");
-    expect(result.html).not.toContain("blob:");
+    const bannerIndex = result.html.indexOf(JH_GOMES_CUSTOM_CUPS_BANNER.relativePath);
+    const ctaIndex = result.html.indexOf("orçamento");
+    expect(bannerIndex).toBeGreaterThan(-1);
+    expect(ctaIndex).toBeGreaterThan(bannerIndex);
+    expect(result.html).toContain(`https://forgeos.example${JH_GOMES_CUSTOM_CUPS_BANNER.relativePath}`);
+    expect(result.html).toContain('width="600"');
   });
 
-  it("includes plain text and HTML for default PT outreach template", () => {
+  it("rejects non-HTTPS portfolio URLs and keeps accessible plain text", () => {
     const result = renderCampaignTemplate({
       subjectTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.subjectTemplate,
       plainTextTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.plainTextTemplate,
@@ -243,12 +267,72 @@ describe("template rendering", () => {
       language: "pt-PT",
       recipient,
       sender,
-      company
+      company,
+      tenantId: company.tenantId,
+      publicBaseUrl: "https://forgeos.example",
+      portfolioImageUrl: "blob:http://localhost/mockup"
+    });
+
+    expect(result.html).toContain(`https://forgeos.example${JH_GOMES_CUSTOM_CUPS_BANNER.relativePath}`);
+    expect(result.html).not.toContain("blob:");
+    expect(result.plainText).toContain("250 ml");
+  });
+
+  it("omits delivered banner HTML when no valid public base URL exists", () => {
+    const result = renderCampaignTemplate({
+      subjectTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.subjectTemplate,
+      plainTextTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.plainTextTemplate,
+      htmlTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.htmlTemplate,
+      language: "pt-PT",
+      recipient,
+      sender,
+      company,
+      tenantId: company.tenantId,
+      publicBaseUrl: "",
+      renderMode: "delivery"
+    });
+
+    expect(result.html).not.toContain('src="/assets/');
+    expect(result.html).not.toContain("localhost");
+    expect(result.plainText).toContain("250 ml");
+    expect(result.warnings.some((warning) => warning.includes("FORGEOS_PUBLIC_BASE_URL"))).toBe(true);
+  });
+
+  it("uses a relative preview banner in local HTML when only preview URL is available", () => {
+    const result = renderCampaignTemplate({
+      subjectTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.subjectTemplate,
+      plainTextTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.plainTextTemplate,
+      htmlTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.htmlTemplate,
+      language: "pt-PT",
+      recipient,
+      sender,
+      company,
+      tenantId: company.tenantId,
+      publicBaseUrl: "",
+      renderMode: "preview"
+    });
+
+    expect(result.html).toContain(`src="${JH_GOMES_CUSTOM_CUPS_BANNER.relativePath}"`);
+  });
+
+  it("includes plain text and HTML for default PT outreach template", () => {
+    vi.stubEnv("FORGEOS_PUBLIC_BASE_URL", "https://forgeos.example");
+    const result = renderCampaignTemplate({
+      subjectTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.subjectTemplate,
+      plainTextTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.plainTextTemplate,
+      htmlTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.htmlTemplate,
+      language: "pt-PT",
+      recipient,
+      sender,
+      company,
+      tenantId: company.tenantId
     });
 
     expect(result.plainText.trim().length).toBeGreaterThan(100);
     expect(result.html).toContain("<p>");
     expect(result.plainText).toContain("copos reutilizáveis");
     expect(result.html).toContain("copos reutilizáveis");
+    expect(result.plainText).not.toContain("<img");
+    expect(result.html).toContain("Remover");
   });
 });

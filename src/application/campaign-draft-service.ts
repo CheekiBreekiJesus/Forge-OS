@@ -111,7 +111,8 @@ export async function saveCampaignTemplate(
 export function renderRecipientDraft(
   campaign: OutreachCampaign,
   recipient: CampaignRecipient,
-  senderContext: SenderContext
+  senderContext: SenderContext,
+  renderMode: "preview" | "delivery" = "delivery"
 ): TemplateRenderResult {
   return renderCampaignTemplate({
     subjectTemplate: campaign.subjectTemplate,
@@ -120,7 +121,9 @@ export function renderRecipientDraft(
     language: campaign.language,
     recipient,
     sender: senderContext.sender,
-    company: senderContext.company
+    company: senderContext.company,
+    tenantId: senderContext.company.tenantId,
+    renderMode
   });
 }
 
@@ -292,7 +295,7 @@ export async function updateRecipientDraftContent(
 }
 
 const PORTFOLIO_HTML_BLOCK =
-  /<p style="text-align:center;margin:20px 0;">[\s\S]*?<\/p>/i;
+  /<table[^>]*>[\s\S]*?custom-cups-banner\.png[\s\S]*?<\/table>|<p style="text-align:center;margin:20px 0;">[\s\S]*?<\/p>/i;
 
 function mergeManualDraftHtml(previousHtml: string, plainText: string): string {
   const regenerated = sanitizeEmailHtml(plainTextToHtml(plainText));
@@ -333,7 +336,7 @@ export async function previewTemplateSample(
   if (!recipient) {
     throw new PersistenceError("not_found", "No included recipient available for preview.");
   }
-  return renderRecipientDraft(campaign, recipient, senderContext);
+  return renderRecipientDraft(campaign, recipient, senderContext, "preview");
 }
 
 export async function refreshCampaignSenderData(

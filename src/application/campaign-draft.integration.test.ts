@@ -1,5 +1,5 @@
 import "fake-indexeddb/auto";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   generateCampaignDrafts,
   previewCampaignDrafts,
@@ -28,10 +28,15 @@ function csvFile(content: string): File {
 
 describe("campaign draft integration", () => {
   beforeEach(async () => {
+    vi.unstubAllEnvs();
     await destroyDatabaseForTests(TEST_DB);
     const db = getDatabase(TEST_DB);
     await db.open();
     await seedDatabase(db, DEFAULT_TENANT_ID, true);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it("persists template edits, generated drafts, and manual recipient edits across reload", async () => {
@@ -157,6 +162,7 @@ describe("campaign draft integration", () => {
   });
 
   it("preserves portfolio image HTML block after manual draft edits", async () => {
+    vi.stubEnv("FORGEOS_PUBLIC_BASE_URL", "https://forgeos.example");
     const repos = createLocalRepositoryBundle(getDatabase(TEST_DB));
     const csv = [
       "company,contact,email,region,industry",
@@ -179,7 +185,7 @@ describe("campaign draft integration", () => {
     const recipient = (
       await repos.campaignRecipients.listForCampaign(DEFAULT_TENANT_ID, campaign.id)
     ).find((row) => row.status === "included");
-    expect(recipient?.personalizedHtml).toContain("text-align:center");
+    expect(recipient?.personalizedHtml).toContain("custom-cups-banner.png");
 
     await updateRecipientDraftContent(repos, DEFAULT_TENANT_ID, recipient!.id, {
       personalizedSubject: recipient!.personalizedSubject,
@@ -188,7 +194,7 @@ describe("campaign draft integration", () => {
     });
 
     const reloaded = await repos.campaignRecipients.getById(DEFAULT_TENANT_ID, recipient!.id);
-    expect(reloaded?.personalizedHtml).toContain("text-align:center");
-    expect(reloaded?.personalizedHtml).toContain("<em>");
+    expect(reloaded?.personalizedHtml).toContain("custom-cups-banner.png");
+    expect(reloaded?.personalizedHtml).toContain("Remover");
   });
 });
