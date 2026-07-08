@@ -2,7 +2,7 @@ import { buildApprovalContentHash } from "@/application/campaign-approval-servic
 import type { OutreachApprovedDeliveryResult } from "@/domain/outreach-approved-delivery";
 import { buildOutreachDeliveryIdempotencyKey } from "@/domain/outreach-approved-delivery";
 import type { OutreachSendAttemptStatus } from "@/domain/email-delivery-types";
-import { deliverApprovedOutreachMessage } from "@/features/leadops/providers";
+import { deliverApprovedOutreachMessage } from "@/features/leadops/server-delivery";
 import type { LocalRepositoryBundle } from "@/persistence/interfaces";
 import { PersistenceError } from "@/persistence/interfaces";
 import { buildOutreachRequestFingerprint } from "@/persistence/supabase/mappers";

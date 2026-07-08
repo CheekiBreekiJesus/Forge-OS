@@ -26,7 +26,11 @@
 
 ## Variable policy
 
-Supported placeholders: `companyName`, `contactName`, `category`, `region`, `website`, `senderName`, `companySenderName`, `senderPhone`, `senderEmail`, `unsubscribeInstruction`.
+Supported placeholders: `companyName`, `contactName`, `category`, `region`, `website`, `personalizedIntro`, `recommendedProducts`, `portfolioImageUrl`, `portfolioImageAlt`, `senderName`, `companySenderName`, `senderPhone`, `senderEmail`, `unsubscribeInstruction`.
+
+Snake_case aliases (`company_name`, `contact_name`, `industry`, `city_or_region`, `personalized_intro`, `recommended_products`, `portfolio_image_url`, `portfolio_image_alt`, `sender_name`, `sender_email`, `sender_phone`, `unsubscribe_text`) are also accepted in templates.
+
+Derived placeholders (filled automatically): `greeting`, `organizationDisplayName`, `subjectOrganizationTarget`, `broaderRangeLine`, `regionLine`, `regionLineHtml`, `portfolioImageLine`, `portfolioImageHtml`, `categoryLine`.
 
 Fallbacks never invent facts. Missing contact uses a neutral greeting; empty region/website lines are removed; unresolved `{{...}}` patterns block draft approval in Step 4.
 

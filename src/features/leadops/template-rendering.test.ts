@@ -171,6 +171,7 @@ describe("template rendering", () => {
     const result = renderCampaignTemplate({
       subjectTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.subjectTemplate,
       plainTextTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.plainTextTemplate,
+      htmlTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.htmlTemplate,
       language: "pt-PT",
       recipient,
       sender,
@@ -179,6 +180,25 @@ describe("template rendering", () => {
 
     expect(result.hasUnresolvedVariables).toBe(false);
     expect(result.subject).toContain("Hotel Atlântico");
-    expect(result.plainText).toContain("copos personalizados");
+    expect(result.plainText).toContain("copos reutilizáveis");
+    expect(result.plainText).toContain("orçamento");
+    expect(result.plainText).toContain("mockup");
+    expect(result.html).toContain("Exemplo de copo personalizado JH Gomes");
+  });
+
+  it("supports snake_case template aliases", () => {
+    const result = renderCampaignTemplate({
+      subjectTemplate: "Olá {{company_name}}",
+      plainTextTemplate: "{{personalized_intro}}\n{{recommended_products}}\n{{unsubscribe_text}}",
+      language: "pt-PT",
+      recipient,
+      sender,
+      company
+    });
+
+    expect(result.hasUnresolvedVariables).toBe(false);
+    expect(result.subject).toContain("Hotel Atlântico");
+    expect(result.plainText).toContain("copos reutilizáveis");
+    expect(result.plainText).toContain("Remover");
   });
 });

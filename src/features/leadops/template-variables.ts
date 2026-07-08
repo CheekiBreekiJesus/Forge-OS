@@ -4,12 +4,32 @@ export const TEMPLATE_VARIABLES = [
   "category",
   "region",
   "website",
+  "personalizedIntro",
+  "recommendedProducts",
+  "portfolioImageUrl",
+  "portfolioImageAlt",
   "senderName",
   "companySenderName",
   "senderPhone",
   "senderEmail",
   "unsubscribeInstruction"
 ] as const;
+
+/** Snake_case aliases accepted in templates for external tooling compatibility. */
+export const TEMPLATE_VARIABLE_ALIASES: Record<string, TemplateVariableKey> = {
+  company_name: "companyName",
+  contact_name: "contactName",
+  industry: "category",
+  city_or_region: "region",
+  personalized_intro: "personalizedIntro",
+  recommended_products: "recommendedProducts",
+  portfolio_image_url: "portfolioImageUrl",
+  portfolio_image_alt: "portfolioImageAlt",
+  sender_name: "senderName",
+  sender_email: "senderEmail",
+  sender_phone: "senderPhone",
+  unsubscribe_text: "unsubscribeInstruction"
+};
 
 export type TemplateVariableKey = (typeof TEMPLATE_VARIABLES)[number];
 
@@ -20,6 +40,22 @@ export const TEMPLATE_VARIABLE_LABELS: Record<TemplateVariableKey, { en: string;
     category: { en: "Category / industry", "pt-PT": "Categoria / indústria" },
     region: { en: "Region", "pt-PT": "Região" },
     website: { en: "Website", "pt-PT": "Website" },
+    personalizedIntro: {
+      en: "Personalized opening line",
+      "pt-PT": "Introdução personalizada"
+    },
+    recommendedProducts: {
+      en: "Recommended products line",
+      "pt-PT": "Linha de produtos recomendados"
+    },
+    portfolioImageUrl: {
+      en: "Portfolio image URL (HTTPS)",
+      "pt-PT": "URL da imagem de portfólio (HTTPS)"
+    },
+    portfolioImageAlt: {
+      en: "Portfolio image alt text",
+      "pt-PT": "Texto alternativo da imagem de portfólio"
+    },
     senderName: { en: "Sender name", "pt-PT": "Nome do remetente" },
     companySenderName: { en: "Company name", "pt-PT": "Nome da empresa" },
     senderPhone: { en: "Sender phone", "pt-PT": "Telefone do remetente" },

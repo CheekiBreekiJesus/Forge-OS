@@ -136,6 +136,7 @@ describe("municipality draft rendering", () => {
     const result = renderCampaignTemplate({
       subjectTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.subjectTemplate,
       plainTextTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.plainTextTemplate,
+      htmlTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.htmlTemplate,
       language: "pt-PT",
       recipient: {
         snapshotCompanyName: "Tábua",
@@ -156,6 +157,8 @@ describe("municipality draft rendering", () => {
     expect(result.plainText).toContain("Exmos. Senhores,");
     expect(result.plainText).toContain("Município de Tábua");
     expect(result.plainText).not.toContain("Municipality");
+    expect(result.plainText).toContain("copos reutilizáveis");
+    expect(result.plainText).toContain("orçamento");
     expect(result.plainText).not.toMatch(/Pode encontrar mais informação em/i);
     expect(result.plainText).toContain("ana.operator@synthetic.example");
     expect(result.plainText).toContain("+351 244 111 222");

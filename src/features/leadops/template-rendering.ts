@@ -11,9 +11,18 @@ import {
   formatOrganizationDisplayName,
   formatSubjectOrganizationTarget
 } from "@/features/leadops/organization-display";
+import {
+  buildBroaderRangeLine,
+  buildPersonalizedIntro,
+  buildPortfolioImageAlt,
+  buildPortfolioImageHtml,
+  buildPortfolioImageLine,
+  buildRecommendedProducts
+} from "@/features/leadops/outreach-template-derived-content";
 import { resolveSalutation } from "@/features/leadops/salutation-resolver";
 import {
   defaultUnsubscribeInstruction,
+  TEMPLATE_VARIABLE_ALIASES,
   type TemplateVariableKey
 } from "@/features/leadops/template-variables";
 import type { CampaignRecipient } from "@/domain/campaign-types";
@@ -81,13 +90,22 @@ const ALLOWED_KEYS = new Set([
   "senderPhone",
   "senderEmail",
   "unsubscribeInstruction",
+  "personalizedIntro",
+  "recommendedProducts",
+  "portfolioImageUrl",
+  "portfolioImageAlt",
+  "portfolioImageLine",
+  "portfolioImageHtml",
+  "broaderRangeLine",
   "categoryLine",
   "regionLine",
+  "regionLineHtml",
   "websiteLine",
   "greeting",
   "organizationDisplayName",
   "subjectOrganizationTarget",
-  "companyWebsiteLine"
+  "companyWebsiteLine",
+  ...Object.keys(TEMPLATE_VARIABLE_ALIASES)
 ]);
 
 export function renderCampaignTemplate(input: TemplateRenderInput): TemplateRenderResult {
@@ -97,7 +115,7 @@ export function renderCampaignTemplate(input: TemplateRenderInput): TemplateRend
   const { values, previewMeta } = buildVariableMap(input, usedVariables, fallbackVariables, warnings);
 
   const templateUnresolved = findUnknownTemplateVariables(
-    `${input.subjectTemplate}\n${input.plainTextTemplate}`,
+    `${input.subjectTemplate}\n${input.plainTextTemplate}\n${input.htmlTemplate ?? ""}`,
     ALLOWED_KEYS
   );
 
@@ -187,6 +205,27 @@ function buildVariableMap(
       : `We regularly work with organizations in ${region}.`
     : "";
 
+  const regionLineHtml = regionLine ? `<p>${regionLine}</p>` : "";
+
+  const personalizedIntro = buildPersonalizedIntro({
+    organizationDisplayName,
+    localizedCategory,
+    region,
+    companySenderName,
+    locale: input.language
+  });
+
+  const recommendedProducts = buildRecommendedProducts(category, input.language);
+  const broaderRangeLine = buildBroaderRangeLine(localizedCategory, input.language);
+  const portfolioImageUrl = "";
+  const portfolioImageAlt = buildPortfolioImageAlt(input.language);
+  const portfolioImageLine = buildPortfolioImageLine(
+    portfolioImageUrl,
+    portfolioImageAlt,
+    input.language
+  );
+  const portfolioImageHtml = buildPortfolioImageHtml(portfolioImageUrl, portfolioImageAlt);
+
   const companyWebsiteLine =
     companyWebsite && input.language.startsWith("pt")
       ? `Mais informação em ${companyWebsite}.`
@@ -213,6 +252,9 @@ function buildVariableMap(
   if (category) usedVariables.add("category");
   if (localizedCategory) usedVariables.add("categoryLabel" as TemplateVariableKey);
   if (region) usedVariables.add("region");
+  usedVariables.add("personalizedIntro");
+  usedVariables.add("recommendedProducts");
+  usedVariables.add("portfolioImageAlt");
   if (senderName) usedVariables.add("senderName");
   else warnings.push("Missing sender name in Settings.");
   if (companySenderName) usedVariables.add("companySenderName");
@@ -233,7 +275,7 @@ function buildVariableMap(
     /[A-Za-z]/.test(category);
 
   return {
-    values: {
+    values: withTemplateAliases({
       companyName,
       contactName: salutation.resolvedContactName,
       category: localizedCategory,
@@ -245,14 +287,22 @@ function buildVariableMap(
       senderPhone,
       senderEmail,
       unsubscribeInstruction,
+      personalizedIntro,
+      recommendedProducts,
+      portfolioImageUrl,
+      portfolioImageAlt,
+      portfolioImageLine,
+      portfolioImageHtml,
+      broaderRangeLine,
       categoryLine,
       regionLine,
+      regionLineHtml,
       websiteLine: "",
       greeting: salutation.greeting,
       organizationDisplayName,
       subjectOrganizationTarget,
       companyWebsiteLine
-    },
+    }),
     previewMeta: {
       greeting: salutation.greeting,
       contactName: salutation.resolvedContactName,
@@ -274,8 +324,19 @@ function buildVariableMap(
 export function substituteTemplate(template: string, values: Record<string, string>): string {
   return template.replace(PLACEHOLDER_PATTERN, (_match, rawKey: string) => {
     const key = rawKey.trim();
-    return values[key] ?? "";
+    const resolvedKey = TEMPLATE_VARIABLE_ALIASES[key] ?? key;
+    return values[resolvedKey] ?? values[key] ?? "";
   });
+}
+
+function withTemplateAliases(values: Record<string, string>): Record<string, string> {
+  const aliased: Record<string, string> = { ...values };
+
+  for (const [alias, canonical] of Object.entries(TEMPLATE_VARIABLE_ALIASES)) {
+    aliased[alias] = values[canonical] ?? "";
+  }
+
+  return aliased;
 }
 
 export function findUnresolvedVariables(...parts: string[]): string[] {

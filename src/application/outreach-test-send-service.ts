@@ -9,10 +9,13 @@ import { isEmailSuppressed } from "@/application/suppression-service";
 import { buildApprovalContentHash } from "@/application/campaign-approval-service";
 import { readEmailDeliveryConfig } from "@/features/email-delivery/config";
 import { buildUnsubscribeUrl, createUnsubscribeToken } from "@/features/email-delivery/unsubscribe-token";
+import { assertServerOnlyModule } from "@/features/email-delivery/server-only";
 import { normalizeEmail } from "@/features/leadops/import-normalization";
 import type { LocalRepositoryBundle } from "@/persistence/interfaces";
 import { PersistenceError } from "@/persistence/interfaces";
 import { createHash } from "node:crypto";
+
+assertServerOnlyModule();
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

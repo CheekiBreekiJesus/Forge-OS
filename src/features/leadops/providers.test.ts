@@ -3,10 +3,10 @@ import * as python from "@/lib/ai/python";
 import {
   deliverApprovedOutreachMessage,
   deliverOutreachMessage,
-  generateOutreachEmail,
   readLastDeliveryInvocation,
   resetDeliveryInvocationForTests
-} from "./providers";
+} from "./server-delivery";
+import { generateOutreachEmail } from "./providers";
 import {
   getTenantCampaigns,
   leadOpsLeads,
@@ -171,6 +171,7 @@ describe("LeadOps providers", () => {
   });
 
   it("reports missing Smartlead configuration without sending", async () => {
+    vi.stubEnv("EMAIL_DELIVERY_PROVIDER", "smartlead");
     vi.stubEnv("OUTREACH_DELIVERY_PROVIDER", "smartlead");
     vi.stubEnv("SMARTLEAD_API_KEY", "");
 
@@ -182,6 +183,7 @@ describe("LeadOps providers", () => {
   });
 
   it("blocks Smartlead without exact-content field mapping", async () => {
+    vi.stubEnv("EMAIL_DELIVERY_PROVIDER", "smartlead");
     vi.stubEnv("OUTREACH_DELIVERY_PROVIDER", "smartlead");
     vi.stubEnv("SMARTLEAD_API_KEY", "test-key");
     vi.stubEnv("SMARTLEAD_DEFAULT_CAMPAIGN_ID", "camp-1");
