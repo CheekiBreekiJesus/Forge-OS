@@ -1,56 +1,76 @@
-import type { InventoryItem } from "@/domain/operations-types";
+import type { BarcodeRecord, InventoryItemMaster } from "@/domain/inventory-product-types";
+import { normalizeBarcode, resolveBarcode } from "@/features/inventory-product/ledger";
+import type { InventoryProductSnapshot } from "@/persistence/interfaces";
 
-export type BarcodeResolveStatus = "resolved" | "unknown" | "ambiguous";
-
-export type BarcodeResolveResult =
-  | { status: "resolved"; item: InventoryItem; normalizedCode: string; scannedValue: string }
-  | { status: "unknown"; normalizedCode: string; scannedValue: string }
-  | { status: "ambiguous"; items: InventoryItem[]; normalizedCode: string; scannedValue: string };
-
-export interface InventoryBarcodeResolver {
-  resolve(tenantId: string, rawCode: string): Promise<BarcodeResolveResult>;
-}
-
-/** Trim outer whitespace and collapse internal spaces; never parse as a number. */
-export function normalizeScanCode(value: string): string {
-  return value.trim().replace(/\s+/g, "");
-}
-
-function skuMatchesCode(item: InventoryItem, normalizedCode: string): boolean {
-  return normalizeScanCode(item.sku).toUpperCase() === normalizedCode.toUpperCase();
-}
-
-/**
- * MVP fallback: internal barcode value equals inventory SKU.
- * Replace with a durable barcode registry resolver when persisted.
- */
-export function createSkuBarcodeResolver(
-  listItems: (tenantId: string) => Promise<InventoryItem[]>
-): InventoryBarcodeResolver {
-  return {
-    async resolve(tenantId, rawCode) {
-      const scannedValue = rawCode;
-      const normalizedCode = normalizeScanCode(rawCode);
-      if (!normalizedCode) {
-        return { status: "unknown", normalizedCode, scannedValue };
-      }
-
-      const items = (await listItems(tenantId)).filter(
-        (item) => item.active && item.tenantId === tenantId
-      );
-      const matches = items.filter((item) => skuMatchesCode(item, normalizedCode));
-
-      if (matches.length === 0) {
-        return { status: "unknown", normalizedCode, scannedValue };
-      }
-      if (matches.length > 1) {
-        return { status: "ambiguous", items: matches, normalizedCode, scannedValue };
-      }
-      return { status: "resolved", item: matches[0]!, normalizedCode, scannedValue };
+export type MobileBarcodeResolveResult =
+  | {
+      status: "resolved";
+      item: InventoryItemMaster;
+      barcode: BarcodeRecord;
+      normalizedCode: string;
+      scannedValue: string;
     }
+  | { status: "unknown"; normalizedCode: string; scannedValue: string }
+  | {
+      status: "ambiguous";
+      barcodes: BarcodeRecord[];
+      normalizedCode: string;
+      scannedValue: string;
+    };
+
+/** Trim outer whitespace; preserve leading zeroes; never parse as a number. */
+export function normalizeScanCode(value: string): string {
+  return normalizeBarcode(value);
+}
+
+export function resolveMobileBarcode(
+  snapshot: InventoryProductSnapshot,
+  tenantId: string,
+  rawCode: string
+): MobileBarcodeResolveResult {
+  const scannedValue = rawCode;
+  const normalizedCode = normalizeScanCode(rawCode);
+  if (!normalizedCode) {
+    return { status: "unknown", normalizedCode, scannedValue };
+  }
+
+  const tenantBarcodes = snapshot.barcodes.filter(
+    (record) => record.tenantId === tenantId && record.status === "active"
+  );
+  const resolution = resolveBarcode(tenantBarcodes, rawCode);
+
+  if (resolution.status === "unknown") {
+    return { status: "unknown", normalizedCode: resolution.normalizedValue, scannedValue };
+  }
+  if (resolution.status === "ambiguous") {
+    return {
+      status: "ambiguous",
+      barcodes: resolution.matches,
+      normalizedCode: resolution.normalizedValue,
+      scannedValue
+    };
+  }
+
+  const item = snapshot.items.find(
+    (row) => row.id === resolution.barcode.itemId && row.tenantId === tenantId && row.active
+  );
+  if (!item) {
+    return {
+      status: "unknown",
+      normalizedCode: resolution.barcode.normalizedValue,
+      scannedValue
+    };
+  }
+
+  return {
+    status: "resolved",
+    item,
+    barcode: resolution.barcode,
+    normalizedCode: resolution.barcode.normalizedValue,
+    scannedValue
   };
 }
 
-export function isLowStock(item: InventoryItem): boolean {
-  return item.reorderLevel > 0 && item.currentQuantity <= item.reorderLevel;
+export function isLowStockItem(item: InventoryItemMaster, availableStock: number): boolean {
+  return item.minimumStock > 0 && availableStock <= item.minimumStock;
 }

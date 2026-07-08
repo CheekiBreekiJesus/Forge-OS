@@ -34,7 +34,8 @@ export type InventoryMobileCopy = {
   };
   item: {
     barcode: string;
-    category: string;
+    reference: string;
+    itemType: string;
     currentStock: string;
     unit: string;
     location: string;
@@ -43,37 +44,41 @@ export type InventoryMobileCopy = {
     stockOk: string;
     recentMovements: string;
     noMovements: string;
+    recentScans: string;
     movementTypes: {
       receipt: string;
-      consumption: string;
-      adjustment: string;
+      issue: string;
+      transfer: string;
+      lookup: string;
     };
   };
   transaction: {
     typeReceipt: string;
-    typeConsumption: string;
-    typeAdjustment: string;
+    typeIssue: string;
+    typeTransfer: string;
+    typeLookup: string;
     quantity: string;
     reason: string;
-    reference: string;
-    lotNote: string;
-    adjustmentModeDelta: string;
-    adjustmentModeTarget: string;
-    targetBalance: string;
-    deltaHint: string;
-    targetHint: string;
+    notes: string;
+    sourceLocation: string;
+    destinationLocation: string;
     confirm: string;
     cancel: string;
     submitting: string;
     success: string;
+    queued: string;
     failure: string;
+    permissionDenied: string;
     negativeStockBlocked: string;
     quantityRequired: string;
-    reasonRequired: string;
+    locationRequired: string;
+    destinationRequired: string;
+    transferSameLocation: string;
     confirmTitle: string;
     confirmReceipt: string;
-    confirmConsumption: string;
-    confirmAdjustment: string;
+    confirmIssue: string;
+    confirmTransfer: string;
+    lookupHint: string;
   };
   unknown: {
     title: string;
@@ -81,24 +86,26 @@ export type InventoryMobileCopy = {
     message: string;
     registrationNote: string;
     searchPlaceholder: string;
-    selectItem: string;
     useSelected: string;
     noSearchResults: string;
+    linkBarcode: string;
+    linkSuccess: string;
+    linkFailure: string;
+    linkPermissionDenied: string;
+    sessionOnly: string;
+  };
+  offline: {
+    pendingTitle: string;
+    pendingCount: string;
+    syncing: string;
+    syncNow: string;
+    failedTitle: string;
+    retry: string;
+    offlineNotice: string;
   };
   desktop: {
-    totalActive: string;
-    lowStockCount: string;
-    reorderStatus: string;
-    statusColumn: string;
-    lowStockBadge: string;
-    stockOkBadge: string;
     openScanner: string;
     recentMovements: string;
-    consumeStock: string;
-    adjustStock: string;
-    viewMovements: string;
-    movementQuantity: string;
-    movementBalance: string;
     movementReason: string;
     movementWhen: string;
   };
@@ -107,7 +114,7 @@ export type InventoryMobileCopy = {
 const en: InventoryMobileCopy = {
   scanner: {
     title: "Scan barcode",
-    description: "Scan an internal SKU barcode or enter the code manually.",
+    description: "Scan a product barcode or enter the code manually.",
     backToInventory: "Back to inventory",
     scanArea: "Align the barcode inside the frame",
     scanStatus: {
@@ -115,7 +122,8 @@ const en: InventoryMobileCopy = {
       scanning: "Scanning…",
       detected: "Code detected",
       resolving: "Looking up item…",
-      permissionDenied: "Camera access was denied. Use manual entry below or allow camera access in browser settings.",
+      permissionDenied:
+        "Camera access was denied. Use manual entry below or allow camera access in browser settings.",
       insecureContext:
         "Camera access requires a secure context (HTTPS). Use manual entry below or open ForgeOS over HTTPS on this device.",
       noCamera: "No camera found on this device. Use manual entry below.",
@@ -138,73 +146,79 @@ const en: InventoryMobileCopy = {
     }
   },
   item: {
-    barcode: "SKU / barcode",
-    category: "Category",
-    currentStock: "Current stock",
+    barcode: "Barcode",
+    reference: "Reference",
+    itemType: "Item type",
+    currentStock: "Available stock",
     unit: "Unit",
-    location: "Warehouse location",
-    reorderLevel: "Reorder level",
+    location: "Location",
+    reorderLevel: "Minimum stock",
     lowStock: "Low stock",
     stockOk: "Stock OK",
     recentMovements: "Recent movements",
     noMovements: "No movements recorded yet.",
+    recentScans: "Recent scans",
     movementTypes: {
-      receipt: "Receipt",
-      consumption: "Consumption",
-      adjustment: "Adjustment"
+      receipt: "Receive",
+      issue: "Issue",
+      transfer: "Transfer",
+      lookup: "Stock lookup"
     }
   },
   transaction: {
-    typeReceipt: "Receipt",
-    typeConsumption: "Consumption",
-    typeAdjustment: "Adjustment",
+    typeReceipt: "Receive",
+    typeIssue: "Issue",
+    typeTransfer: "Transfer",
+    typeLookup: "Lookup",
     quantity: "Quantity",
-    reason: "Reason",
-    reference: "Reference (optional)",
-    lotNote: "Lot / batch note (optional)",
-    adjustmentModeDelta: "Add or subtract quantity",
-    adjustmentModeTarget: "Set balance to",
-    targetBalance: "Target balance",
-    deltaHint: "Positive adds stock; negative removes stock.",
-    targetHint: "Sets the balance to this exact quantity.",
+    reason: "Reason code",
+    notes: "Notes (optional)",
+    sourceLocation: "Source location",
+    destinationLocation: "Destination location",
     confirm: "Confirm and post",
     cancel: "Cancel",
     submitting: "Posting…",
-    success: "Stock updated successfully.",
-    failure: "Could not post stock change.",
-    negativeStockBlocked: "Not enough stock for this consumption.",
+    success: "Movement posted successfully.",
+    queued: "Movement queued and will sync when you are back online.",
+    failure: "Could not post movement.",
+    permissionDenied: "You do not have permission for this inventory action.",
+    negativeStockBlocked: "Not enough available stock at the selected location.",
     quantityRequired: "Enter a quantity greater than zero.",
-    reasonRequired: "A reason is required for adjustments.",
-    confirmTitle: "Confirm stock change",
-    confirmReceipt: "Record receipt of",
-    confirmConsumption: "Record consumption of",
-    confirmAdjustment: "Apply stock adjustment"
+    locationRequired: "Select a location.",
+    destinationRequired: "Select a destination location.",
+    transferSameLocation: "Source and destination must differ.",
+    confirmTitle: "Confirm movement",
+    confirmReceipt: "Receive",
+    confirmIssue: "Issue",
+    confirmTransfer: "Transfer",
+    lookupHint: "Review stock levels without posting a movement."
   },
   unknown: {
     title: "Unknown barcode",
     scannedCode: "Scanned code",
     message: "This code is not registered for any active inventory item in this tenant.",
-    registrationNote:
-      "Permanent barcode registration requires authorised review. You may select an existing item for this operation only.",
-    searchPlaceholder: "Search inventory by name or SKU",
-    selectItem: "Select item",
-    useSelected: "Use selected item",
-    noSearchResults: "No matching items."
+    registrationNote: "Items are never created automatically from unknown scans.",
+    searchPlaceholder: "Search inventory by name or reference",
+    useSelected: "Use for this session only",
+    noSearchResults: "No matching items.",
+    linkBarcode: "Link barcode to selected item",
+    linkSuccess: "Barcode linked to item.",
+    linkFailure: "Could not link barcode.",
+    linkPermissionDenied: "Only authorised users can link barcodes permanently.",
+    sessionOnly: "Session-only selection — barcode is not saved."
+  },
+  offline: {
+    pendingTitle: "Pending sync",
+    pendingCount: "movements waiting to sync",
+    syncing: "Syncing queued movements…",
+    syncNow: "Sync now",
+    failedTitle: "Sync failures",
+    retry: "Retry sync",
+    offlineNotice: "You are offline. Confirmed movements will queue until connectivity returns."
   },
   desktop: {
-    totalActive: "Active items",
-    lowStockCount: "Low stock",
-    reorderStatus: "Reorder",
-    statusColumn: "Status",
-    lowStockBadge: "Low",
-    stockOkBadge: "OK",
     openScanner: "Mobile scanner",
     recentMovements: "Recent stock movements",
-    consumeStock: "Record consumption",
-    adjustStock: "Adjust stock",
-    viewMovements: "Movements",
-    movementQuantity: "Qty",
-    movementBalance: "Balance",
     movementReason: "Reason",
     movementWhen: "When"
   }
@@ -213,7 +227,7 @@ const en: InventoryMobileCopy = {
 const ptPT: InventoryMobileCopy = {
   scanner: {
     title: "Ler código de barras",
-    description: "Leia o código interno do SKU ou introduza o código manualmente.",
+    description: "Leia o código de barras do produto ou introduza o código manualmente.",
     backToInventory: "Voltar ao inventário",
     scanArea: "Alinhe o código de barras dentro da moldura",
     scanStatus: {
@@ -246,73 +260,79 @@ const ptPT: InventoryMobileCopy = {
     }
   },
   item: {
-    barcode: "SKU / código",
-    category: "Categoria",
-    currentStock: "Stock atual",
+    barcode: "Código de barras",
+    reference: "Referência",
+    itemType: "Tipo de artigo",
+    currentStock: "Stock disponível",
     unit: "Unidade",
     location: "Localização",
-    reorderLevel: "Nível de reposição",
+    reorderLevel: "Stock mínimo",
     lowStock: "Stock baixo",
     stockOk: "Stock OK",
     recentMovements: "Movimentos recentes",
     noMovements: "Ainda sem movimentos registados.",
+    recentScans: "Leituras recentes",
     movementTypes: {
       receipt: "Entrada",
-      consumption: "Consumo",
-      adjustment: "Ajuste"
+      issue: "Saída",
+      transfer: "Transferência",
+      lookup: "Consulta"
     }
   },
   transaction: {
     typeReceipt: "Entrada",
-    typeConsumption: "Consumo",
-    typeAdjustment: "Ajuste",
+    typeIssue: "Saída",
+    typeTransfer: "Transferência",
+    typeLookup: "Consulta",
     quantity: "Quantidade",
-    reason: "Motivo",
-    reference: "Referência (opcional)",
-    lotNote: "Nota de lote (opcional)",
-    adjustmentModeDelta: "Adicionar ou subtrair quantidade",
-    adjustmentModeTarget: "Definir saldo para",
-    targetBalance: "Saldo alvo",
-    deltaHint: "Positivo adiciona stock; negativo remove stock.",
-    targetHint: "Define o saldo para esta quantidade exata.",
+    reason: "Código de motivo",
+    notes: "Notas (opcional)",
+    sourceLocation: "Localização de origem",
+    destinationLocation: "Localização de destino",
     confirm: "Confirmar e registar",
     cancel: "Cancelar",
     submitting: "A registar…",
-    success: "Stock atualizado com sucesso.",
-    failure: "Não foi possível registar a alteração de stock.",
-    negativeStockBlocked: "Stock insuficiente para este consumo.",
+    success: "Movimento registado com sucesso.",
+    queued: "Movimento em fila e será sincronizado quando voltar a estar online.",
+    failure: "Não foi possível registar o movimento.",
+    permissionDenied: "Não tem permissão para esta ação de inventário.",
+    negativeStockBlocked: "Stock disponível insuficiente na localização selecionada.",
     quantityRequired: "Introduza uma quantidade superior a zero.",
-    reasonRequired: "É obrigatório indicar um motivo para ajustes.",
-    confirmTitle: "Confirmar alteração de stock",
-    confirmReceipt: "Registar entrada de",
-    confirmConsumption: "Registar consumo de",
-    confirmAdjustment: "Aplicar ajuste de stock"
+    locationRequired: "Selecione uma localização.",
+    destinationRequired: "Selecione a localização de destino.",
+    transferSameLocation: "A origem e o destino devem ser diferentes.",
+    confirmTitle: "Confirmar movimento",
+    confirmReceipt: "Entrada de",
+    confirmIssue: "Saída de",
+    confirmTransfer: "Transferência de",
+    lookupHint: "Consulte níveis de stock sem registar movimento."
   },
   unknown: {
     title: "Código desconhecido",
     scannedCode: "Código lido",
     message: "Este código não está associado a nenhum artigo ativo neste inquilino.",
-    registrationNote:
-      "O registo permanente de códigos requer revisão autorizada. Pode selecionar um artigo existente apenas para esta operação.",
-    searchPlaceholder: "Pesquisar inventário por nome ou SKU",
-    selectItem: "Selecionar artigo",
-    useSelected: "Usar artigo selecionado",
-    noSearchResults: "Sem artigos correspondentes."
+    registrationNote: "Nunca são criados artigos automaticamente a partir de leituras desconhecidas.",
+    searchPlaceholder: "Pesquisar inventário por nome ou referência",
+    useSelected: "Usar apenas nesta sessão",
+    noSearchResults: "Sem artigos correspondentes.",
+    linkBarcode: "Associar código ao artigo selecionado",
+    linkSuccess: "Código associado ao artigo.",
+    linkFailure: "Não foi possível associar o código.",
+    linkPermissionDenied: "Apenas utilizadores autorizados podem associar códigos permanentemente.",
+    sessionOnly: "Seleção apenas para esta sessão — o código não é guardado."
+  },
+  offline: {
+    pendingTitle: "Sincronização pendente",
+    pendingCount: "movimentos à espera de sincronização",
+    syncing: "A sincronizar movimentos em fila…",
+    syncNow: "Sincronizar agora",
+    failedTitle: "Falhas de sincronização",
+    retry: "Tentar novamente",
+    offlineNotice: "Está offline. Os movimentos confirmados ficam em fila até haver ligação."
   },
   desktop: {
-    totalActive: "Artigos ativos",
-    lowStockCount: "Stock baixo",
-    reorderStatus: "Reposição",
-    statusColumn: "Estado",
-    lowStockBadge: "Baixo",
-    stockOkBadge: "OK",
     openScanner: "Leitor móvel",
     recentMovements: "Movimentos recentes de stock",
-    consumeStock: "Registar consumo",
-    adjustStock: "Ajustar stock",
-    viewMovements: "Movimentos",
-    movementQuantity: "Qtd",
-    movementBalance: "Saldo",
     movementReason: "Motivo",
     movementWhen: "Quando"
   }

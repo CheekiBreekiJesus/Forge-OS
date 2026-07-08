@@ -1,240 +1,312 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import type { InventoryItem, StockMovement } from "@/domain/operations-types";
-import type { InventoryMobileCopy } from "@/features/inventory-mobile/copy";
-import {
-  postStockTransaction,
-  validateStockTransaction,
-  type AdjustmentMode,
-  type StockTransactionType
-} from "@/features/inventory-mobile/stock-transaction";
-import { InventoryItemSummary, InventoryMovementHistory } from "@/components/inventory-mobile/inventory-movement-history";
+import { FormEvent, useMemo, useState } from "react";
+import type { InventoryTransaction } from "@/domain/inventory-product-types";
 import { inputClassName } from "@/components/crud";
-import type { InventoryRepository } from "@/persistence/interfaces";
+import {
+  InventoryItemSummary,
+  InventoryMovementHistory
+} from "@/components/inventory-mobile/inventory-movement-history";
+import type { InventoryMobileCopy } from "@/features/inventory-mobile/copy";
+import type { ItemStockContext } from "@/features/inventory-mobile/item-context";
+import {
+  assertMobileMovementPermission,
+  createMovementIdempotencyKey,
+  postMobileMovement,
+  validateMobileMovementInput
+} from "@/features/inventory-mobile/movement-service";
+import {
+  enqueueMovement,
+  isBrowserOnline,
+  markMovementSynced
+} from "@/features/inventory-mobile/offline-queue";
+import { vibrateScanError, vibrateScanSuccess } from "@/features/inventory-mobile/scan-feedback";
+import { readPreviewRole } from "@/features/crud/role-preview";
+import type { InventoryProductRepository } from "@/persistence/interfaces";
+import type { MobileMovementKind } from "@/features/inventory-mobile/offline-queue";
 
 type InventoryItemStockPanelProps = {
   copy: InventoryMobileCopy;
-  item: InventoryItem;
+  context: ItemStockContext;
+  barcodeValue: string;
   locale: string;
-  movements: StockMovement[];
+  transactions: InventoryTransaction[];
   tenantId: string;
-  inventoryRepo: InventoryRepository;
-  onPosted: (item: InventoryItem) => void;
+  operatorId: string;
+  inventoryProduct: InventoryProductRepository;
+  onPosted: () => void;
   onRescan: () => void;
 };
 
+type ActionKind = MobileMovementKind | "lookup";
+
 export function InventoryItemStockPanel({
+  barcodeValue,
+  context,
   copy,
-  item,
+  inventoryProduct,
   locale,
-  movements,
-  tenantId,
-  inventoryRepo,
   onPosted,
-  onRescan
+  onRescan,
+  operatorId,
+  tenantId,
+  transactions
 }: InventoryItemStockPanelProps) {
-  const [txType, setTxType] = useState<StockTransactionType>("receipt");
+  const [action, setAction] = useState<ActionKind>("lookup");
   const [quantity, setQuantity] = useState("");
-  const [reason, setReason] = useState("");
-  const [reference, setReference] = useState("");
-  const [lotNote, setLotNote] = useState("");
-  const [adjustmentMode, setAdjustmentMode] = useState<AdjustmentMode>("delta");
+  const [reasonCode, setReasonCode] = useState("mobile_scan");
+  const [notes, setNotes] = useState("");
+  const [locationId, setLocationId] = useState(context.defaultLocation?.id ?? "");
+  const [destinationLocationId, setDestinationLocationId] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   const parsedQuantity = Number(quantity);
+  const previewRole = useMemo(() => readPreviewRole(), []);
 
-  function resetForm() {
-    setQuantity("");
-    setReason("");
-    setReference("");
-    setLotNote("");
-    setConfirmOpen(false);
-    setError(null);
+  const locationOptions = useMemo(
+    () => context.locations.filter((row) => row.warehouseId === context.warehouseId),
+    [context.locations, context.warehouseId]
+  );
+
+  function mapValidationError(code: string | null): string | null {
+    if (!code) return null;
+    switch (code) {
+      case "quantity_required":
+        return copy.transaction.quantityRequired;
+      case "location_required":
+        return copy.transaction.locationRequired;
+      case "destination_required":
+        return copy.transaction.destinationRequired;
+      case "transfer_same_location":
+        return copy.transaction.transferSameLocation;
+      default:
+        return copy.transaction.failure;
+    }
   }
 
   function validate(): string | null {
-    const validation = validateStockTransaction(
-      {
-        type: txType,
-        quantity: parsedQuantity,
-        reason,
-        adjustmentMode,
-        referenceId: reference || lotNote || null
-      },
-      item
+    if (action === "lookup") return null;
+    try {
+      assertMobileMovementPermission(previewRole, action);
+    } catch {
+      return copy.transaction.permissionDenied;
+    }
+    return mapValidationError(
+      validateMobileMovementInput({
+        destinationLocationId,
+        kind: action,
+        locationId,
+        quantity: parsedQuantity
+      })
     );
-    if (validation === "reason_required") return copy.transaction.reasonRequired;
-    if (validation === "quantity_required") return copy.transaction.quantityRequired;
-    if (validation === "negative_stock") return copy.transaction.negativeStockBlocked;
-    return null;
   }
 
   function handlePrepareSubmit(event: FormEvent) {
     event.preventDefault();
+    if (action === "lookup") return;
     const validationError = validate();
     if (validationError) {
       setError(validationError);
+      vibrateScanError();
       return;
     }
     setError(null);
+    setIdempotencyKey(createMovementIdempotencyKey(action));
     setConfirmOpen(true);
   }
 
   async function handleConfirm() {
-    if (submitting) return;
+    if (submitting || action === "lookup") return;
     const validationError = validate();
     if (validationError) {
       setError(validationError);
       setConfirmOpen(false);
+      vibrateScanError();
       return;
     }
 
     setSubmitting(true);
     setError(null);
     setSuccess(null);
+
+    const request = {
+      destinationLocationId: action === "transfer" ? destinationLocationId : undefined,
+      idempotencyKey: idempotencyKey || createMovementIdempotencyKey(action),
+      itemId: context.item.id,
+      locationId,
+      lotId: null,
+      notes: notes.trim(),
+      operatorId,
+      quantity: parsedQuantity,
+      reasonCode: reasonCode.trim() || "mobile_scan",
+      tenantId,
+      unitOfMeasureId: context.item.baseUnitOfMeasureId,
+      warehouseId: context.warehouseId
+    };
+
     try {
-      const combinedReason = [reason, lotNote].filter(Boolean).join(" · ");
-      const { item: updated } = await postStockTransaction(
-        inventoryRepo,
-        tenantId,
-        item.id,
-        {
-          type: txType,
-          quantity: parsedQuantity,
-          reason: combinedReason || reason,
-          referenceId: reference || null,
-          adjustmentMode
-        },
-        item
-      );
+      if (!isBrowserOnline()) {
+        enqueueMovement(tenantId, action, request);
+        setSuccess(copy.transaction.queued);
+        vibrateScanSuccess();
+        setConfirmOpen(false);
+        onPosted();
+        return;
+      }
+
+      await postMobileMovement(inventoryProduct, tenantId, action, request);
+      markMovementSynced(tenantId, request.idempotencyKey);
       setSuccess(copy.transaction.success);
-      resetForm();
-      onPosted(updated);
-    } catch {
-      setError(copy.transaction.failure);
+      vibrateScanSuccess();
+      setConfirmOpen(false);
+      setQuantity("");
+      setNotes("");
+      onPosted();
+    } catch (postError) {
+      const message = postError instanceof Error ? postError.message : copy.transaction.failure;
+      if (/negative|insufficient|not enough/i.test(message)) {
+        setError(copy.transaction.negativeStockBlocked);
+      } else if (/permission|not allowed/i.test(message)) {
+        setError(copy.transaction.permissionDenied);
+      } else {
+        setError(message);
+      }
+      vibrateScanError();
       setConfirmOpen(false);
     } finally {
       setSubmitting(false);
     }
   }
 
-  const confirmSummary = buildConfirmSummary(copy, txType, parsedQuantity, item.unit, adjustmentMode);
+  const confirmSummary = buildConfirmSummary(copy, action, parsedQuantity, context.unitSymbol);
 
   return (
     <div className="space-y-4" data-testid="inventory-item-stock-panel">
-      <InventoryItemSummary copy={copy} item={item} locale={locale} />
+      <InventoryItemSummary
+        barcodeValue={barcodeValue}
+        context={context}
+        copy={copy}
+        locale={locale}
+      />
 
-      <div className="flex flex-wrap gap-2">
-        {(["receipt", "consumption", "adjustment"] as const).map((type) => (
+      <div className="grid grid-cols-2 gap-2">
+        {(["lookup", "receipt", "issue", "transfer"] as const).map((kind) => (
           <button
-            className={`min-h-11 flex-1 rounded-lg px-3 py-2 text-sm font-semibold ${
-              txType === type
+            className={`min-h-11 rounded-lg px-3 py-2 text-sm font-semibold ${
+              action === kind
                 ? "bg-[var(--forge-accent-orange)] text-white"
                 : "border border-[var(--forge-border)] bg-[var(--forge-surface)]"
             }`}
-            key={type}
+            key={kind}
             onClick={() => {
-              setTxType(type);
+              setAction(kind);
               setError(null);
               setSuccess(null);
             }}
             type="button"
           >
-            {transactionTypeLabel(copy, type)}
+            {actionLabel(copy, kind)}
           </button>
         ))}
       </div>
 
-      <form className="space-y-3 rounded-xl border border-[var(--forge-border)] bg-[var(--forge-surface)] p-4" onSubmit={handlePrepareSubmit}>
-        {txType === "adjustment" ? (
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                checked={adjustmentMode === "delta"}
-                name="adjustmentMode"
-                onChange={() => setAdjustmentMode("delta")}
-                type="radio"
-              />
-              {copy.transaction.adjustmentModeDelta}
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                checked={adjustmentMode === "target"}
-                name="adjustmentMode"
-                onChange={() => setAdjustmentMode("target")}
-                type="radio"
-              />
-              {copy.transaction.adjustmentModeTarget}
-            </label>
-            <p className="text-xs text-[var(--forge-text-muted)]">
-              {adjustmentMode === "delta" ? copy.transaction.deltaHint : copy.transaction.targetHint}
-            </p>
-          </div>
-        ) : null}
-
-        <label className="block text-sm font-semibold">
-          {txType === "adjustment" && adjustmentMode === "target"
-            ? copy.transaction.targetBalance
-            : copy.transaction.quantity}
-          <input
-            className={`${inputClassName} mt-1 min-h-12 text-base`}
-            data-testid="stock-quantity-input"
-            inputMode="decimal"
-            min={txType === "adjustment" && adjustmentMode === "target" ? 0 : 0.0001}
-            onChange={(event) => setQuantity(event.target.value)}
-            required
-            step="any"
-            type="number"
-            value={quantity}
-          />
-        </label>
-
-        <label className="block text-sm font-semibold">
-          {copy.transaction.reason}
-          <input
-            className={`${inputClassName} mt-1 min-h-12 text-base`}
-            data-testid="stock-reason-input"
-            onChange={(event) => setReason(event.target.value)}
-            required={txType === "adjustment"}
-            value={reason}
-          />
-        </label>
-
-        <label className="block text-sm font-semibold">
-          {copy.transaction.reference}
-          <input
-            className={`${inputClassName} mt-1`}
-            onChange={(event) => setReference(event.target.value)}
-            value={reference}
-          />
-        </label>
-
-        {txType === "receipt" ? (
+      {action === "lookup" ? (
+        <p className="rounded-lg border border-[var(--forge-border)] bg-[var(--forge-surface-muted)] px-3 py-2 text-sm">
+          {copy.transaction.lookupHint}
+        </p>
+      ) : (
+        <form
+          className="space-y-3 rounded-xl border border-[var(--forge-border)] bg-[var(--forge-surface)] p-4"
+          onSubmit={handlePrepareSubmit}
+        >
           <label className="block text-sm font-semibold">
-            {copy.transaction.lotNote}
+            {copy.transaction.quantity}
             <input
-              className={`${inputClassName} mt-1`}
-              onChange={(event) => setLotNote(event.target.value)}
-              value={lotNote}
+              className={`${inputClassName} mt-1 min-h-12 text-base`}
+              data-testid="stock-quantity-input"
+              inputMode="decimal"
+              min={0.0001}
+              onChange={(event) => setQuantity(event.target.value)}
+              required
+              step="any"
+              type="number"
+              value={quantity}
             />
           </label>
-        ) : null}
 
-        {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
-        {success ? <p className="text-sm text-emerald-700 dark:text-emerald-300">{success}</p> : null}
+          <label className="block text-sm font-semibold">
+            {action === "transfer" ? copy.transaction.sourceLocation : copy.item.location}
+            <select
+              className={`${inputClassName} mt-1 min-h-12`}
+              data-testid="stock-location-select"
+              onChange={(event) => setLocationId(event.target.value)}
+              required
+              value={locationId}
+            >
+              {locationOptions.map((location) => (
+                <option key={location.id} value={location.id}>
+                  {location.code} · {location.name}
+                </option>
+              ))}
+            </select>
+          </label>
 
-        <button
-          className="min-h-12 w-full rounded-lg bg-[var(--forge-accent-orange)] px-4 py-3 text-base font-semibold text-white disabled:opacity-50"
-          disabled={submitting}
-          type="submit"
-        >
-          {copy.transaction.confirm}
-        </button>
-      </form>
+          {action === "transfer" ? (
+            <label className="block text-sm font-semibold">
+              {copy.transaction.destinationLocation}
+              <select
+                className={`${inputClassName} mt-1 min-h-12`}
+                data-testid="stock-destination-select"
+                onChange={(event) => setDestinationLocationId(event.target.value)}
+                required
+                value={destinationLocationId}
+              >
+                <option value="">—</option>
+                {locationOptions.map((location) => (
+                  <option key={location.id} value={location.id}>
+                    {location.code} · {location.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+
+          <label className="block text-sm font-semibold">
+            {copy.transaction.reason}
+            <input
+              className={`${inputClassName} mt-1 min-h-12 text-base`}
+              data-testid="stock-reason-input"
+              onChange={(event) => setReasonCode(event.target.value)}
+              required
+              value={reasonCode}
+            />
+          </label>
+
+          <label className="block text-sm font-semibold">
+            {copy.transaction.notes}
+            <input
+              className={`${inputClassName} mt-1`}
+              onChange={(event) => setNotes(event.target.value)}
+              value={notes}
+            />
+          </label>
+
+          {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
+          {success ? <p className="text-sm text-emerald-700 dark:text-emerald-300">{success}</p> : null}
+
+          <button
+            className="min-h-12 w-full rounded-lg bg-[var(--forge-accent-orange)] px-4 py-3 text-base font-semibold text-white disabled:opacity-50"
+            disabled={submitting}
+            type="submit"
+          >
+            {copy.transaction.confirm}
+          </button>
+        </form>
+      )}
 
       {confirmOpen ? (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4">
@@ -274,47 +346,48 @@ export function InventoryItemStockPanel({
 
       <section>
         <h3 className="mb-2 text-sm font-semibold">{copy.item.recentMovements}</h3>
-        <InventoryMovementHistory copy={copy} locale={locale} movements={movements} />
+        <InventoryMovementHistory copy={copy} locale={locale} transactions={transactions} />
       </section>
     </div>
   );
 }
 
-function transactionTypeLabel(copy: InventoryMobileCopy, type: StockTransactionType): string {
-  switch (type) {
+function actionLabel(copy: InventoryMobileCopy, kind: ActionKind): string {
+  switch (kind) {
     case "receipt":
       return copy.transaction.typeReceipt;
-    case "consumption":
-      return copy.transaction.typeConsumption;
-    case "adjustment":
-      return copy.transaction.typeAdjustment;
+    case "issue":
+      return copy.transaction.typeIssue;
+    case "transfer":
+      return copy.transaction.typeTransfer;
+    case "lookup":
+      return copy.transaction.typeLookup;
     default: {
-      const _exhaustive: never = type;
-      return _exhaustive;
+      const exhaustive: never = kind;
+      return exhaustive;
     }
   }
 }
 
 function buildConfirmSummary(
   copy: InventoryMobileCopy,
-  type: StockTransactionType,
+  kind: ActionKind,
   quantity: number,
-  unit: string,
-  adjustmentMode: AdjustmentMode
+  unit: string
 ): string {
   const qtyLabel = `${quantity} ${unit}`;
-  switch (type) {
+  switch (kind) {
     case "receipt":
       return `${copy.transaction.confirmReceipt} ${qtyLabel}`;
-    case "consumption":
-      return `${copy.transaction.confirmConsumption} ${qtyLabel}`;
-    case "adjustment":
-      return adjustmentMode === "target"
-        ? `${copy.transaction.confirmAdjustment}: ${copy.transaction.targetBalance} ${qtyLabel}`
-        : `${copy.transaction.confirmAdjustment}: ${qtyLabel}`;
+    case "issue":
+      return `${copy.transaction.confirmIssue} ${qtyLabel}`;
+    case "transfer":
+      return `${copy.transaction.confirmTransfer} ${qtyLabel}`;
+    case "lookup":
+      return copy.transaction.lookupHint;
     default: {
-      const _exhaustive: never = type;
-      return _exhaustive;
+      const exhaustive: never = kind;
+      return exhaustive;
     }
   }
 }

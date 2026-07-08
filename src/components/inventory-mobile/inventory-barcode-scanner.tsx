@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createScanCooldown } from "@/features/inventory-mobile/scan-cooldown";
+import { vibrateScanSuccess } from "@/features/inventory-mobile/scan-feedback";
 import {
   detectBarcodesFromVideo,
   isBarcodeDetectorSupported,
@@ -105,6 +106,7 @@ export function InventoryBarcodeScanner({
           stopCameraTracks();
           setPhase("detected");
           setStatusMessage(detectedStatusRef.current);
+          vibrateScanSuccess();
           onCodeDetectedRef.current(first.rawValue);
           return;
         }
