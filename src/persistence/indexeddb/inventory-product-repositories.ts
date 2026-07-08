@@ -1,6 +1,15 @@
 import { createRecordId } from "@/domain/ids";
 import { createInventoryProductDemoState } from "@/features/inventory-product/demo";
 import {
+  buildAdjustmentTransaction,
+  buildIssueTransaction,
+  buildReceiptTransaction,
+  buildTransferTransaction,
+  createInventoryItemMaster,
+  createReservationRecord,
+  releaseReservationRecord
+} from "@/features/inventory-product/operations";
+import {
   postInventoryTransaction,
   reverseInventoryTransaction,
   validateBarcodeRecord,
@@ -239,6 +248,61 @@ export function createInventoryProductRepository(
       }
 
       return { issues, ok: issues.length === 0 };
+    },
+    async createItem(tenantId, input) {
+      const record = createInventoryItemMaster(tenantId, input);
+      await db.inventoryItemMasters.put(record);
+      return record;
+    },
+    async updateItem(tenantId, itemId, input) {
+      const existing = await db.inventoryItemMasters.get(itemId);
+      if (!existing || existing.tenantId !== tenantId) {
+        throw new Error("Inventory item not found.");
+      }
+      const updated = {
+        ...existing,
+        ...input,
+        description: input.description?.trim() ?? existing.description,
+        internalReference: input.internalReference?.trim().toUpperCase() ?? existing.internalReference,
+        name: input.name?.trim() ?? existing.name,
+        updatedAt: new Date().toISOString()
+      };
+      await db.inventoryItemMasters.put(updated);
+      return updated;
+    },
+    async receiveStock(tenantId, request) {
+      const snapshot = await readInventoryProductSnapshot(db, tenantId);
+      const input = buildReceiptTransaction(snapshot, { ...request, tenantId });
+      return this.postTransaction(tenantId, input);
+    },
+    async issueStock(tenantId, request) {
+      const snapshot = await readInventoryProductSnapshot(db, tenantId);
+      const input = buildIssueTransaction(snapshot, { ...request, tenantId });
+      return this.postTransaction(tenantId, input);
+    },
+    async transferStock(tenantId, request) {
+      const snapshot = await readInventoryProductSnapshot(db, tenantId);
+      const input = buildTransferTransaction(snapshot, { ...request, tenantId });
+      return this.postTransaction(tenantId, input);
+    },
+    async adjustStock(tenantId, request, direction) {
+      const snapshot = await readInventoryProductSnapshot(db, tenantId);
+      const input = buildAdjustmentTransaction(snapshot, { ...request, tenantId }, direction);
+      return this.postTransaction(tenantId, input);
+    },
+    async createReservation(tenantId, input) {
+      const record = createReservationRecord(tenantId, input);
+      await db.inventoryReservations.put(record);
+      return record;
+    },
+    async releaseReservation(tenantId, reservationId, status = "released") {
+      const existing = await db.inventoryReservations.get(reservationId);
+      if (!existing || existing.tenantId !== tenantId) {
+        throw new Error("Reservation not found.");
+      }
+      const record = releaseReservationRecord(existing, status);
+      await db.inventoryReservations.put(record);
+      return record;
     }
   };
 }
