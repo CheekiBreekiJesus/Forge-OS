@@ -3,7 +3,7 @@
 Session: autonomous ForgeOS development (release 0.2.0 path)  
 Branch: `release/jh-gomes-outreach-supabase`  
 Started from: `86d5bd2`  
-Ended at: `34fabf5` (+4 feature/fix commits)
+Ended at: `db3064a` (+6 commits this session)
 
 ---
 
@@ -82,11 +82,9 @@ Full detail: `docs/agent-reports/forgeos-local-branch-inventory.md`
 - `send-job-actor-types.ts` extracted
 - Preview role synced post-hydration in `app-frame-client.tsx` (SSR mismatch fix)
 
-### 5. Agent documentation (committed `34fabf5`)
+### 6. E2E alignment (committed `db3064a`)
 
-- `docs/agent-reports/composer-morning-baseline.md`
-- `docs/agent-reports/forgeos-local-branch-inventory.md`
-- This progress report
+- Updated `e2e/cup-customizer.spec.ts` onboarding test to enable onboarding panel via localStorage (hidden by default in compact dashboard)
 
 ---
 
@@ -98,7 +96,8 @@ Full detail: `docs/agent-reports/forgeos-local-branch-inventory.md`
 | `6d7575f` | LeadOps templates, server-delivery, providers, send route, application services |
 | `f881f85` | Dashboard shell, marketing card, preferences, dashboard tests |
 | `3f8c4eb` | Send-job actor types, app-frame hydration |
-| `34fabf5` | Agent reports |
+| `34fabf5` | Agent reports (baseline + inventory) |
+| `db3064a` | E2E onboarding spec fix + progress report |
 
 **Not committed (intentionally):** `.cursor/settings.json`, `.vscode/`, `FORGEOS_RECOVERY_AUDIT.md`, `blank-page-response.html`, `synthetic_products.csv`, CRLF-only diffs on `ci.yml` / `CURRENT_STATE.md` / `next-env.d.ts`
 
