@@ -15,7 +15,9 @@ import {
   enqueueMovement,
   isBrowserOnline,
   listQueuedMovements,
-  markMovementSynced
+  markMovementFailed,
+  markMovementSynced,
+  resetMovementForRetry
 } from "@/features/inventory-mobile/offline-queue";
 import { destroyDatabaseForTests } from "@/persistence/registry";
 import { getDatabase } from "@/persistence/db";
@@ -98,6 +100,7 @@ describe("inventory mobile movement service", () => {
 
   it("enforces permissions for receive and issue", () => {
     expect(() => assertMobileMovementPermission("warehouse_manager", "receipt")).not.toThrow();
+    expect(() => assertMobileMovementPermission("warehouse_operator", "issue")).not.toThrow();
     expect(() => assertMobileMovementPermission("sales", "receipt")).toThrow();
     expect(() => assertMobileMovementPermission("sales", "issue")).toThrow();
     expect(() => assertMobileMovementPermission("warehouse_manager", "issue")).not.toThrow();
@@ -163,6 +166,16 @@ describe("offline queue", () => {
     enqueueMovement(DEFAULT_TENANT_ID, "receipt", request);
     markMovementSynced(DEFAULT_TENANT_ID, request.idempotencyKey);
     expect(listQueuedMovements(DEFAULT_TENANT_ID)).toHaveLength(0);
+  });
+
+  it("resets failed movements for retry", () => {
+    const request = movementRequest();
+    enqueueMovement(DEFAULT_TENANT_ID, "receipt", request);
+    markMovementFailed(DEFAULT_TENANT_ID, request.idempotencyKey, "network error");
+    resetMovementForRetry(DEFAULT_TENANT_ID, request.idempotencyKey);
+    const entry = listQueuedMovements(DEFAULT_TENANT_ID)[0];
+    expect(entry?.status).toBe("pending");
+    expect(entry?.lastError).toBeUndefined();
   });
 });
 

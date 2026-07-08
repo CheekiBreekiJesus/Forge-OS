@@ -94,6 +94,13 @@ export type InventoryMobileCopy = {
     linkPermissionDenied: string;
     sessionOnly: string;
   };
+  ambiguous: {
+    title: string;
+    scannedCode: string;
+    message: string;
+    matchCount: string;
+    rescan: string;
+  };
   offline: {
     pendingTitle: string;
     pendingCount: string;
@@ -206,6 +213,13 @@ const en: InventoryMobileCopy = {
     linkFailure: "Could not link barcode.",
     linkPermissionDenied: "Only authorised users can link barcodes permanently.",
     sessionOnly: "Session-only selection — barcode is not saved."
+  },
+  ambiguous: {
+    title: "Ambiguous barcode",
+    scannedCode: "Scanned code",
+    message: "Multiple active barcode records match this code. Resolve duplicates in inventory before scanning again.",
+    matchCount: "matching records",
+    rescan: "Scan another code"
   },
   offline: {
     pendingTitle: "Pending sync",
@@ -320,6 +334,13 @@ const ptPT: InventoryMobileCopy = {
     linkFailure: "Não foi possível associar o código.",
     linkPermissionDenied: "Apenas utilizadores autorizados podem associar códigos permanentemente.",
     sessionOnly: "Seleção apenas para esta sessão — o código não é guardado."
+  },
+  ambiguous: {
+    title: "Código ambíguo",
+    scannedCode: "Código lido",
+    message: "Existem vários códigos ativos iguais. Resolva os duplicados no inventário antes de voltar a ler.",
+    matchCount: "registos correspondentes",
+    rescan: "Ler outro código"
   },
   offline: {
     pendingTitle: "Sincronização pendente",

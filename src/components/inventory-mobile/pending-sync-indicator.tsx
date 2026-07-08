@@ -10,11 +10,13 @@ type PendingSyncIndicatorProps = {
   failedEntries: QueuedMovement[];
   syncing: boolean;
   onSync: () => void;
+  onRetryFailed?: () => void;
 };
 
 export function PendingSyncIndicator({
   copy,
   failedEntries,
+  onRetryFailed,
   onSync,
   pendingCount,
   syncing
@@ -58,7 +60,7 @@ export function PendingSyncIndicator({
           </ul>
           <button
             className="mt-2 min-h-10 rounded-lg border border-[var(--forge-border)] bg-[var(--forge-surface)] px-3 py-1 text-sm font-semibold"
-            onClick={onSync}
+            onClick={onRetryFailed ?? onSync}
             type="button"
           >
             {copy.offline.retry}

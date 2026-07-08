@@ -25,12 +25,12 @@ export function createMovementIdempotencyKey(prefix = "mobile"): string {
   return `${prefix}:${suffix}`;
 }
 
-export function permissionActionForMovement(kind: MobileMovementKind | "lookup"): "receive" | "adjust" | "transfer" | "scan" | null {
+export function permissionActionForMovement(kind: MobileMovementKind | "lookup"): "receive" | "issue" | "transfer" | "scan" | null {
   switch (kind) {
     case "receipt":
       return "receive";
     case "issue":
-      return "adjust";
+      return "issue";
     case "transfer":
       return "transfer";
     case "lookup":

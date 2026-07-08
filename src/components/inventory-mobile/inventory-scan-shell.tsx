@@ -32,7 +32,7 @@ type InventoryScanShellProps = {
   locale: Locale;
 };
 
-type ScanView = "scanner" | "item" | "unknown";
+type ScanView = "scanner" | "item" | "unknown" | "ambiguous";
 
 export function InventoryScanShell({ dictionary, locale }: InventoryScanShellProps) {
   const mobileCopy = getInventoryMobileCopy(locale);
@@ -45,6 +45,7 @@ export function InventoryScanShell({ dictionary, locale }: InventoryScanShellPro
   const [barcodeValue, setBarcodeValue] = useState("");
   const [transactions, setTransactions] = useState<InventoryTransaction[]>([]);
   const [unknownCode, setUnknownCode] = useState("");
+  const [ambiguousMatchCount, setAmbiguousMatchCount] = useState(0);
   const [recentScans, setRecentScans] = useState<Array<{ code: string; itemName: string; at: string }>>([]);
   const [statusMessage, setStatusMessage] = useState(mobileCopy.scanner.scanStatus.idle);
 
@@ -57,7 +58,7 @@ export function InventoryScanShell({ dictionary, locale }: InventoryScanShellPro
     notifyDataChanged();
   }, [notifyDataChanged]);
 
-  const { failedEntries, pendingCount, refresh, syncQueue, syncing } = useOfflineMovementSync(
+  const { failedEntries, pendingCount, refresh, retryFailedSync, syncQueue, syncing } = useOfflineMovementSync(
     tenantId,
     inventoryProduct,
     onSynced
@@ -124,13 +125,20 @@ export function InventoryScanShell({ dictionary, locale }: InventoryScanShellPro
           setStatusMessage(mobileCopy.scanner.scanStatus.detected);
           return;
         }
+        if (result.status === "ambiguous") {
+          setUnknownCode(result.scannedValue);
+          setAmbiguousMatchCount(result.barcodes.length);
+          setView("ambiguous");
+          setStatusMessage(mobileCopy.ambiguous.message);
+          return;
+        }
         setUnknownCode(result.scannedValue);
         setView("unknown");
       } finally {
         setResolving(false);
       }
     },
-    [mobileCopy.scanner.scanStatus.detected, mobileCopy.scanner.scanStatus.resolving, snapshot, state.status, tenantId]
+    [mobileCopy.ambiguous.message, mobileCopy.scanner.scanStatus.detected, mobileCopy.scanner.scanStatus.resolving, snapshot, state.status, tenantId]
   );
 
   function handleRescan() {
@@ -138,6 +146,7 @@ export function InventoryScanShell({ dictionary, locale }: InventoryScanShellPro
     setResolvedItem(null);
     setBarcodeValue("");
     setUnknownCode("");
+    setAmbiguousMatchCount(0);
     setTransactions([]);
     setStatusMessage(mobileCopy.scanner.scanStatus.idle);
   }
@@ -189,6 +198,7 @@ export function InventoryScanShell({ dictionary, locale }: InventoryScanShellPro
         <PendingSyncIndicator
           copy={mobileCopy}
           failedEntries={failedEntries}
+          onRetryFailed={() => void retryFailedSync()}
           onSync={() => void syncQueue()}
           pendingCount={pendingCount}
           syncing={syncing}
@@ -207,6 +217,28 @@ export function InventoryScanShell({ dictionary, locale }: InventoryScanShellPro
             />
             <RecentScanResults copy={mobileCopy} locale={locale} scans={recentScans} />
           </>
+        ) : view === "ambiguous" ? (
+          <section
+            className="space-y-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4"
+            data-testid="inventory-ambiguous-barcode"
+          >
+            <h2 className="text-lg font-semibold">{mobileCopy.ambiguous.title}</h2>
+            <p className="text-sm">
+              <span className="font-medium">{mobileCopy.ambiguous.scannedCode}: </span>
+              <span className="font-mono">{unknownCode}</span>
+            </p>
+            <p className="text-sm text-[var(--forge-text-secondary)]">{mobileCopy.ambiguous.message}</p>
+            <p className="text-sm font-medium">
+              {ambiguousMatchCount} {mobileCopy.ambiguous.matchCount}
+            </p>
+            <button
+              className="min-h-11 w-full rounded-lg border border-[var(--forge-border)] bg-[var(--forge-surface)] px-4 py-2 text-sm font-semibold"
+              onClick={handleRescan}
+              type="button"
+            >
+              {mobileCopy.ambiguous.rescan}
+            </button>
+          </section>
         ) : view === "unknown" ? (
           <InventoryUnknownBarcodePanel
             copy={mobileCopy}

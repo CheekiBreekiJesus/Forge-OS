@@ -7,7 +7,8 @@ import {
   isBrowserOnline,
   listQueuedMovements,
   markMovementFailed,
-  markMovementSynced
+  markMovementSynced,
+  resetMovementForRetry
 } from "@/features/inventory-mobile/offline-queue";
 import { postMobileMovement } from "@/features/inventory-mobile/movement-service";
 
@@ -33,8 +34,13 @@ export function useOfflineMovementSync(
     setQueueVersion((value) => value + 1);
   }, []);
 
-  const syncQueue = useCallback(async () => {
+  const syncQueue = useCallback(async (options?: { retryFailed?: boolean }) => {
     if (!inventoryProduct || !isBrowserOnline() || syncing) return;
+    if (options?.retryFailed) {
+      for (const entry of listQueuedMovements(tenantId).filter((row) => row.status === "failed")) {
+        resetMovementForRetry(tenantId, entry.idempotencyKey);
+      }
+    }
     const queue = listQueuedMovements(tenantId).filter((entry) => entry.status !== "failed");
     if (queue.length === 0) {
       refresh();
@@ -70,5 +76,12 @@ export function useOfflineMovementSync(
     return () => window.removeEventListener("online", handleOnline);
   }, [syncQueue]);
 
-  return { failedEntries, pendingCount, refresh, syncQueue, syncing };
+  useEffect(() => {
+    if (!inventoryProduct || !isBrowserOnline()) return;
+    void syncQueue();
+  }, [inventoryProduct, syncQueue]);
+
+  const retryFailedSync = useCallback(() => syncQueue({ retryFailed: true }), [syncQueue]);
+
+  return { failedEntries, pendingCount, refresh, retryFailedSync, syncQueue, syncing };
 }

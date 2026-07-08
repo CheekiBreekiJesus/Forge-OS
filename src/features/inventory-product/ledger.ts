@@ -75,6 +75,7 @@ const permissionMatrix: Record<InventoryPermissionRole, Set<InventoryPermissionA
     "import",
     "approve",
     "adjust",
+    "issue",
     "manage_products",
     "receive",
     "transfer",
@@ -89,6 +90,7 @@ const permissionMatrix: Record<InventoryPermissionRole, Set<InventoryPermissionA
     "import",
     "approve",
     "adjust",
+    "issue",
     "manage_products",
     "receive",
     "transfer",
@@ -99,8 +101,8 @@ const permissionMatrix: Record<InventoryPermissionRole, Set<InventoryPermissionA
   ]),
   product_manager: new Set(["manage_products", "scan", "read_audit"]),
   purchasing: new Set(["manage_suppliers", "receive", "read_audit"]),
-  warehouse_manager: new Set(["receive", "transfer", "count", "adjust", "approve", "scan", "read_audit"]),
-  warehouse_operator: new Set(["receive", "transfer", "count", "scan"])
+  warehouse_manager: new Set(["receive", "issue", "transfer", "count", "adjust", "approve", "scan", "read_audit"]),
+  warehouse_operator: new Set(["receive", "issue", "transfer", "count", "scan"])
 };
 
 export function createDefaultUnits(tenantId: string, now: string): UnitOfMeasure[] {

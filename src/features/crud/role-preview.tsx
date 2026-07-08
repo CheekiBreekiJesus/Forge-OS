@@ -4,13 +4,14 @@ import type { ModuleKey } from "@/modules/config";
 
 export const PREVIEW_ROLE_STORAGE_KEY = "forgeos:preview-role";
 
-export type PreviewRole = "owner" | "sales" | "production_manager" | "warehouse_manager";
+export type PreviewRole = "owner" | "sales" | "production_manager" | "warehouse_manager" | "warehouse_operator";
 
 export const PREVIEW_ROLES: PreviewRole[] = [
   "owner",
   "sales",
   "production_manager",
-  "warehouse_manager"
+  "warehouse_manager",
+  "warehouse_operator"
 ];
 
 const ROLE_MODULES: Record<PreviewRole, ModuleKey[]> = {
@@ -71,6 +72,15 @@ const ROLE_MODULES: Record<PreviewRole, ModuleKey[]> = {
     "suppliers",
     "reports",
     "settings"
+  ],
+  warehouse_operator: [
+    "dashboard",
+    "products",
+    "inventory",
+    "machines",
+    "maintenance",
+    "reports",
+    "settings"
   ]
 };
 
@@ -78,7 +88,8 @@ const ROLE_CREATE_ACTIONS: Record<PreviewRole, string[]> = {
   owner: ["lead", "customer", "product", "quote", "customizer", "production", "machine", "inventory"],
   sales: ["lead", "customer", "quote", "customizer"],
   production_manager: ["quote", "production", "machine"],
-  warehouse_manager: ["inventory", "machine"]
+  warehouse_manager: ["inventory", "machine"],
+  warehouse_operator: ["inventory"]
 };
 
 export function isPreviewRole(value: string | null | undefined): value is PreviewRole {
