@@ -90,3 +90,19 @@
 ---
 
 *End of disposition ledger.*
+
+---
+
+## Phase B decisions (2026-07-08)
+
+| Item | Phase B classification | Action |
+|------|------------------------|--------|
+| `release/jh-gomes-outreach-supabase` @ `8059973` | **REQUIRED FOR 0.2.0** | Merged into `main` (`db8737e`) |
+| Supabase migration ordering + seed `tenant_key` | **REQUIRED** | Fixed on release; in `main` |
+| PR #1 monorepo scaffold (`apps/`, foundation `packages/*`) | **SUPERSEDED** | Removed in `626a348` |
+| Inventory WIP | **VALID BUT DEFERRED** | Worktree + patch retained |
+| Table density / product import / outlook / marketing / mobile barcode | **DEFERRED** | Worktrees retained |
+| 250/330 ml cup PNGs | **PRESERVED ONLY** | No replacement; documented debt |
+| PR #2 foundation shell | **SUPERSEDED** | Recommend close |
+| PR #3 release candidate | **SUPERSEDED** (selective) | Recommend close; worktrees kept temporarily |
+
