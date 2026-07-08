@@ -76,7 +76,9 @@ describe("dashboard preferences", () => {
       visiblePanels: ["oee"]
     });
     const restored = restoreDefaultDashboardPreferences();
-    expect(restored.visiblePanels).toContain("copilot");
+    expect(restored.visiblePanels).toContain("productionOrders");
+    expect(restored.visiblePanels).not.toContain("copilot");
+    expect(restored.density).toBe("compact");
     expect(isPanelVisible(restored, "inventory")).toBe(true);
   });
 
