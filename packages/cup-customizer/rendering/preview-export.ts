@@ -1,6 +1,10 @@
 import { normalizeCupSize, type PrintAreaId } from "../config/cup-catalog";
 import { CUP_PLACEMENT_BY_SIZE } from "../config/visual-assets";
-import { printableWidthFraction } from "../config/print-area";
+import {
+  computeArtworkExportGeometry,
+  normalizeArtworkRotation,
+  type ArtworkTransformInput
+} from "./artwork-layout";
 
 export type PreviewExportInput = {
   sceneBackgroundDataUrl: string | null;
@@ -8,7 +12,6 @@ export type PreviewExportInput = {
   artworkDataUrl: string | null;
   cupSizeMl: number;
   printArea: PrintAreaId;
-  artworkPosition: string;
   artworkScale: number;
   artworkOffsetX: number;
   artworkOffsetY: number;
@@ -32,23 +35,18 @@ function escapeSvgText(value: string): string {
     .replaceAll('"', "&quot;");
 }
 
-function artworkAnchorX(position: string, centerXPercent: number): number {
-  if (position === "left") return (centerXPercent - 18) / 100;
-  if (position === "right") return (centerXPercent + 12) / 100;
-  return (centerXPercent - 4) / 100;
-}
-
 export function buildPreviewExportSvg(input: PreviewExportInput): string {
   const sizeMl = normalizeCupSize(input.cupSizeMl, "reusable_pp");
   const placement = CUP_PLACEMENT_BY_SIZE[sizeMl];
-  const bandWidth = SIZE * printableWidthFraction(input.printArea) * placement.artworkRegion.bandWidthPercent;
-  const bandLeft = (SIZE * placement.artworkRegion.centerXPercent) / 100 - bandWidth / 2;
-  const bandTop = (SIZE * placement.artworkRegion.topPercent) / 100;
-  const bandHeight = (SIZE * placement.artworkRegion.heightPercent) / 100;
-  const anchorX = bandLeft + bandWidth * artworkAnchorX(input.artworkPosition, placement.artworkRegion.centerXPercent) + (input.artworkOffsetX / 100) * bandWidth;
-  const anchorY = bandTop + bandHeight * 0.45 + (input.artworkOffsetY / 100) * bandHeight;
-  const artWidth = bandWidth * 0.55 * input.artworkScale;
-  const artHeight = bandHeight * 0.7 * input.artworkScale;
+  const transformInput: ArtworkTransformInput = {
+    artworkOffsetX: input.artworkOffsetX,
+    artworkOffsetY: input.artworkOffsetY,
+    artworkRotation: input.artworkRotation,
+    artworkScale: input.artworkScale,
+    cupSizeMl: sizeMl,
+    printArea: input.printArea
+  };
+  const { artwork, region } = computeArtworkExportGeometry(transformInput, SIZE);
 
   const cupWidth = (SIZE * placement.cupTransform.widthPercent) / 100;
   const cupLeft = SIZE / 2 - cupWidth / 2 + (SIZE * placement.cupTransform.translateXPercent) / 100;
@@ -62,21 +60,20 @@ export function buildPreviewExportSvg(input: PreviewExportInput): string {
     ? `<image href="${input.cupImageDataUrl}" x="${cupLeft}" y="${SIZE - cupBottom - cupWidth}" width="${cupWidth}" height="${cupWidth}" preserveAspectRatio="xMidYMax meet" />`
     : `<path d="M${SIZE * 0.38} ${SIZE * 0.18}h${SIZE * 0.24}l-${SIZE * 0.04} ${SIZE * 0.58}H${SIZE * 0.42}z" fill="#e2e8f0" stroke="#94a3b8" stroke-width="3"/>`;
 
+  const rotation = normalizeArtworkRotation(input.artworkRotation);
   const artworkLayer = input.artworkDataUrl
-    ? `<g transform="translate(${anchorX} ${anchorY}) rotate(${input.artworkRotation})">
-         <image href="${input.artworkDataUrl}" x="${-artWidth / 2}" y="${-artHeight / 2}" width="${artWidth}" height="${artHeight}" preserveAspectRatio="xMidYMid meet" opacity="0.95" />
+    ? `<g transform="translate(${artwork.centerX} ${artwork.centerY}) rotate(${rotation})">
+         <image href="${input.artworkDataUrl}" x="${-artwork.width / 2}" y="${-artwork.height / 2}" width="${artwork.width}" height="${artwork.height}" preserveAspectRatio="xMidYMid meet" opacity="0.95" />
        </g>`
-    : `<g transform="translate(${anchorX} ${anchorY}) rotate(${input.artworkRotation})">
-         <rect x="${-artWidth / 2}" y="${-artHeight / 2}" width="${artWidth}" height="${artHeight}" rx="8" fill="#f97316" opacity="0.35" stroke="#fb923c" stroke-dasharray="6 4"/>
+    : `<g transform="translate(${artwork.centerX} ${artwork.centerY}) rotate(${rotation})">
+         <rect x="${-artwork.width / 2}" y="${-artwork.height / 2}" width="${artwork.width}" height="${artwork.height}" rx="8" fill="#f97316" opacity="0.35" stroke="#fb923c" stroke-dasharray="6 4"/>
        </g>`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}" role="img" aria-label="Cup preview export">
   <rect width="${SIZE}" height="${SIZE}" fill="#0f172a"/>
-  <rect x="24" y="20" width="${SIZE - 48}" height="${SIZE - 40}" rx="20" fill="#111827" stroke="#334155"/>
   ${sceneLayer}
   ${cupLayer}
-  <rect x="${bandLeft}" y="${bandTop}" width="${bandWidth}" height="${bandHeight}" fill="none" stroke="#38bdf8" stroke-dasharray="8 6" opacity="0.45"/>
-  <clipPath id="print-band"><rect x="${bandLeft}" y="${bandTop}" width="${bandWidth}" height="${bandHeight}" rx="6"/></clipPath>
+  <clipPath id="print-band"><rect x="${region.left}" y="${region.top}" width="${region.width}" height="${region.height}" rx="6"/></clipPath>
   <g clip-path="url(#print-band)">${artworkLayer}</g>
   <text x="48" y="56" fill="#f8fafc" font-family="Arial, sans-serif" font-size="22" font-weight="700">${escapeSvgText(input.productName)}</text>
   <text x="48" y="84" fill="#cbd5e1" font-family="Arial, sans-serif" font-size="14">${escapeSvgText(input.productSku)} · ${escapeSvgText(input.cupTypeLabel)} · ${escapeSvgText(input.cupSizeLabel)} · ${escapeSvgText(input.printAreaLabel)}</text>

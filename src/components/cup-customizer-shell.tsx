@@ -5,6 +5,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   buildPreviewExportBlob,
   CupPreview,
+  ARTWORK_ROTATION_DEFAULT,
+  ARTWORK_ROTATION_MAX,
+  ARTWORK_ROTATION_MIN,
+  clampArtworkOffsets,
+  computeArtworkOffsetBounds,
   createForgeOSCustomizerBridge,
   cupTypeFromProductCategory,
   defaultSizeForCupType,
@@ -14,6 +19,7 @@ import {
   loadImageAsDataUrl,
   materialForCupType,
   normalizeCustomizerCupTypeForUi,
+  normalizeArtworkRotation,
   normalizeCupSize,
   normalizeCupType,
   normalizePreviewBackground,
@@ -68,10 +74,8 @@ type CupCustomizerShellProps = {
   locale: Locale;
 };
 
-const ARTWORK_POSITIONS = ["left", "center", "right"];
 const DEFAULT_ARTWORK_SCALE = 1;
 const DEFAULT_ARTWORK_OFFSET = 0;
-const DEFAULT_ARTWORK_ROTATION = 0;
 const VISIBLE_CUP_TYPES = visibleCupTypesInCustomizer();
 
 function isCupProduct(product: Product): boolean {
@@ -90,7 +94,7 @@ function defaultConfiguration(product: Product | null): CustomizerConfiguration 
     artworkScale: DEFAULT_ARTWORK_SCALE,
     artworkOffsetX: DEFAULT_ARTWORK_OFFSET,
     artworkOffsetY: DEFAULT_ARTWORK_OFFSET,
-    artworkRotation: DEFAULT_ARTWORK_ROTATION,
+    artworkRotation: ARTWORK_ROTATION_DEFAULT,
     cupSize: formatCupSizeLabel(sizeMl, "en"),
     cupType,
     desiredDeliveryDate: null,
@@ -120,7 +124,9 @@ function normalizeConfiguration(
     ...configuration,
     artworkOffsetX: finiteNumber(configuration.artworkOffsetX, defaults.artworkOffsetX),
     artworkOffsetY: finiteNumber(configuration.artworkOffsetY, defaults.artworkOffsetY),
-    artworkRotation: finiteNumber(configuration.artworkRotation, defaults.artworkRotation),
+    artworkRotation: normalizeArtworkRotation(
+      finiteNumber(configuration.artworkRotation, defaults.artworkRotation)
+    ),
     artworkScale: finiteNumber(configuration.artworkScale, defaults.artworkScale),
     cupSize,
     cupType,
@@ -233,6 +239,46 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
   const activeSizeMl = normalizeCupSize(configuration.cupSize, activeCupType);
   const activePrintArea = normalizePrintArea(configuration.printArea);
   const printAreaCopyKey = printAreaLabelKey(activePrintArea);
+
+  const artworkTransformBase = useMemo(
+    () => ({
+      artworkRotation: configuration.artworkRotation,
+      artworkScale: configuration.artworkScale,
+      cupSizeMl: activeSizeMl,
+      printArea: activePrintArea
+    }),
+    [activePrintArea, activeSizeMl, configuration.artworkRotation, configuration.artworkScale]
+  );
+
+  const artworkOffsetBounds = useMemo(
+    () =>
+      computeArtworkOffsetBounds({
+        ...artworkTransformBase,
+        artworkOffsetX: 0,
+        artworkOffsetY: 0
+      }),
+    [artworkTransformBase]
+  );
+
+  const updateArtworkOffsets = useCallback(
+    (offsetX: number, offsetY: number) => {
+      const clamped = clampArtworkOffsets(
+        {
+          ...artworkTransformBase,
+          artworkOffsetX: offsetX,
+          artworkOffsetY: offsetY
+        },
+        offsetX,
+        offsetY
+      );
+      setConfiguration((current) => ({
+        ...current,
+        artworkOffsetX: clamped.artworkOffsetX,
+        artworkOffsetY: clamped.artworkOffsetY
+      }));
+    },
+    [artworkTransformBase]
+  );
 
   const pricing = useMemo(() => {
     if (!selectedProduct) return null;
@@ -473,7 +519,6 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
       artworkDataUrl,
       artworkOffsetX: configuration.artworkOffsetX,
       artworkOffsetY: configuration.artworkOffsetY,
-      artworkPosition: configuration.artworkPosition,
       artworkRotation: configuration.artworkRotation,
       artworkScale: configuration.artworkScale,
       cupImageDataUrl,
@@ -685,9 +730,9 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
       ) : cupProducts.length === 0 ? (
         <div className={`${panelClass} p-8 text-center text-slate-400`}>{copy.emptyProducts}</div>
       ) : (
-        <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
-          <div className="order-2 space-y-5 lg:order-1">
-            <section className={`${panelClass} p-5`}>
+        <div className="grid gap-4 lg:grid-cols-[1.35fr_0.9fr]">
+          <div className="order-2 space-y-4 lg:order-1">
+            <section className={`${panelClass} p-4`}>
               <h2 className="text-sm font-bold uppercase tracking-wide text-slate-400">{copy.sections.context}</h2>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <FormField label={copy.form.customer}>
@@ -743,9 +788,9 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
               </div>
             </section>
 
-            <section className={`${panelClass} p-5`}>
+            <section className={`${panelClass} p-4`}>
               <h2 className="text-sm font-bold uppercase tracking-wide text-slate-400">{copy.sections.configuration}</h2>
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
                 <FormField label={copy.form.cupType}>
                   <select
                     className={selectClassName}
@@ -823,21 +868,6 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
                     ))}
                   </select>
                 </FormField>
-                <FormField label={copy.form.artworkPosition}>
-                  <select
-                    className={selectClassName}
-                    onChange={(event) =>
-                      setConfiguration({ ...configuration, artworkPosition: event.target.value })
-                    }
-                    value={configuration.artworkPosition}
-                  >
-                    {ARTWORK_POSITIONS.map((position) => (
-                      <option key={position} value={position}>
-                        {copy.artworkPositions[position as keyof typeof copy.artworkPositions] ?? position}
-                      </option>
-                    ))}
-                  </select>
-                </FormField>
                 <FormField label={copy.form.artworkScale}>
                   <div className="flex items-center gap-3">
                     <input
@@ -860,10 +890,10 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
                   <div className="flex items-center gap-3">
                     <input
                       className="w-full accent-orange-500"
-                      max={20}
-                      min={-20}
+                      max={Math.ceil(artworkOffsetBounds.maxX)}
+                      min={Math.floor(artworkOffsetBounds.minX)}
                       onChange={(event) =>
-                        setConfiguration({ ...configuration, artworkOffsetX: Number(event.target.value) })
+                        updateArtworkOffsets(Number(event.target.value), configuration.artworkOffsetY)
                       }
                       step={1}
                       type="range"
@@ -878,10 +908,10 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
                   <div className="flex items-center gap-3">
                     <input
                       className="w-full accent-orange-500"
-                      max={20}
-                      min={-20}
+                      max={Math.ceil(artworkOffsetBounds.maxY)}
+                      min={Math.floor(artworkOffsetBounds.minY)}
                       onChange={(event) =>
-                        setConfiguration({ ...configuration, artworkOffsetY: Number(event.target.value) })
+                        updateArtworkOffsets(configuration.artworkOffsetX, Number(event.target.value))
                       }
                       step={1}
                       type="range"
@@ -896,8 +926,8 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
                   <div className="flex items-center gap-3">
                     <input
                       className="w-full accent-orange-500"
-                      max={30}
-                      min={-30}
+                      max={ARTWORK_ROTATION_MAX}
+                      min={ARTWORK_ROTATION_MIN}
                       onChange={(event) =>
                         setConfiguration({ ...configuration, artworkRotation: Number(event.target.value) })
                       }
@@ -975,7 +1005,7 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
                       artworkOffsetX: DEFAULT_ARTWORK_OFFSET,
                       artworkOffsetY: DEFAULT_ARTWORK_OFFSET,
                       artworkPosition: "center",
-                      artworkRotation: DEFAULT_ARTWORK_ROTATION,
+                      artworkRotation: ARTWORK_ROTATION_DEFAULT,
                       artworkScale: DEFAULT_ARTWORK_SCALE
                     })
                   }
@@ -986,8 +1016,8 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
               </div>
             </section>
 
-            <section className={`${panelClass} p-5`}>
-              <div className="mb-4 flex items-center justify-between gap-3">
+            <section className={`${panelClass} p-4`}>
+              <div className="mb-3 flex items-center justify-between gap-3">
                 <h2 className="text-sm font-bold uppercase tracking-wide text-slate-400">{copy.sections.simulations}</h2>
                 <PrimaryActionButton onClick={openCreate}>{copy.actions.newSimulation}</PrimaryActionButton>
               </div>
@@ -1053,50 +1083,79 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
             </section>
           </div>
 
-          <div className="order-1 space-y-5 lg:order-2">
-            <section className={`${panelClass} p-5`}>
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div className="order-1 space-y-4 lg:order-2">
+            <section className={`${panelClass} p-4`}>
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-sm font-bold uppercase tracking-wide text-slate-400">{copy.preview.label}</h2>
-                <button
-                  className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-800"
-                  disabled={submitting}
-                  onClick={() => void handleGeneratePreview()}
-                  type="button"
-                >
-                  {copy.preview.generate}
-                </button>
+                <div className="flex items-center gap-2">
+                  <div
+                    aria-label={copy.form.previewScene}
+                    className="flex items-center gap-1"
+                    role="group"
+                  >
+                    {(["day", "night"] as const).map((scene) => {
+                      const sceneLabel = scene === "day" ? copy.preview.sceneDay : copy.preview.sceneNight;
+                      const selected = activePreviewScene === scene;
+                      return (
+                        <button
+                          aria-label={sceneLabel}
+                          aria-pressed={selected}
+                          className={`inline-flex size-8 items-center justify-center rounded-lg border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-400 ${
+                            selected
+                              ? "border-orange-500/60 bg-orange-500/15 text-orange-100"
+                              : "border-slate-700 text-slate-200 hover:bg-slate-800"
+                          }`}
+                          key={scene}
+                          onClick={() =>
+                            setConfiguration({
+                              ...configuration,
+                              previewScene: scene
+                            })
+                          }
+                          title={sceneLabel}
+                          type="button"
+                        >
+                          {scene === "day" ? (
+                            <svg aria-hidden="true" className="size-4" fill="none" viewBox="0 0 24 24">
+                              <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.75" />
+                              <path
+                                d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"
+                                stroke="currentColor"
+                                strokeLinecap="round"
+                                strokeWidth="1.75"
+                              />
+                            </svg>
+                          ) : (
+                            <svg aria-hidden="true" className="size-4" fill="none" viewBox="0 0 24 24">
+                              <path
+                                d="M21 14.5A8.5 8.5 0 0 1 9.5 3 6.5 6.5 0 1 0 21 14.5Z"
+                                stroke="currentColor"
+                                strokeLinejoin="round"
+                                strokeWidth="1.75"
+                              />
+                            </svg>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button
+                    className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-800"
+                    disabled={submitting}
+                    onClick={() => void handleGeneratePreview()}
+                    type="button"
+                  >
+                    {copy.preview.generate}
+                  </button>
+                </div>
               </div>
               {legacyPaperSelection ? (
-                <p className="mb-3 text-xs font-medium text-amber-300">{copy.preview.legacyPaperWarning}</p>
+                <p className="mb-2 text-xs font-medium text-amber-300">{copy.preview.legacyPaperWarning}</p>
               ) : null}
-              <FormField label={copy.form.previewScene}>
-                <div className="flex gap-2">
-                  {(["day", "night"] as const).map((scene) => (
-                    <button
-                      className={`rounded-lg border px-3 py-2 text-sm font-semibold ${
-                        activePreviewScene === scene
-                          ? "border-orange-500/60 bg-orange-500/15 text-orange-100"
-                          : "border-slate-700 text-slate-200 hover:bg-slate-800"
-                      }`}
-                      key={scene}
-                      onClick={() =>
-                        setConfiguration({
-                          ...configuration,
-                          previewScene: scene
-                        })
-                      }
-                      type="button"
-                    >
-                      {scene === "day" ? copy.preview.sceneDay : copy.preview.sceneNight}
-                    </button>
-                  ))}
-                </div>
-              </FormField>
               <CupPreview
                 artworkDataUrl={artworkPreviewUrl}
                 artworkOffsetX={configuration.artworkOffsetX}
                 artworkOffsetY={configuration.artworkOffsetY}
-                artworkPosition={configuration.artworkPosition}
                 artworkRotation={configuration.artworkRotation}
                 artworkScale={configuration.artworkScale}
                 cupSize={configuration.cupSize}
@@ -1120,6 +1179,7 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
                   missingAssetLabel: copy.preview.missingAsset,
                   staleLabel: previewStale ? copy.preview.stale : null
                 }}
+                onArtworkOffsetChange={updateArtworkOffsets}
                 onPreviewResolved={({ sceneUrl, cupUrl }) => {
                   setResolvedSceneUrl(sceneUrl);
                   setResolvedCupUrl(cupUrl);
@@ -1129,7 +1189,7 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
               />
             </section>
 
-            <section className={`${panelClass} p-5`}>
+            <section className={`${panelClass} p-4`}>
               <div className="flex items-center justify-between gap-2">
                 <h2 className="text-sm font-bold uppercase tracking-wide text-slate-400">{copy.sections.pricing}</h2>
                 {pricing?.isEstimate ? (

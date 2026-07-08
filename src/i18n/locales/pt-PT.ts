@@ -1971,7 +1971,6 @@ export const dictionary: Dictionary = {
       cupType: "Tipo de copo",
       printColors: "Cores de impressão",
       printArea: "Área de impressão",
-      artworkPosition: "Posição da arte",
       artworkScale: "Escala da arte",
       artworkOffsetX: "Desvio horizontal",
       artworkOffsetY: "Desvio vertical",
@@ -1986,7 +1985,6 @@ export const dictionary: Dictionary = {
     printAreas: { deg180: "180º", deg360: "360º" },
     cupTypes: { reusable_pp: "Copo reutilizável em PP", paper: "Copo de papel" },
     materials: { polypropylene: "Polipropileno (PP)", paper: "Papel" },
-    artworkPositions: { left: "Esquerda", center: "Centro", right: "Direita" },
     artwork: {
       upload: "Carregar arte",
       useLogo: "Usar logótipo da empresa",

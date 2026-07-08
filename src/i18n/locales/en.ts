@@ -1964,7 +1964,6 @@ export const dictionary: Dictionary = {
       cupType: "Cup type",
       printColors: "Print colours",
       printArea: "Print area",
-      artworkPosition: "Artwork position",
       artworkScale: "Artwork scale",
       artworkOffsetX: "Horizontal offset",
       artworkOffsetY: "Vertical offset",
@@ -1979,7 +1978,6 @@ export const dictionary: Dictionary = {
     printAreas: { deg180: "180°", deg360: "360°" },
     cupTypes: { reusable_pp: "Reusable PP cup", paper: "Paper cup" },
     materials: { polypropylene: "Polypropylene (PP)", paper: "Paper" },
-    artworkPositions: { left: "Left", center: "Centre", right: "Right" },
     artwork: {
       upload: "Upload artwork",
       useLogo: "Use company logo",

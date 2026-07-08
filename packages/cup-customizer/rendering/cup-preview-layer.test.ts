@@ -8,7 +8,6 @@ describe("cup preview layers", () => {
       artworkDataUrl: "data:image/png;base64,logo",
       artworkOffsetX: 0,
       artworkOffsetY: 0,
-      artworkPosition: "center",
       artworkRotation: 0,
       artworkScale: 1,
       cupImageDataUrl: "data:image/png;base64,cup",
@@ -37,7 +36,6 @@ describe("cup preview layers", () => {
       artworkDataUrl: null,
       artworkOffsetX: 0,
       artworkOffsetY: 0,
-      artworkPosition: "center",
       artworkRotation: 0,
       artworkScale: 1,
       cupImageDataUrl: "data:image/png;base64,cup",
@@ -61,5 +59,8 @@ describe("cup preview layers", () => {
     expect(resolvePreviewSceneAssetPath("day")).toBe("/assets/cup-customizer/backgrounds/day.png");
     expect(resolvePreviewSceneAssetPath("night")).toBe("/assets/cup-customizer/backgrounds/night.png");
     expect(resolveReusablePPCupAssetPath(250)).toBe("/assets/cup-customizer/cups/reusable-pp/250ml.png");
+    expect(resolveReusablePPCupAssetPath(330)).toBe("/assets/cup-customizer/cups/reusable-pp/330ml.png");
+    expect(resolveReusablePPCupAssetPath(430)).toBe("/assets/cup-customizer/cups/reusable-pp/430ml.png");
+    expect(resolveReusablePPCupAssetPath(500)).toBe("/assets/cup-customizer/cups/reusable-pp/500ml.png");
   });
 });

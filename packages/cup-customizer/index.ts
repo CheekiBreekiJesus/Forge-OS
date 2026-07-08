@@ -55,4 +55,14 @@ export {
   type PreviewBackground
 } from "./config/visual-assets";
 export { buildPreviewExportBlob, buildPreviewExportSvg, loadImageAsDataUrl } from "./rendering/preview-export";
+export {
+  ARTWORK_ROTATION_DEFAULT,
+  ARTWORK_ROTATION_MAX,
+  ARTWORK_ROTATION_MIN,
+  clampArtworkOffsets,
+  computeArtworkOffsetBounds,
+  computeArtworkRenderBox,
+  computePrintableRegion,
+  normalizeArtworkRotation
+} from "./rendering/artwork-layout";
 export { estimateInkCoverage } from "./rendering/ink-coverage";

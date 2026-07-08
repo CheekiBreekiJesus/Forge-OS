@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import {
   CUP_IMAGE_FALLBACK_URL,
   CUP_PLACEMENT_BY_SIZE,
@@ -13,7 +13,14 @@ import {
   type PreviewBackground
 } from "../config/visual-assets";
 import { normalizeCupSize, type PrintAreaId } from "../config/cup-catalog";
-import { normalizePrintArea, printableWidthFraction } from "../config/print-area";
+import { normalizePrintArea } from "../config/print-area";
+import {
+  clampArtworkOffsets,
+  computeArtworkRenderBox,
+  computePrintableRegion,
+  pointerDeltaToOffsetDelta,
+  type ArtworkTransformInput
+} from "./artwork-layout";
 
 export type CupPreviewMetadataItem = {
   label: string;
@@ -34,24 +41,18 @@ type CupPreviewProps = {
   previewScene?: string;
   printArea?: string;
   artworkDataUrl?: string | null;
-  artworkPosition?: string;
   artworkScale?: number;
   artworkOffsetX?: number;
   artworkOffsetY?: number;
   artworkRotation?: number;
   label?: string;
   metadata?: CupPreviewMetadata;
+  onArtworkOffsetChange?: (offsetX: number, offsetY: number) => void;
   onPreviewResolved?: (payload: {
     sceneUrl: string | null;
     cupUrl: string | null;
   }) => void;
 };
-
-function artworkAnchorX(position: string, centerXPercent: number): string {
-  if (position === "left") return `${centerXPercent - 18}%`;
-  if (position === "right") return `${centerXPercent + 12}%`;
-  return `${centerXPercent - 4}%`;
-}
 
 async function resolveImageUrl(primaryUrl: string, fallbackUrl: string): Promise<{
   url: string;
@@ -83,13 +84,13 @@ export function CupPreview({
   previewScene = DEFAULT_PREVIEW_BACKGROUND,
   printArea = "deg_180",
   artworkDataUrl,
-  artworkPosition = "center",
   artworkScale = 1,
   artworkOffsetX = 0,
   artworkOffsetY = 0,
   artworkRotation = 0,
   label,
   metadata,
+  onArtworkOffsetChange,
   onPreviewResolved
 }: CupPreviewProps) {
   const resolvedPrintArea = normalizePrintArea(printArea) as PrintAreaId;
@@ -98,11 +99,34 @@ export function CupPreview({
   const placement = CUP_PLACEMENT_BY_SIZE[sizeMl];
   const scenePath = resolvePreviewSceneAssetPath(scene);
   const cupPath = resolveReusablePPCupAssetPath(sizeMl);
+  const frameRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{ pointerId: number; startX: number; startY: number; originX: number; originY: number } | null>(
+    null
+  );
 
   const [sceneUrl, setSceneUrl] = useState<string | null>(null);
   const [cupUrl, setCupUrl] = useState<string | null>(null);
   const [missingScene, setMissingScene] = useState(false);
   const [missingCup, setMissingCup] = useState(false);
+
+  const transformInput = useMemo<ArtworkTransformInput>(
+    () => ({
+      artworkOffsetX,
+      artworkOffsetY,
+      artworkRotation,
+      artworkScale,
+      cupSizeMl: sizeMl,
+      printArea: resolvedPrintArea
+    }),
+    [artworkOffsetX, artworkOffsetY, artworkRotation, artworkScale, resolvedPrintArea, sizeMl]
+  );
+
+  const printableRegion = useMemo(
+    () => computePrintableRegion(sizeMl, resolvedPrintArea),
+    [resolvedPrintArea, sizeMl]
+  );
+
+  const artworkBox = useMemo(() => computeArtworkRenderBox(transformInput), [transformInput]);
 
   useEffect(() => {
     let cancelled = false;
@@ -139,24 +163,23 @@ export function CupPreview({
     };
   }, [cupPath, onPreviewResolved, scenePath]);
 
-  const bandWidth = `${printableWidthFraction(resolvedPrintArea) * placement.artworkRegion.bandWidthPercent * 100}%`;
-  const artworkRegionStyle: CSSProperties = {
-    height: `${placement.artworkRegion.heightPercent}%`,
-    left: `${placement.artworkRegion.centerXPercent}%`,
-    top: `${placement.artworkRegion.topPercent}%`,
-    transform: "translateX(-50%)",
-    width: bandWidth
+  const clipRegionStyle: CSSProperties = {
+    height: `${printableRegion.heightPercent}%`,
+    left: `${printableRegion.leftPercent}%`,
+    top: `${printableRegion.topPercent}%`,
+    width: `${printableRegion.widthPercent}%`
   };
 
   const artworkStyle: CSSProperties = {
-    height: "72%",
-    left: `calc(${artworkAnchorX(artworkPosition, placement.artworkRegion.centerXPercent)} + ${artworkOffsetX}%)`,
-    objectFit: "contain",
+    height: `${(artworkBox.heightPercent / printableRegion.heightPercent) * 100}%`,
+    left: `${((artworkBox.centerXPercent - printableRegion.leftPercent) / printableRegion.widthPercent) * 100}%`,
     position: "absolute",
-    top: `calc(14% + ${artworkOffsetY}%)`,
-    transform: `scale(${artworkScale}) rotate(${artworkRotation}deg)`,
-    transformOrigin: "center",
-    width: "48%"
+    top: `${((artworkBox.centerYPercent - printableRegion.topPercent) / printableRegion.heightPercent) * 100}%`,
+    touchAction: "none",
+    transform: `translate(-50%, -50%) rotate(${artworkBox.rotationDeg}deg)`,
+    transformOrigin: "center center",
+    userSelect: "none",
+    width: `${(artworkBox.widthPercent / printableRegion.widthPercent) * 100}%`
   };
 
   const cupStyle: CSSProperties = useMemo(
@@ -166,6 +189,7 @@ export function CupPreview({
       left: `calc(50% + ${placement.cupTransform.translateXPercent}%)`,
       maxHeight: "82%",
       objectFit: "contain",
+      pointerEvents: "none",
       position: "absolute",
       transform: "translateX(-50%)",
       width: `${placement.cupTransform.widthPercent}%`
@@ -173,19 +197,71 @@ export function CupPreview({
     [placement.cupTransform.bottomPercent, placement.cupTransform.translateXPercent, placement.cupTransform.widthPercent]
   );
 
+  const endDrag = useCallback((event: PointerEvent) => {
+    if (dragRef.current?.pointerId === event.pointerId) {
+      dragRef.current = null;
+    }
+  }, []);
+
+  const handlePointerMove = useCallback(
+    (event: PointerEvent) => {
+      const drag = dragRef.current;
+      if (!drag || drag.pointerId !== event.pointerId || !onArtworkOffsetChange) return;
+
+      const frame = frameRef.current;
+      if (!frame) return;
+
+      const rect = frame.getBoundingClientRect();
+      const { deltaOffsetX, deltaOffsetY } = pointerDeltaToOffsetDelta(
+        event.clientX - drag.startX,
+        event.clientY - drag.startY,
+        rect.width,
+        printableRegion
+      );
+      const clamped = clampArtworkOffsets(transformInput, drag.originX + deltaOffsetX, drag.originY + deltaOffsetY);
+      onArtworkOffsetChange(clamped.artworkOffsetX, clamped.artworkOffsetY);
+    },
+    [onArtworkOffsetChange, printableRegion, transformInput]
+  );
+
+  useEffect(() => {
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", endDrag);
+    window.addEventListener("pointercancel", endDrag);
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", endDrag);
+      window.removeEventListener("pointercancel", endDrag);
+    };
+  }, [endDrag, handlePointerMove]);
+
+  const handleArtworkPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!artworkDataUrl || !onArtworkOffsetChange) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragRef.current = {
+      originX: artworkOffsetX,
+      originY: artworkOffsetY,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY
+    };
+  };
+
   const missingAsset = missingScene || missingCup;
+  const artworkDraggable = Boolean(artworkDataUrl && onArtworkOffsetChange);
 
   return (
-    <div className="relative mx-auto w-full max-w-xs" data-testid="cup-preview-root">
+    <div className="relative mx-auto w-full max-w-[280px]" data-testid="cup-preview-root">
       {label ? (
-        <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wide text-slate-400">
-          {label}
-        </p>
+        <p className="mb-1.5 text-center text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</p>
       ) : null}
       <div
-        className="relative aspect-square overflow-hidden rounded-2xl border border-slate-700 bg-gradient-to-b from-slate-800 to-slate-950"
+        className="relative aspect-square overflow-hidden"
         data-preview-scene={scene}
         data-testid="cup-preview-frame"
+        ref={frameRef}
+        style={{ isolation: "isolate" }}
       >
         {sceneUrl ? (
           // eslint-disable-next-line @next/next/no-img-element -- local static scene background
@@ -193,6 +269,7 @@ export function CupPreview({
             alt=""
             className="absolute inset-0 z-0 size-full object-cover object-center"
             data-testid="cup-preview-scene"
+            draggable={false}
             src={sceneUrl}
           />
         ) : (
@@ -203,43 +280,49 @@ export function CupPreview({
           // eslint-disable-next-line @next/next/no-img-element -- local static cup template
           <img
             alt=""
-            className="z-10"
+            className="z-[1]"
             data-cup-size={sizeMl}
             data-testid="cup-preview-cup"
+            draggable={false}
             src={cupUrl}
             style={cupStyle}
           />
         ) : (
           <div
-            className="absolute inset-x-8 top-10 bottom-16 z-10 rounded-t-[3rem] border-2 border-slate-500/60 bg-slate-700/30"
+            className="absolute inset-x-8 top-10 bottom-16 z-[1] rounded-t-[3rem] border-2 border-slate-500/60 bg-slate-700/30"
             data-testid="cup-preview-cup"
           />
         )}
 
         <div
-          className="pointer-events-none absolute z-20 -translate-x-1/2 rounded-md border border-dashed border-sky-400/40"
+          className="absolute z-[2] overflow-hidden"
           data-print-area={resolvedPrintArea}
-          data-testid="cup-preview-print-band"
-          style={artworkRegionStyle}
-        />
-
-        <div
-          className="pointer-events-none absolute z-30 -translate-x-1/2 overflow-hidden"
           data-testid="cup-preview-print-clip"
-          style={artworkRegionStyle}
+          style={clipRegionStyle}
         >
           {artworkDataUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- blob/data preview only
-            <img
-              alt="Artwork preview"
-              className="z-30"
+            <div
+              className={`absolute inset-0 ${artworkDraggable ? "cursor-grab active:cursor-grabbing" : ""}`}
               data-testid="cup-preview-artwork"
-              src={artworkDataUrl}
-              style={artworkStyle}
-            />
+              onPointerDown={handleArtworkPointerDown}
+              role={artworkDraggable ? "button" : undefined}
+              style={{
+                ...artworkStyle,
+                pointerEvents: artworkDraggable ? "auto" : "none"
+              }}
+              tabIndex={artworkDraggable ? 0 : undefined}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- blob/data preview only */}
+              <img
+                alt="Artwork preview"
+                className="pointer-events-none size-full object-contain"
+                draggable={false}
+                src={artworkDataUrl}
+              />
+            </div>
           ) : (
             <div
-              className="absolute z-30 grid place-items-center rounded border border-dashed border-orange-400/50 bg-orange-500/10 text-[10px] font-semibold text-orange-200"
+              className="pointer-events-none absolute grid place-items-center rounded border border-dashed border-orange-400/50 bg-orange-500/10 text-[10px] font-semibold text-orange-200"
               data-testid="cup-preview-artwork"
               style={artworkStyle}
             >
@@ -249,14 +332,14 @@ export function CupPreview({
         </div>
 
         {missingAsset && metadata?.missingAssetLabel ? (
-          <div className="absolute inset-x-3 top-2 z-40 rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-center text-[10px] font-medium text-amber-100">
+          <div className="absolute inset-x-3 top-2 z-[3] rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-center text-[10px] font-medium text-amber-100">
             {metadata.missingAssetLabel}
           </div>
         ) : null}
       </div>
 
       {metadata ? (
-        <dl className="mt-3 space-y-1 text-xs text-slate-400" data-testid="cup-preview-metadata">
+        <dl className="mt-2 space-y-0.5 text-xs text-slate-400" data-testid="cup-preview-metadata">
           {metadata.items?.map((item) => (
             <div className="flex justify-between gap-2" key={`${item.label}-${item.value}`}>
               <dt>{item.label}</dt>

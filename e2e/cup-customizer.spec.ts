@@ -143,7 +143,9 @@ test.describe("Cup Customizer workflows", () => {
     await expect(page.getByText(/Arte carregada/i)).toBeVisible({ timeout: 10000 });
     await page.getByLabel(/Escala da arte/i).fill("1.25");
     await page.getByLabel(/Desvio horizontal/i).fill("8");
-    await page.getByLabel(/Desvio vertical/i).fill("-6");
+    const verticalOffset = page.getByLabel(/Desvio vertical/i);
+    const verticalMin = Number(await verticalOffset.getAttribute("min"));
+    await verticalOffset.fill(String(Math.max(verticalMin, -5)));
     await page.getByLabel(/Rota/i).fill("12");
     await expect(page.getByTestId("cup-preview-artwork")).toBeVisible();
     await page.getByRole("button", { name: /Guardar simula/i }).click();

@@ -1516,7 +1516,6 @@ export type Dictionary = {
       cupType: string;
       printColors: string;
       printArea: string;
-      artworkPosition: string;
       artworkScale: string;
       artworkOffsetX: string;
       artworkOffsetY: string;
@@ -1531,7 +1530,6 @@ export type Dictionary = {
     printAreas: Record<"deg180" | "deg360", string>;
     cupTypes: Record<"reusable_pp" | "paper", string>;
     materials: Record<"polypropylene" | "paper", string>;
-    artworkPositions: Record<"left" | "center" | "right", string>;
     artwork: {
       upload: string;
       useLogo: string;
