@@ -190,6 +190,12 @@ describe("campaign approval service", () => {
     expect(buildSendIdempotencyKey("cmp_test", row)).toContain(hash);
   });
 
+  it("changes approval hash when only HTML changes", () => {
+    const base = recipient({ personalizedHtml: "<p>Version one</p>" });
+    const changed = recipient({ personalizedHtml: "<p>Version two</p>" });
+    expect(buildApprovalContentHash(base)).not.toBe(buildApprovalContentHash(changed));
+  });
+
   it("derives campaign progress and status", () => {
     const rows = [
       recipient({ draftStatus: "DRAFTED" }),

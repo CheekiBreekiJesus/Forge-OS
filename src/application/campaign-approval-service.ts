@@ -78,6 +78,7 @@ export function buildApprovalContentHash(recipient: CampaignRecipient): string {
     recipient.snapshotEmail.trim().toLowerCase(),
     recipient.personalizedSubject.trim(),
     recipient.personalizedPlainText.trim(),
+    recipient.personalizedHtml.trim(),
     String(recipient.templateVersion ?? 0)
   ].join("::");
 }

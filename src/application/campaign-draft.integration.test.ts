@@ -155,4 +155,40 @@ describe("campaign draft integration", () => {
     const recipient = (await repos.campaignRecipients.listForCampaign(DEFAULT_TENANT_ID, campaign.id))[0];
     expect(recipient?.snapshotWebsite).toBe("https://website.example");
   });
+
+  it("preserves portfolio image HTML block after manual draft edits", async () => {
+    const repos = createLocalRepositoryBundle(getDatabase(TEST_DB));
+    const csv = [
+      "company,contact,email,region,industry",
+      "Portfolio Co,Site User,portfolio@example.invalid,Lisbon,Hospitality"
+    ].join("\n");
+
+    const preview = await buildImportPreview(repos, DEFAULT_TENANT_ID, csvFile(csv));
+    await confirmLeadImport(repos, DEFAULT_TENANT_ID, preview.batchId, { allowRepeatImport: true });
+    const lead = (await repos.leads.list(DEFAULT_TENANT_ID)).find(
+      (row) => row.companyName === "Portfolio Co"
+    );
+    expect(lead).toBeTruthy();
+
+    const { campaign } = await createCampaignWithSnapshot(repos, DEFAULT_TENANT_ID, {
+      name: "Portfolio Draft Campaign",
+      segmentDefinition: buildSegmentDefinitionFromSelection("selected_organizations", [lead!.id])
+    });
+
+    await generateCampaignDrafts(repos, DEFAULT_TENANT_ID, campaign.id);
+    const recipient = (
+      await repos.campaignRecipients.listForCampaign(DEFAULT_TENANT_ID, campaign.id)
+    ).find((row) => row.status === "included");
+    expect(recipient?.personalizedHtml).toContain("text-align:center");
+
+    await updateRecipientDraftContent(repos, DEFAULT_TENANT_ID, recipient!.id, {
+      personalizedSubject: recipient!.personalizedSubject,
+      personalizedPlainText:
+        "Corpo atualizado com instrução de remoção: responda com o assunto Remover."
+    });
+
+    const reloaded = await repos.campaignRecipients.getById(DEFAULT_TENANT_ID, recipient!.id);
+    expect(reloaded?.personalizedHtml).toContain("text-align:center");
+    expect(reloaded?.personalizedHtml).toContain("<em>");
+  });
 });

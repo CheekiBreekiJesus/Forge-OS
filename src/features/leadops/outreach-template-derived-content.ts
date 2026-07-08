@@ -157,11 +157,25 @@ export function buildPortfolioImageLine(imageUrl: string, alt: string, locale: s
 }
 
 export function buildPortfolioImageHtml(imageUrl: string, alt: string): string {
-  if (imageUrl.trim()) {
-    return `<img src="${imageUrl}" alt="${alt}" style="max-width:320px;height:auto;border-radius:8px;" />`;
+  const safeUrl = imageUrl.trim();
+  const safeAlt = escapeHtmlText(alt);
+  if (safeUrl && /^https:\/\//i.test(safeUrl)) {
+    return `<img src="${escapeHtmlAttribute(safeUrl)}" alt="${safeAlt}" style="max-width:320px;height:auto;border-radius:8px;" />`;
   }
 
-  return `<em>${alt}</em>`;
+  return `<em>${safeAlt}</em>`;
+}
+
+function escapeHtmlAttribute(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function escapeHtmlText(value: string): string {
+  return escapeHtmlAttribute(value);
 }
 
 function formatPortugueseList(items: string[]): string {

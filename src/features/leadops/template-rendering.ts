@@ -48,6 +48,8 @@ export type TemplateRenderInput = {
   sender: SenderIdentitySnapshot;
   company: CompanyProfileSnapshot;
   unsubscribeInstruction?: string;
+  /** Public HTTPS URL only. Blob and local paths are rejected for email safety. */
+  portfolioImageUrl?: string;
 };
 
 export type TemplateRenderResult = {
@@ -217,7 +219,7 @@ function buildVariableMap(
 
   const recommendedProducts = buildRecommendedProducts(category, input.language);
   const broaderRangeLine = buildBroaderRangeLine(localizedCategory, input.language);
-  const portfolioImageUrl = "";
+  const portfolioImageUrl = resolvePublicPortfolioImageUrl(input.portfolioImageUrl);
   const portfolioImageAlt = buildPortfolioImageAlt(input.language);
   const portfolioImageLine = buildPortfolioImageLine(
     portfolioImageUrl,
@@ -381,7 +383,17 @@ function normalizeValue(value: string | null | undefined): string {
 
 export function countUnresolvedInTemplate(
   subjectTemplate: string,
-  plainTextTemplate: string
+  plainTextTemplate: string,
+  htmlTemplate = ""
 ): string[] {
-  return findUnknownTemplateVariables(`${subjectTemplate}\n${plainTextTemplate}`, ALLOWED_KEYS);
+  return findUnknownTemplateVariables(
+    `${subjectTemplate}\n${plainTextTemplate}\n${htmlTemplate}`,
+    ALLOWED_KEYS
+  );
+}
+
+function resolvePublicPortfolioImageUrl(candidate: string | undefined): string {
+  const value = candidate?.trim() ?? "";
+  if (!value) return "";
+  return /^https:\/\//i.test(value) ? value : "";
 }

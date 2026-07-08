@@ -133,6 +133,23 @@ function createProvider(): EmailDeliveryProvider {
 }
 
 describe("protected outreach test send service", () => {
+  it("rejects placeholder test recipient emails", async () => {
+    const recipient = approvedRecipient();
+    const repos = createRepos(recipient);
+    const provider = createProvider();
+
+    await expect(
+      sendProtectedTestEmail(repos, provider, {
+        campaignId: campaign.id,
+        confirmation: "SEND TEST",
+        recipientId: recipient.id,
+        tenantId: "tenant_a",
+        testRecipientEmail: "n/a"
+      })
+    ).rejects.toThrow(/valid test recipient email/i);
+    expect(provider.send).not.toHaveBeenCalled();
+  });
+
   it("persists TEST_SENT attempt without marking the original lead sent", async () => {
     vi.stubEnv("FORGEOS_PUBLIC_BASE_URL", "https://forgeos.example");
     vi.stubEnv("OUTREACH_UNSUBSCRIBE_SECRET", "test-secret-with-enough-entropy-for-hmac-signing");

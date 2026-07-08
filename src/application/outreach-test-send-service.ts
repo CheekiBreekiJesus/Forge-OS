@@ -10,14 +10,12 @@ import { buildApprovalContentHash } from "@/application/campaign-approval-servic
 import { readEmailDeliveryConfig } from "@/features/email-delivery/config";
 import { buildUnsubscribeUrl, createUnsubscribeToken } from "@/features/email-delivery/unsubscribe-token";
 import { assertServerOnlyModule } from "@/features/email-delivery/server-only";
-import { normalizeEmail } from "@/features/leadops/import-normalization";
+import { isValidEmailSyntax, normalizeEmail } from "@/features/leadops/import-normalization";
 import type { LocalRepositoryBundle } from "@/persistence/interfaces";
 import { PersistenceError } from "@/persistence/interfaces";
 import { createHash } from "node:crypto";
 
 assertServerOnlyModule();
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type ProtectedTestEmailInput = {
   tenantId: string;
@@ -60,8 +58,8 @@ export async function sendProtectedTestEmail(
     throw new PersistenceError("invalid_transition", "Protected test confirmation is required.");
   }
 
-  const testRecipientEmail = input.testRecipientEmail.trim().toLowerCase();
-  if (!EMAIL_RE.test(testRecipientEmail)) {
+  const testRecipientEmail = normalizeEmail(input.testRecipientEmail);
+  if (!isValidEmailSyntax(testRecipientEmail)) {
     throw new PersistenceError("invalid_transition", "A valid test recipient email is required.");
   }
 

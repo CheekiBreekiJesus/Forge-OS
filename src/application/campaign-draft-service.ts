@@ -144,7 +144,8 @@ export async function previewCampaignDrafts(
       needsReview: included.filter((row) => row.draftStatus === "NEEDS_REVIEW").length,
       unresolvedTemplateVariables: countUnresolvedInTemplate(
         campaign.subjectTemplate,
-        campaign.plainTextTemplate
+        campaign.plainTextTemplate,
+        campaign.htmlTemplate
       ).length,
       editedDrafts: included.filter((row) => row.userEdited).length
     },
@@ -277,15 +278,33 @@ export async function updateRecipientDraftContent(
     await invalidateRecipientApproval(repos, tenantId, recipientId, "manual_draft_edit");
   }
 
+  const personalizedHtml = mergeManualDraftHtml(existing?.personalizedHtml ?? "", plainText);
+
   return repos.campaignRecipients.updateDraft(tenantId, recipientId, {
     personalizedSubject: subject,
     personalizedPlainText: plainText,
-    personalizedHtml: sanitizeEmailHtml(plainTextToHtml(plainText)),
+    personalizedHtml,
     draftStatus: hasUnresolved.length > 0 ? "NEEDS_REVIEW" : "DRAFTED",
     generationMethod: "manual",
     userEdited: true,
     draftUpdatedAt: nowIso()
   });
+}
+
+const PORTFOLIO_HTML_BLOCK =
+  /<p style="text-align:center;margin:20px 0;">[\s\S]*?<\/p>/i;
+
+function mergeManualDraftHtml(previousHtml: string, plainText: string): string {
+  const regenerated = sanitizeEmailHtml(plainTextToHtml(plainText));
+  const portfolioBlock = previousHtml.match(PORTFOLIO_HTML_BLOCK)?.[0];
+  if (!portfolioBlock) return regenerated;
+
+  const ctaPattern = /(<p>Gostaria de saber|<p>Would you like|<p>I would like)/i;
+  if (ctaPattern.test(regenerated)) {
+    return regenerated.replace(ctaPattern, `${portfolioBlock}\n\n$1`);
+  }
+
+  return `${regenerated}\n\n${portfolioBlock}`;
 }
 
 function findManualUnresolved(subject: string, body: string): string[] {

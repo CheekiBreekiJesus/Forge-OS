@@ -201,4 +201,54 @@ describe("template rendering", () => {
     expect(result.plainText).toContain("copos reutilizáveis");
     expect(result.plainText).toContain("Remover");
   });
+
+  it("renders public HTTPS portfolio images in HTML and plain text", () => {
+    const portfolioUrl = "https://cdn.example.pt/mockups/cup-preview.svg";
+    const result = renderCampaignTemplate({
+      subjectTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.subjectTemplate,
+      plainTextTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.plainTextTemplate,
+      htmlTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.htmlTemplate,
+      language: "pt-PT",
+      recipient,
+      sender,
+      company,
+      portfolioImageUrl: portfolioUrl
+    });
+
+    expect(result.html).toContain(`src="${portfolioUrl}"`);
+    expect(result.plainText).toContain(portfolioUrl);
+  });
+
+  it("rejects non-HTTPS portfolio URLs and keeps accessible placeholder", () => {
+    const result = renderCampaignTemplate({
+      subjectTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.subjectTemplate,
+      plainTextTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.plainTextTemplate,
+      htmlTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.htmlTemplate,
+      language: "pt-PT",
+      recipient,
+      sender,
+      company,
+      portfolioImageUrl: "blob:http://localhost/mockup"
+    });
+
+    expect(result.html).toContain("<em>");
+    expect(result.html).not.toContain("blob:");
+  });
+
+  it("includes plain text and HTML for default PT outreach template", () => {
+    const result = renderCampaignTemplate({
+      subjectTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.subjectTemplate,
+      plainTextTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.plainTextTemplate,
+      htmlTemplate: DEFAULT_PT_CUP_OUTREACH_TEMPLATE.htmlTemplate,
+      language: "pt-PT",
+      recipient,
+      sender,
+      company
+    });
+
+    expect(result.plainText.trim().length).toBeGreaterThan(100);
+    expect(result.html).toContain("<p>");
+    expect(result.plainText).toContain("copos reutilizáveis");
+    expect(result.html).toContain("copos reutilizáveis");
+  });
 });

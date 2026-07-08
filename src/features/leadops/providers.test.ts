@@ -194,4 +194,21 @@ describe("LeadOps providers", () => {
     expect(result.providerStatus).toBe("blocked");
     expect(readLastDeliveryInvocation()?.invoked).toBe(false);
   });
+
+  it("blocks direct Brevo delivery on the leadops send path", async () => {
+    vi.stubEnv("EMAIL_DELIVERY_PROVIDER", "brevo");
+    vi.stubEnv("OUTREACH_DELIVERY_PROVIDER", "brevo");
+
+    const result = await deliverApprovedOutreachMessage(
+      buildDeliveryRequest({
+        approvedSubject: "Exact Subject Line",
+        approvedPlainText: "Exact body paragraph."
+      })
+    );
+
+    expect(result.mode).toBe("brevo");
+    expect(result.providerStatus).toBe("blocked");
+    expect(result.error).toContain("protected test-email workflow");
+    expect(readLastDeliveryInvocation()?.invoked).toBe(false);
+  });
 });

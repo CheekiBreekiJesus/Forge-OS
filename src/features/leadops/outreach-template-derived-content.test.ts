@@ -38,4 +38,13 @@ describe("outreach template derived content", () => {
     expect(html).toContain("<em>");
     expect(html).not.toContain('src=""');
   });
+
+  it("escapes unsafe characters in portfolio image URLs", () => {
+    const html = buildPortfolioImageHtml(
+      'https://cdn.example.pt/x" onerror="alert(1)',
+      "Exemplo de copo personalizado JH Gomes"
+    );
+    expect(html).toContain("https://cdn.example.pt/");
+    expect(html).not.toContain('onerror="alert(1)"');
+  });
 });

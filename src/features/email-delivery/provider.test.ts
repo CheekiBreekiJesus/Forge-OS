@@ -174,4 +174,94 @@ describe("BrevoEmailDeliveryProvider", () => {
     expect(result.retryable).toBe(true);
     expect(result.errorMessage).not.toContain("test-api-key");
   });
+
+  it("blocks when Brevo is not fully configured", async () => {
+    const provider = new BrevoEmailDeliveryProvider(
+      readEmailDeliveryConfig({
+        EMAIL_DELIVERY_PROVIDER: "brevo",
+        OUTREACH_REAL_SEND_ENABLED: "true",
+        OUTREACH_TEST_SEND_ENABLED: "true"
+      })
+    );
+
+    const result = await provider.send(request);
+
+    expect(result.status).toBe("blocked");
+    expect(result.errorCode).toBe("configuration_missing");
+  });
+
+  it("blocks protected test sends when the test-send gate is disabled", async () => {
+    const provider = new BrevoEmailDeliveryProvider(
+      readEmailDeliveryConfig({
+        BREVO_API_KEY: "test-api-key",
+        BREVO_SENDER_EMAIL: "sender@example.com",
+        BREVO_SENDER_NAME: "ForgeOS",
+        EMAIL_DELIVERY_PROVIDER: "brevo",
+        FORGEOS_PUBLIC_BASE_URL: "https://forgeos.example",
+        OUTREACH_UNSUBSCRIBE_SECRET: "test-secret-with-enough-entropy-for-hmac-signing",
+        BREVO_WEBHOOK_SECRET: "test-webhook-secret-with-enough-entropy",
+        OUTREACH_REAL_SEND_ENABLED: "true",
+        OUTREACH_TEST_RECIPIENT_ALLOWLIST: "qa@example.com",
+        OUTREACH_TEST_SEND_ENABLED: "false"
+      })
+    );
+
+    const result = await provider.send(request);
+
+    expect(result.status).toBe("blocked");
+    expect(result.errorCode).toBe("test_send_disabled");
+  });
+
+  it("blocks provider delivery without an unsubscribe URL", async () => {
+    const provider = new BrevoEmailDeliveryProvider(
+      readEmailDeliveryConfig({
+        BREVO_API_KEY: "test-api-key",
+        BREVO_SENDER_EMAIL: "sender@example.com",
+        BREVO_SENDER_NAME: "ForgeOS",
+        EMAIL_DELIVERY_PROVIDER: "brevo",
+        FORGEOS_PUBLIC_BASE_URL: "https://forgeos.example",
+        OUTREACH_UNSUBSCRIBE_SECRET: "test-secret-with-enough-entropy-for-hmac-signing",
+        BREVO_WEBHOOK_SECRET: "test-webhook-secret-with-enough-entropy",
+        OUTREACH_REAL_SEND_ENABLED: "true",
+        OUTREACH_TEST_RECIPIENT_ALLOWLIST: "qa@example.com",
+        OUTREACH_TEST_SEND_ENABLED: "true"
+      })
+    );
+
+    const result = await provider.send({ ...request, unsubscribeUrl: "" });
+
+    expect(result.status).toBe("blocked");
+    expect(result.errorCode).toBe("invalid_request");
+  });
+
+  it("classifies Brevo timeouts as retryable failures", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(
+      () =>
+        new Promise((_resolve, reject) => {
+          const error = new DOMException("Aborted", "AbortError");
+          reject(error);
+        })
+    );
+    const provider = new BrevoEmailDeliveryProvider(
+      readEmailDeliveryConfig({
+        BREVO_API_KEY: "test-api-key",
+        BREVO_SENDER_EMAIL: "sender@example.com",
+        BREVO_SENDER_NAME: "ForgeOS",
+        EMAIL_DELIVERY_PROVIDER: "brevo",
+        FORGEOS_PUBLIC_BASE_URL: "https://forgeos.example",
+        OUTREACH_UNSUBSCRIBE_SECRET: "test-secret-with-enough-entropy-for-hmac-signing",
+        BREVO_WEBHOOK_SECRET: "test-webhook-secret-with-enough-entropy",
+        OUTREACH_REAL_SEND_ENABLED: "true",
+        OUTREACH_TEST_RECIPIENT_ALLOWLIST: "qa@example.com",
+        OUTREACH_TEST_SEND_ENABLED: "true",
+        OUTREACH_PROVIDER_TIMEOUT_MS: "1"
+      })
+    );
+
+    const result = await provider.send(request);
+
+    expect(result.status).toBe("failed");
+    expect(result.errorCode).toBe("timeout");
+    expect(result.retryable).toBe(true);
+  });
 });
