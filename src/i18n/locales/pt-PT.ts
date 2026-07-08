@@ -1795,7 +1795,8 @@ export const dictionary: Dictionary = {
         owner: "Proprietário",
         sales: "Comercial",
         production_manager: "Gestor de produção",
-        warehouse_manager: "Gestor de armazém"
+        warehouse_manager: "Gestor de armazém",
+        warehouse_operator: "Operador de armazém"
       }
     },
     commandPalette: {

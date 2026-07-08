@@ -1352,7 +1352,7 @@ export type Dictionary = {
     rolePreview: {
       badge: string;
       label: string;
-      roles: Record<"owner" | "sales" | "production_manager" | "warehouse_manager", string>;
+      roles: Record<"owner" | "sales" | "production_manager" | "warehouse_manager" | "warehouse_operator", string>;
     };
     commandPalette: {
       placeholder: string;

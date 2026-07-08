@@ -78,7 +78,10 @@ export function useOfflineMovementSync(
 
   useEffect(() => {
     if (!inventoryProduct || !isBrowserOnline()) return;
-    void syncQueue();
+    const timer = window.setTimeout(() => {
+      void syncQueue();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [inventoryProduct, syncQueue]);
 
   const retryFailedSync = useCallback(() => syncQueue({ retryFailed: true }), [syncQueue]);
