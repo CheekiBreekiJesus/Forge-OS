@@ -1,6 +1,7 @@
 import path from "node:path";
 import { expect, test } from "@playwright/test";
 import {
+  attachHostedPreparationApiMocks,
   attachPaidCallGuard,
   gotoAndWait,
   resetAcceptanceState
@@ -9,6 +10,7 @@ import {
 test.describe("Campaign templates and drafts", () => {
   test.beforeEach(async ({ page }) => {
     attachPaidCallGuard(page);
+    await attachHostedPreparationApiMocks(page);
     await resetAcceptanceState(page);
   });
 

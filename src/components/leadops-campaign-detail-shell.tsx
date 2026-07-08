@@ -567,7 +567,7 @@ export function LeadOpsCampaignDetailShell({
                         <td className="px-3 py-2">{recipient.status}</td>
                         <td className="px-3 py-2">{latestSendJob.provider}</td>
                         <td className="px-3 py-2">
-                          {recipient.completedAt ? new Date(recipient.completedAt).toLocaleString(locale) : "-"}
+                          {recipient.completedAt ? formatCampaignDateTime(recipient.completedAt, locale) : "-"}
                         </td>
                       </tr>
                     ))}
@@ -608,7 +608,7 @@ export function LeadOpsCampaignDetailShell({
                         <td className="px-3 py-2">{event.processingStatus}</td>
                         <td className="px-3 py-2">{event.effect}</td>
                         <td className="px-3 py-2">{event.providerMessageId ? "recorded" : "unmatched"}</td>
-                        <td className="px-3 py-2">{new Date(event.receivedAt).toLocaleString(locale)}</td>
+                        <td className="px-3 py-2">{formatCampaignDateTime(event.receivedAt, locale)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -660,7 +660,7 @@ export function LeadOpsCampaignDetailShell({
                     label={copy.campaigns.snapshotCreated}
                     value={
                       campaign.recipientSnapshotCreatedAt
-                        ? new Date(campaign.recipientSnapshotCreatedAt).toLocaleString(locale)
+                        ? formatCampaignDateTime(campaign.recipientSnapshotCreatedAt, locale)
                         : "—"
                     }
                   />
@@ -823,7 +823,7 @@ export function LeadOpsCampaignDetailShell({
                     <DetailRow
                       label={hostedPreparationCopy.preparedAt}
                       testId="hosted-preparation-prepared-at"
-                      value={new Date(hostedPreparationStatus.preparedAt).toLocaleString(locale)}
+                      value={formatCampaignDateTime(hostedPreparationStatus.preparedAt, locale)}
                     />
                     <DetailRow
                       label={hostedPreparationCopy.preparedBy}
@@ -846,7 +846,7 @@ export function LeadOpsCampaignDetailShell({
                     <ul className="mt-2 space-y-1">
                       {hostedPreparationStatus.activity.map((event) => (
                         <li key={`${event.action}:${event.occurredAt}`}>
-                          {new Date(event.occurredAt).toLocaleString(locale)} - {event.title}
+                          {formatCampaignDateTime(event.occurredAt, locale)} - {event.title}
                         </li>
                       ))}
                     </ul>
@@ -885,6 +885,18 @@ class LocalSimulationProvider implements SendJobDeliveryProvider {
       status: "accepted" as const
     };
   }
+}
+
+function formatCampaignDateTime(iso: string, locale: Locale): string {
+  const tag = locale === "pt-PT" ? "pt-PT" : "en-GB";
+  return new Intl.DateTimeFormat(tag, {
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "2-digit",
+    timeZone: "UTC",
+    year: "numeric"
+  }).format(new Date(iso));
 }
 
 function ProgressItem({

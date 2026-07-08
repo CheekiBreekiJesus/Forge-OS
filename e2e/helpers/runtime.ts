@@ -21,22 +21,27 @@ export const PLAYWRIGHT_RUNTIME = {
 } as const;
 
 export function buildPlaywrightWebServerEnv(dbName: string): Record<string, string> {
-  const env: Record<string, string> = {
-    FORGEOS_E2E: "true",
-    FORGEOS_LOCAL_DB_NAME: dbName,
-    NEXT_PUBLIC_FORGEOS_LOCAL_DB_NAME: dbName,
-    ABACUS_API_KEY: "",
-    AI_DEFAULT_PROVIDER: "deterministic",
-    AI_FALLBACK_PROVIDER: "deterministic",
-    AI_OUTREACH_PROVIDER: "deterministic",
-    OUTREACH_DELIVERY_PROVIDER: "simulation"
-  };
+  const env: Record<string, string> = {};
 
   for (const [key, value] of Object.entries(process.env)) {
     if (typeof value === "string") {
       env[key] = value;
     }
   }
+
+  Object.assign(env, {
+    ABACUS_API_KEY: "",
+    AI_DEFAULT_PROVIDER: "deterministic",
+    AI_FALLBACK_PROVIDER: "deterministic",
+    AI_OUTREACH_PROVIDER: "deterministic",
+    EMAIL_DELIVERY_PROVIDER: "simulation",
+    FORGEOS_E2E: "true",
+    FORGEOS_LOCAL_DB_NAME: dbName,
+    NEXT_PUBLIC_FORGEOS_LOCAL_DB_NAME: dbName,
+    OUTREACH_DELIVERY_PROVIDER: "simulation",
+    OUTREACH_REAL_SEND_ENABLED: "false",
+    OUTREACH_TEST_SEND_ENABLED: "false"
+  });
 
   return env;
 }
