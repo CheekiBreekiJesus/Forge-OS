@@ -411,6 +411,9 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
       setFormError(copy.artwork.noLogo);
       return;
     }
+    if (artworkAssetId && artworkAssetIsOwned) {
+      await state.repos.localAssets.delete(tenantId, artworkAssetId).catch(() => {});
+    }
     setArtworkAssetId(asset.id);
     setArtworkAssetIsOwned(false);
     setArtworkPreviewUrl(URL.createObjectURL(asset.blob));
@@ -494,6 +497,9 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
     if (state.status !== "ready" || !selectedProduct || !pricing) return mockupAssetId;
     const blob = await buildMockupBlob();
     if (!blob) return mockupAssetId;
+    if (mockupAssetId) {
+      await state.repos.localAssets.delete(tenantId, mockupAssetId).catch(() => {});
+    }
     const safeSku = selectedProduct.sku.toLowerCase().replace(/[^a-z0-9-]+/g, "-") || "cup";
     const asset = await state.repos.localAssets.create(tenantId, {
       assetType: "product-image",
@@ -663,8 +669,8 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
       ) : cupProducts.length === 0 ? (
         <div className={`${panelClass} p-8 text-center text-slate-400`}>{copy.emptyProducts}</div>
       ) : (
-        <div className="grid gap-5 xl:grid-cols-[1.4fr_1fr]">
-          <div className="space-y-5">
+        <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
+          <div className="order-2 space-y-5 lg:order-1">
             <section className={`${panelClass} p-5`}>
               <h2 className="text-sm font-bold uppercase tracking-wide text-slate-400">{copy.sections.context}</h2>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -1031,7 +1037,7 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
             </section>
           </div>
 
-          <div className="space-y-5">
+          <div className="order-1 space-y-5 lg:order-2">
             <section className={`${panelClass} p-5`}>
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-sm font-bold uppercase tracking-wide text-slate-400">{copy.preview.label}</h2>
