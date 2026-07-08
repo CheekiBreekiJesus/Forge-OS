@@ -1,0 +1,129 @@
+{
+  "version": "1.0.0",
+  "maintenanceMode": "read-only-validation",
+  "readOnly": true,
+  "allowCodexLaunch": false,
+  "allowSourceChanges": false,
+  "allowCommit": false,
+  "allowPush": false,
+  "allowMerge": false,
+  "allowDeploy": false,
+  "maximumSignificantChangesPerRun": 0,
+  "reportPaths": {
+    "healthReport": "qa/reports/latest-health.json",
+    "codexTask": "qa/reports/next-codex-task.md",
+    "healthSchema": "qa/reports/health-report.schema.json"
+  },
+  "allowedCommands": [
+    "npm",
+    "node",
+    "git",
+    "npx"
+  ],
+  "prohibitedActions": [
+    "commit",
+    "push",
+    "merge",
+    "deploy",
+    "modify-application-source",
+    "launch-codex",
+    "access-customer-data"
+  ],
+  "sensitivePathPatterns": [
+    "\\\\Users\\\\[^\\\\]+\\\\",
+    "/home/[^/]+/",
+    "/Users/[^/]+/",
+    "AppData\\\\Local\\\\npm-cache",
+    "\\.env(\\.local)?$",
+    "service[_-]?role",
+    "customer-config"
+  ],
+  "secretRedactionPatterns": [
+    "sk-[A-Za-z0-9]{10,}",
+    "Bearer\\s+[A-Za-z0-9._-]+",
+    "Authorization:\\s*[^\\s]+",
+    "postgres(ql)?://[^\\s]+",
+    "mongodb(\\+srv)?://[^\\s]+",
+    "SUPABASE_[A-Z_]+=\\S+",
+    "OPENAI_API_KEY=\\S+",
+    "API_KEY=\\S+",
+    "SECRET=\\S+",
+    "TOKEN=\\S+"
+  ],
+  "codexLaunchConditions": {
+    "requiresActionableCodeFailure": true,
+    "requiresPolicyAllowCodexLaunch": true,
+    "requiresReadOnlyDisabled": true,
+    "excludesMissingDependencies": true,
+    "excludesMissingEnvironment": true,
+    "maximumTasksPerRun": 1
+  },
+  "healthyStopConditions": {
+    "allRequiredChecksPass": true,
+    "noActionableFailure": true,
+    "noUnexpectedApplicationChanges": true,
+    "noPrivateDataDetected": true,
+    "codexNotLaunched": true,
+    "noFollowUpTaskRequired": true
+  },
+  "checks": [
+    {
+      "id": "repository-structure",
+      "label": "Repository structure validation",
+      "required": true,
+      "type": "structure"
+    },
+    {
+      "id": "git-state",
+      "label": "Git state inspection",
+      "required": true,
+      "type": "git"
+    },
+    {
+      "id": "package-validation",
+      "label": "Package and workspace validation",
+      "required": true,
+      "type": "package"
+    },
+    {
+      "id": "lint",
+      "label": "ESLint",
+      "required": true,
+      "type": "npm-script",
+      "npmScript": "lint"
+    },
+    {
+      "id": "typecheck",
+      "label": "TypeScript type checking",
+      "required": true,
+      "type": "npm-script",
+      "npmScript": "typecheck"
+    },
+    {
+      "id": "test",
+      "label": "Unit tests",
+      "required": true,
+      "type": "npm-script",
+      "npmScript": "test"
+    },
+    {
+      "id": "build",
+      "label": "Production build",
+      "required": true,
+      "type": "npm-script",
+      "npmScript": "build"
+    }
+  ],
+  "timeouts": {
+    "defaultMs": 300000,
+    "buildMs": 600000,
+    "gitMs": 30000
+  },
+  "reportRetention": {
+    "ignoreGeneratedReportsInGitDirtyCheck": true,
+    "trackedArtifacts": [
+      "qa/reports/.gitkeep",
+      "qa/reports/health-report.schema.json"
+    ]
+  }
+}

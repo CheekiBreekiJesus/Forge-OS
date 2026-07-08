@@ -1,0 +1,530 @@
+{
+  "discoveredSdkVersion": "1.4.102",
+  "generatedAt": "2026-06-30T11:26:31.893Z",
+  "sdkAvailable": true,
+  "source": "abacusai.LLMName",
+  "models": [
+    {
+      "deprecated": false,
+      "family": "Abacus",
+      "id": "ABACUS_DRACARYS",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Abacus",
+      "id": "ABACUS_SMAUG3",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Anthropic Claude",
+      "id": "CLAUDE_V3_5_HAIKU",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Anthropic Claude",
+      "id": "CLAUDE_V3_5_SONNET",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Anthropic Claude",
+      "id": "CLAUDE_V3_7_SONNET",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": true,
+      "family": "Anthropic Claude",
+      "id": "CLAUDE_V3_HAIKU",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Anthropic Claude",
+      "id": "CLAUDE_V3_OPUS",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Anthropic Claude",
+      "id": "CLAUDE_V4_5_OPUS",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Anthropic Claude",
+      "id": "CLAUDE_V4_5_SONNET",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Anthropic Claude",
+      "id": "CLAUDE_V4_6_OPUS",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Anthropic Claude",
+      "id": "CLAUDE_V4_6_SONNET",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Anthropic Claude",
+      "id": "CLAUDE_V4_7_OPUS",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Anthropic Claude",
+      "id": "CLAUDE_V4_8_OPUS",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Anthropic Claude",
+      "id": "CLAUDE_V4_OPUS",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": true,
+      "family": "Anthropic Claude",
+      "id": "CLAUDE_V4_SONNET",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "DeepSeek",
+      "id": "DEEPSEEK_R1",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "DeepSeek",
+      "id": "DEEPSEEK_V3_1",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Google Gemini",
+      "id": "GEMINI_1_5_FLASH",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": true,
+      "family": "Google Gemini",
+      "id": "GEMINI_1_5_PRO",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Google Gemini",
+      "id": "GEMINI_2_5_FLASH",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Google Gemini",
+      "id": "GEMINI_2_5_PRO",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Google Gemini",
+      "id": "GEMINI_2_FLASH",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Google Gemini",
+      "id": "GEMINI_2_PRO",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Google Gemini",
+      "id": "GEMINI_3_1_FLASH_LITE",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Google Gemini",
+      "id": "GEMINI_3_1_PRO",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Google Gemini",
+      "id": "GEMINI_3_5_FLASH",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Google Gemini",
+      "id": "GEMINI_3_FLASH",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Google Gemini",
+      "id": "GEMINI_3_PRO",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Other",
+      "id": "GEMMA_4_31B",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Other",
+      "id": "KIMI_K2_5",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Other",
+      "id": "KIMI_K2_6",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Other",
+      "id": "KIMI_K2_7_CODE",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Meta Llama",
+      "id": "LLAMA3_1_405B",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Meta Llama",
+      "id": "LLAMA3_1_70B",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Meta Llama",
+      "id": "LLAMA3_1_8B",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Meta Llama",
+      "id": "LLAMA3_3_70B",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": true,
+      "family": "Meta Llama",
+      "id": "LLAMA3_LARGE_CHAT",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Meta Llama",
+      "id": "LLAMA4_MAVERICK",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Other",
+      "id": "MINIMAX_M2_7",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Other",
+      "id": "MINIMAX_M3",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": true,
+      "family": "OpenAI",
+      "id": "OPENAI_GPT3_5",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "OpenAI",
+      "id": "OPENAI_GPT3_5_TEXT",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": true,
+      "family": "OpenAI",
+      "id": "OPENAI_GPT4",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "OpenAI",
+      "id": "OPENAI_GPT4O",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "OpenAI",
+      "id": "OPENAI_GPT4O_MINI",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "OpenAI",
+      "id": "OPENAI_GPT4_1",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "OpenAI",
+      "id": "OPENAI_GPT4_128K",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "OpenAI",
+      "id": "OPENAI_GPT4_128K_LATEST",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "OpenAI",
+      "id": "OPENAI_GPT4_1_MINI",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "OpenAI",
+      "id": "OPENAI_GPT4_1_NANO",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "OpenAI",
+      "id": "OPENAI_GPT4_32K",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "OpenAI",
+      "id": "OPENAI_GPT5",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "OpenAI",
+      "id": "OPENAI_GPT5_1",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "OpenAI",
+      "id": "OPENAI_GPT5_2",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "OpenAI",
+      "id": "OPENAI_GPT5_4",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "OpenAI",
+      "id": "OPENAI_GPT5_4_MINI",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "OpenAI",
+      "id": "OPENAI_GPT5_4_NANO",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "OpenAI",
+      "id": "OPENAI_GPT5_5",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "OpenAI",
+      "id": "OPENAI_GPT5_MINI",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "OpenAI",
+      "id": "OPENAI_GPT5_MINI_HIGH",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "OpenAI",
+      "id": "OPENAI_GPT5_MINI_LOW",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "OpenAI",
+      "id": "OPENAI_GPT5_NANO",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "OpenAI",
+      "id": "OPENAI_GPT5_NANO_HIGH",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": true,
+      "family": "OpenAI",
+      "id": "OPENAI_O1_MINI",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "OpenAI",
+      "id": "OPENAI_O3",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "OpenAI",
+      "id": "OPENAI_O3_HIGH",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "OpenAI",
+      "id": "OPENAI_O4_MINI",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "OpenAI",
+      "id": "OPENAI_O4_MINI_HIGH",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Qwen",
+      "id": "QWEN3_235B_A22B",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Qwen",
+      "id": "QWEN3_32B",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Qwen",
+      "id": "QWEN3_6",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Qwen",
+      "id": "QWEN3_6_27B",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Qwen",
+      "id": "QWEN3_7_MAX",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Qwen",
+      "id": "QWEN3_CODER",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Qwen",
+      "id": "QWEN_2_5_32B",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": true,
+      "family": "Qwen",
+      "id": "QWEN_2_5_32B_BASE",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Qwen",
+      "id": "QWEN_2_5_72B",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Qwen",
+      "id": "QWQ_32B",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": true,
+      "family": "xAI",
+      "id": "XAI_GROK",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "xAI",
+      "id": "XAI_GROK_3",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "xAI",
+      "id": "XAI_GROK_3_MINI",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "xAI",
+      "id": "XAI_GROK_4",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "xAI",
+      "id": "XAI_GROK_4_2",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "xAI",
+      "id": "XAI_GROK_4_3",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Other",
+      "id": "XIAOMI_MIMO_V2_PRO",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Other",
+      "id": "ZAI_GLM_5_1",
+      "provider": "abacus"
+    },
+    {
+      "deprecated": false,
+      "family": "Other",
+      "id": "ZAI_GLM_5_2",
+      "provider": "abacus"
+    }
+  ]
+}

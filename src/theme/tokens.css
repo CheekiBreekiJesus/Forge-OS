@@ -1,0 +1,74 @@
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --forge-page-bg: #06111f;
+  --forge-page-bg-gradient-start: #071422;
+  --forge-page-bg-gradient-end: #050b14;
+  --forge-sidebar-bg: rgba(7, 16, 29, 0.95);
+  --forge-topbar-bg: rgba(7, 16, 29, 0.9);
+  --forge-surface: rgba(15, 23, 42, 0.7);
+  --forge-surface-elevated: rgba(15, 23, 42, 0.95);
+  --forge-surface-muted: rgba(2, 6, 23, 0.4);
+  --forge-border: rgba(51, 65, 85, 0.8);
+  --forge-border-subtle: rgba(51, 65, 85, 0.45);
+  --forge-text-primary: #f1f5f9;
+  --forge-text-secondary: #cbd5e1;
+  --forge-text-muted: #94a3b8;
+  --forge-accent-orange: #f97316;
+  --forge-accent-orange-soft: rgba(249, 115, 22, 0.12);
+  --forge-accent-blue: #3b82f6;
+  --forge-accent-blue-soft: rgba(59, 130, 246, 0.12);
+  --forge-success: #34d399;
+  --forge-success-soft: rgba(52, 211, 153, 0.12);
+  --forge-warning: #fbbf24;
+  --forge-warning-soft: rgba(251, 191, 36, 0.12);
+  --forge-danger: #f87171;
+  --forge-danger-soft: rgba(248, 113, 113, 0.12);
+  --forge-info: #22d3ee;
+  --forge-info-soft: rgba(34, 211, 238, 0.12);
+  --forge-chart-grid: rgba(51, 65, 85, 0.6);
+  --forge-input-bg: rgba(2, 6, 23, 0.7);
+  --forge-hover-bg: rgba(51, 65, 85, 0.45);
+  --forge-selected-bg: rgba(249, 115, 22, 0.12);
+  --forge-shadow-soft: 0 1px 0 rgba(255, 255, 255, 0.04);
+  --forge-nav-active-border: #fb923c;
+  --forge-nav-active-text: #fdba74;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  --forge-page-bg: #f8fafc;
+  --forge-page-bg-gradient-start: #ffffff;
+  --forge-page-bg-gradient-end: #f1f5f9;
+  --forge-sidebar-bg: #ffffff;
+  --forge-topbar-bg: rgba(255, 255, 255, 0.92);
+  --forge-surface: #ffffff;
+  --forge-surface-elevated: #ffffff;
+  --forge-surface-muted: #f8fafc;
+  --forge-border: #e2e8f0;
+  --forge-border-subtle: #eef2f7;
+  --forge-text-primary: #0f172a;
+  --forge-text-secondary: #334155;
+  --forge-text-muted: #64748b;
+  --forge-accent-orange: #ea580c;
+  --forge-accent-orange-soft: rgba(234, 88, 12, 0.08);
+  --forge-accent-blue: #2563eb;
+  --forge-accent-blue-soft: rgba(37, 99, 235, 0.08);
+  --forge-success: #059669;
+  --forge-success-soft: rgba(5, 150, 105, 0.08);
+  --forge-warning: #d97706;
+  --forge-warning-soft: rgba(217, 119, 6, 0.08);
+  --forge-danger: #dc2626;
+  --forge-danger-soft: rgba(220, 38, 38, 0.08);
+  --forge-info: #0891b2;
+  --forge-info-soft: rgba(8, 145, 178, 0.08);
+  --forge-chart-grid: #e2e8f0;
+  --forge-input-bg: #ffffff;
+  --forge-hover-bg: #f1f5f9;
+  --forge-selected-bg: rgba(234, 88, 12, 0.08);
+  --forge-shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --forge-nav-active-border: #ea580c;
+  --forge-nav-active-text: #c2410c;
+}

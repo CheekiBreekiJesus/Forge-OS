@@ -1,0 +1,2 @@
+templateReference,name,purpose,width,height,measurementUnit,dpi,orientation,barcodeSymbology,active
+SYN-LABEL-001,Synthetic item label,item,70,35,mm,203,landscape,code128,true

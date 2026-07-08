@@ -1,0 +1,263 @@
+import type {
+  CompanyProfile,
+  LocalAsset,
+  SenderIdentity,
+  UserProfile
+} from "@/domain/profile-types";
+import type { Product } from "@/domain/product-types";
+import type {
+  ActivityEvent,
+  Campaign,
+  Customer,
+  Lead,
+  Opportunity,
+  OutreachMessage,
+  ProductionOrder,
+  Quote
+} from "@/domain/types";
+import type { CampaignRecipient } from "@/domain/campaign-types";
+import type { OutreachProviderEvent, OutreachSendAttempt } from "@/domain/email-delivery-types";
+import type {
+  OutreachSendJob,
+  OutreachSendJobAttempt,
+  OutreachSendJobDailyUsage,
+  OutreachSendJobRecipient
+} from "@/domain/send-job-types";
+import type { EmailSuppression } from "@/domain/suppression-types";
+import type { ImportBatch, ImportRow, LeadContact, ImportMappingProfile } from "@/domain/import-types";
+import type { LocalRepositoryBundle } from "@/persistence/interfaces";
+import {
+  normalizeBackupTables,
+  validateBackupRestoreIntegrity,
+  type BackupRestoreReport
+} from "@/features/backup/restore-validation";
+
+export const BACKUP_VERSION = 8 as const;
+export const SUPPORTED_BACKUP_VERSIONS = [4, 5, 6, 7, 8] as const;
+
+export type ForgeOSBackup = {
+  version: typeof BACKUP_VERSION;
+  exportedAt: string;
+  tenantId: string;
+  tables: {
+    leads: Lead[];
+    customers: Customer[];
+    opportunities: Opportunity[];
+    quotes: Quote[];
+    productionOrders: ProductionOrder[];
+    outreachMessages: OutreachMessage[];
+    campaigns: Campaign[];
+    activities: ActivityEvent[];
+    companyProfiles: CompanyProfile[];
+    userProfiles: UserProfile[];
+    senderIdentities: SenderIdentity[];
+    products: Product[];
+    importBatches: ImportBatch[];
+    importRows: ImportRow[];
+    importMappingProfiles: ImportMappingProfile[];
+    leadContacts: LeadContact[];
+    campaignRecipients: CampaignRecipient[];
+    emailSuppressions: EmailSuppression[];
+    outreachSendAttempts: OutreachSendAttempt[];
+    outreachProviderEvents: OutreachProviderEvent[];
+    outreachSendJobs: OutreachSendJob[];
+    outreachSendJobRecipients: OutreachSendJobRecipient[];
+    outreachSendJobAttempts: OutreachSendJobAttempt[];
+    outreachSendJobDailyUsage: OutreachSendJobDailyUsage[];
+  };
+  localAssets?: Array<Omit<LocalAsset, "blob"> & { blobBase64: string }>;
+};
+
+export async function exportBackup(
+  repos: LocalRepositoryBundle,
+  tenantId: string,
+  includeAssets = true
+): Promise<ForgeOSBackup> {
+  const [
+    leads,
+    customers,
+    opportunities,
+    quotes,
+    productionOrders,
+    outreachMessages,
+    campaigns,
+    activities,
+    companyProfile,
+    userProfiles,
+    senderIdentities,
+    products,
+    importBatches,
+    importRows,
+    importMappingProfiles,
+    leadContacts,
+    campaignRecipients,
+    emailSuppressions,
+    outreachSendAttempts,
+    outreachProviderEvents,
+    outreachSendJobs,
+    outreachSendJobRecipients,
+    outreachSendJobAttempts,
+    outreachSendJobDailyUsage,
+    assets
+  ] = await Promise.all([
+    repos.leads.list(tenantId),
+    repos.customers.list(tenantId),
+    repos.opportunities.list(tenantId),
+    repos.quotes.list(tenantId),
+    repos.productionOrders.list(tenantId),
+    repos.outreachMessages.listAll?.(tenantId) ?? Promise.resolve([]),
+    repos.campaigns.list(tenantId),
+    repos.activities.list(tenantId),
+    repos.companyProfiles.getForTenant(tenantId),
+    repos.userProfiles.list(tenantId),
+    repos.senderIdentities.listAll(tenantId),
+    repos.products.list(tenantId),
+    repos.importBatches.list(tenantId),
+    Promise.resolve([] as ImportRow[]).then(async () => {
+      const batches = await repos.importBatches.list(tenantId);
+      const rows = await Promise.all(
+        batches.map((batch) => repos.importRows.listForBatch(tenantId, batch.id))
+      );
+      return rows.flat();
+    }),
+    repos.importMappingProfiles.list(tenantId),
+    repos.leadContacts.list(tenantId),
+    repos.campaignRecipients.listForTenant(tenantId),
+    repos.emailSuppressions.list(tenantId),
+    repos.outreachSendAttempts.listForTenant(tenantId),
+    repos.outreachProviderEvents.listForTenant(tenantId),
+    repos.outreachSendJobs.listForTenant(tenantId),
+    Promise.resolve([]).then(async () => {
+      const jobs = await repos.outreachSendJobs.listForTenant(tenantId);
+      const rows = await Promise.all(
+        jobs.map((job) => repos.outreachSendJobRecipients.listForJob(tenantId, job.id))
+      );
+      return rows.flat();
+    }),
+    Promise.resolve([]).then(async () => {
+      const jobs = await repos.outreachSendJobs.listForTenant(tenantId);
+      const rows = await Promise.all(
+        jobs.map((job) => repos.outreachSendJobAttempts.listForJob(tenantId, job.id))
+      );
+      return rows.flat();
+    }),
+    Promise.resolve([]).then(async () => {
+      const jobs = await repos.outreachSendJobs.listForTenant(tenantId);
+      const dates = new Set(jobs.map((job) => job.createdAt.slice(0, 10)));
+      const rows = await Promise.all(
+        Array.from(dates).map((date) =>
+          repos.outreachSendJobDailyUsage.get(tenantId, "brevo", date)
+        )
+      );
+      return rows.filter((row): row is OutreachSendJobDailyUsage => Boolean(row));
+    }),
+    includeAssets ? repos.localAssets.list(tenantId) : Promise.resolve([])
+  ]);
+
+  const backup: ForgeOSBackup = {
+    exportedAt: new Date().toISOString(),
+    tables: {
+      activities,
+      campaigns,
+      companyProfiles: companyProfile ? [companyProfile] : [],
+      customers,
+      leads,
+      opportunities,
+      outreachMessages,
+      productionOrders,
+      products,
+      quotes,
+      senderIdentities,
+      userProfiles,
+      importBatches,
+      importRows,
+      importMappingProfiles,
+      leadContacts,
+      campaignRecipients,
+      emailSuppressions,
+      outreachSendAttempts,
+      outreachProviderEvents,
+      outreachSendJobs,
+      outreachSendJobRecipients,
+      outreachSendJobAttempts,
+      outreachSendJobDailyUsage
+    },
+    tenantId,
+    version: BACKUP_VERSION
+  };
+
+  if (includeAssets && assets.length > 0) {
+    backup.localAssets = await Promise.all(
+      assets.map(async (asset) => {
+        const buffer = await asset.blob.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        const { blob: _removed, ...rest } = asset;
+        void _removed;
+        return { ...rest, blobBase64: btoa(binary) };
+      })
+    );
+  }
+
+  return backup;
+}
+
+export function validateBackup(data: unknown): data is ForgeOSBackup {
+  if (!data || typeof data !== "object") return false;
+  const record = data as Record<string, unknown>;
+  if (!SUPPORTED_BACKUP_VERSIONS.includes(record.version as 4 | 5 | 6 | 7 | 8)) return false;
+  if (typeof record.tenantId !== "string") return false;
+  if (!record.tables || typeof record.tables !== "object") return false;
+  const tables = record.tables as Record<string, unknown>;
+  const required = [
+    "leads",
+    "customers",
+    "companyProfiles",
+    "userProfiles",
+    "senderIdentities",
+    "products"
+  ];
+  return required.every((key) => Array.isArray(tables[key]));
+}
+
+export async function importBackup(
+  repos: LocalRepositoryBundle,
+  backup: ForgeOSBackup
+): Promise<BackupRestoreReport> {
+  if (!validateBackup(backup)) {
+    throw new Error("Invalid backup format.");
+  }
+  const normalized = normalizeBackupTables({
+    ...backup,
+    version: BACKUP_VERSION,
+    tables: {
+      ...backup.tables,
+      emailSuppressions: backup.tables.emailSuppressions ?? [],
+      outreachSendAttempts: backup.tables.outreachSendAttempts ?? [],
+      outreachProviderEvents: backup.tables.outreachProviderEvents ?? [],
+      outreachSendJobs: backup.tables.outreachSendJobs ?? [],
+      outreachSendJobRecipients: backup.tables.outreachSendJobRecipients ?? [],
+      outreachSendJobAttempts: backup.tables.outreachSendJobAttempts ?? [],
+      outreachSendJobDailyUsage: backup.tables.outreachSendJobDailyUsage ?? []
+    }
+  });
+  const report = validateBackupRestoreIntegrity(normalized);
+  await repos.reset();
+  if (repos.importBackupData) {
+    await repos.importBackupData(normalized);
+  }
+  await repos.activities.append(normalized.tenantId, {
+    entityType: "lead",
+    entityId: normalized.tenantId,
+    action: "backup_restored",
+    title: "Local backup restored",
+    metadata: {
+      warnings: String(report.warnings.length),
+      orphanedRecipients: String(report.orphanedCampaignRecipients)
+    }
+  });
+  return report;
+}

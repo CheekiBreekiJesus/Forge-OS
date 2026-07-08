@@ -1,0 +1,2 @@
+productCode,name,description,sellableItemReference,defaultVariantReference,status
+SYN-PROD-001,Synthetic product,Synthetic commercial product,SYN-ITEM-001,SYN-VAR-001,active

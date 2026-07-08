@@ -1,0 +1,393 @@
+import type {
+  LeadOpsConsentStatus,
+  LeadOpsGeneratedMessage,
+  LeadOpsProviderState,
+  LeadOpsQuality,
+  LeadOpsStatus
+} from "@/features/leadops/types";
+import type { CustomerStatus } from "@/domain/operations-types";
+
+export type Tenant = {
+  id: string;
+  name: string;
+  slug: string;
+  defaultLocale: "pt-PT" | "en";
+};
+
+export type CrmLeadStatus = "new" | "qualified" | "quoted" | "converted";
+
+export type Lead = {
+  id: string;
+  tenantId: string;
+  companyName: string;
+  normalizedCompanyName: string;
+  contactName: string;
+  email: string;
+  phone: string;
+  normalizedPhone: string;
+  website: string | null;
+  websiteDomain: string | null;
+  facebookUrl: string | null;
+  location: string;
+  country: string;
+  industry: string;
+  crmStatus: CrmLeadStatus;
+  outreachStatus: LeadOpsStatus;
+  quality: LeadOpsQuality;
+  source: string;
+  sourceDatabase: string;
+  sourceImportId: string | null;
+  contactSource: string;
+  language: string;
+  campaignId: string | null;
+  consentStatus: LeadOpsConsentStatus;
+  providerState: LeadOpsProviderState;
+  requestedProductId: string | null;
+  quantity: number;
+  notes: string;
+  active: boolean;
+  archivedAt: string | null;
+  archivedBy: string | null;
+  archiveReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreateLeadInput = {
+  companyName: string;
+  contactName: string;
+  email: string;
+  phone?: string;
+  website?: string | null;
+  facebookUrl?: string | null;
+  location?: string;
+  country?: string;
+  industry?: string;
+  source?: string;
+  sourceDatabase?: string;
+  sourceImportId?: string | null;
+  contactSource?: string;
+  language?: string;
+  requestedProductId?: string | null;
+  quantity?: number;
+  notes?: string;
+  quality?: LeadOpsQuality;
+  outreachStatus?: LeadOpsStatus;
+  consentStatus?: LeadOpsConsentStatus;
+};
+
+export type UpdateLeadInput = Partial<
+  Omit<Lead, "id" | "tenantId" | "createdAt" | "updatedAt">
+>;
+
+export type Customer = {
+  id: string;
+  tenantId: string;
+  leadId: string | null;
+  legalName: string;
+  tradingName: string;
+  companyName: string;
+  contactName: string;
+  email: string;
+  phone: string;
+  vatNumber: string;
+  addressLine1: string;
+  addressLine2: string;
+  postalCode: string;
+  city: string;
+  country: string;
+  website: string | null;
+  customerStatus: CustomerStatus;
+  notes: string;
+  active: boolean;
+  archivedAt: string | null;
+  archivedBy: string | null;
+  archiveReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreateCustomerInput = {
+  leadId?: string | null;
+  legalName: string;
+  tradingName?: string;
+  companyName?: string;
+  contactName: string;
+  email: string;
+  phone?: string;
+  vatNumber?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  postalCode?: string;
+  city?: string;
+  country?: string;
+  website?: string | null;
+  customerStatus?: CustomerStatus;
+  notes?: string;
+};
+
+export type UpdateCustomerInput = Partial<
+  Omit<Customer, "id" | "tenantId" | "createdAt" | "updatedAt">
+>;
+
+export type OpportunityStage =
+  | "discovery"
+  | "qualification"
+  | "proposal"
+  | "negotiation"
+  | "won"
+  | "lost";
+
+export type Opportunity = {
+  id: string;
+  tenantId: string;
+  leadId: string;
+  customerId: string | null;
+  title: string;
+  stage: OpportunityStage;
+  estimatedValue: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CampaignStatus = "draft" | "active" | "paused" | "completed";
+
+export type {
+  CampaignDeliveryMode,
+  CampaignRecipient,
+  CampaignRecipientStatus,
+  CreateCampaignRecipientInput,
+  CreateOutreachCampaignInput,
+  OutreachCampaign,
+  RecipientRefreshDiff,
+  SegmentDefinition,
+  SegmentDefinitionMode
+} from "@/domain/campaign-types";
+
+/** @deprecated Use OutreachCampaign from campaign-types for new code. */
+export type Campaign = import("@/domain/campaign-types").OutreachCampaign;
+
+export type OutreachMessage = {
+  id: string;
+  tenantId: string;
+  leadId: string;
+  campaignId: string | null;
+  message: LeadOpsGeneratedMessage | null;
+  providerState: LeadOpsProviderState;
+  queuedAt: string | null;
+  sentAt: string | null;
+  metricsUpdated: boolean;
+  updatedAt: string;
+};
+
+export type QuoteStatus = "draft" | "sent" | "approved" | "rejected";
+
+export type QuoteLine = {
+  productId: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  setupCost: number;
+  lineTotal: number;
+};
+
+export type Quote = {
+  id: string;
+  tenantId: string;
+  quoteNumber: string;
+  leadId: string | null;
+  customerId: string | null;
+  opportunityId: string | null;
+  productId: string;
+  productName: string;
+  quantity: number;
+  printColorCount: number;
+  status: QuoteStatus;
+  lines: QuoteLine[];
+  subtotal: number;
+  vat: number;
+  total: number;
+  discount: number;
+  validityDate: string | null;
+  notes: string;
+  simulationId: string | null;
+  mockupAssetId: string | null;
+  isEstimate: boolean;
+  active: boolean;
+  archivedAt: string | null;
+  archivedBy: string | null;
+  archiveReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreateQuoteInput = {
+  leadId?: string | null;
+  customerId?: string | null;
+  opportunityId?: string | null;
+  productId: string;
+  productName: string;
+  quantity: number;
+  printColorCount: number;
+  subtotal: number;
+  vat: number;
+  total: number;
+  setupCost: number;
+  unitPrice: number;
+  discount?: number;
+  validityDate?: string | null;
+  notes?: string;
+  simulationId?: string | null;
+  mockupAssetId?: string | null;
+  isEstimate?: boolean;
+};
+
+export type UpdateQuoteInput = Partial<
+  Omit<Quote, "id" | "tenantId" | "quoteNumber" | "createdAt" | "updatedAt">
+>;
+
+export type ProductionOrderStatus =
+  | "scheduled"
+  | "in-progress"
+  | "blocked"
+  | "completed";
+
+export type ProductionOrder = {
+  id: string;
+  tenantId: string;
+  orderNumber: string;
+  quoteId: string;
+  customerId: string | null;
+  customerName: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  completedQuantity: number;
+  rejectedQuantity: number;
+  status: ProductionOrderStatus;
+  scheduledDate: string;
+  plannedStart: string | null;
+  plannedEnd: string | null;
+  artworkStatus: "pending" | "approved";
+  screenStatus: "pending" | "ready";
+  machineId: string;
+  machineName: string;
+  progress: number;
+  operatorNotes: string;
+  active: boolean;
+  archivedAt: string | null;
+  archivedBy: string | null;
+  archiveReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ActivityAction =
+  | "lead_created"
+  | "lead_qualified"
+  | "customer_created"
+  | "opportunity_created"
+  | "outreach_generated"
+  | "outreach_approved"
+  | "outreach_queued"
+  | "outreach_sent_simulated"
+  | "quotation_created"
+  | "quotation_approved"
+  | "quotation_rejected"
+  | "production_order_created"
+  | "machine_assigned"
+  | "inventory_reserved"
+  | "production_logged"
+  | "entity_created"
+  | "entity_updated"
+  | "entity_archived"
+  | "entity_restored"
+  | "stock_received"
+  | "stock_consumed"
+  | "stock_adjusted"
+  | "production_status_changed"
+  | "customizer_simulation_created"
+  | "customizer_simulation_converted"
+  | "campaign_created"
+  | "campaign_segment_snapshotted"
+  | "campaign_recipients_refreshed"
+  | "campaign_template_updated"
+  | "campaign_drafts_generated"
+  | "campaign_sender_refreshed"
+  | "campaign_draft_approved"
+  | "campaign_draft_approval_invalidated"
+  | "campaign_draft_opened_external"
+  | "campaign_draft_sent_manual"
+  | "campaign_draft_sent_simulated"
+  | "campaign_draft_duplicate_blocked"
+  | "campaign_draft_cooldown_override"
+  | "campaign_test_email_attempted"
+  | "campaign_queued"
+  | "send_job_created"
+  | "send_job_queue_requested"
+  | "send_job_queued"
+  | "send_job_process_requested"
+  | "send_job_batch_processed"
+  | "send_job_pause_requested"
+  | "send_job_lock_acquired"
+  | "send_job_batch_started"
+  | "send_job_batch_completed"
+  | "send_job_authorization_denied"
+  | "send_job_invalid_transition"
+  | "send_job_paused"
+  | "send_job_resume_requested"
+  | "send_job_resumed"
+  | "send_job_cancel_requested"
+  | "send_job_cancelled"
+  | "send_job_retry_requested"
+  | "send_job_retry_accepted"
+  | "send_job_completed"
+  | "recipient_send_started"
+  | "recipient_sent"
+  | "recipient_failed"
+  | "recipient_retry_scheduled"
+  | "recipient_suppressed_before_send"
+  | "recipient_skipped"
+  | "daily_limit_reached"
+  | "provider_event_received"
+  | "provider_event_reconciled"
+  | "public_unsubscribe_confirmed"
+  | "suppression_created"
+  | "suppression_removed"
+  | "lead_record_corrected"
+  | "lead_record_anonymized"
+  | "lead_record_deleted"
+  | "backup_restored";
+
+export type ActivityEntityType =
+  | "lead"
+  | "customer"
+  | "opportunity"
+  | "quote"
+  | "production_order"
+  | "outreach"
+  | "campaign"
+  | "send_job"
+  | "product"
+  | "machine"
+  | "inventory"
+  | "customizer_simulation";
+
+export type ActivityEvent = {
+  id: string;
+  tenantId: string;
+  entityType: ActivityEntityType;
+  entityId: string;
+  action: ActivityAction;
+  title: string;
+  metadata: Record<string, string | number | boolean>;
+  occurredAt: string;
+};
+
+export type CreateActivityEventInput = {
+  entityType: ActivityEntityType;
+  entityId: string;
+  action: ActivityAction;
+  title: string;
+  metadata?: Record<string, string | number | boolean>;
+};

@@ -1,13 +1,56 @@
-node_modules
 .next
-.turbo
+node_modules
+out
+build
 dist
+
+.venv
+
+test-results/
+playwright-report/
+qa/acceptance/results/
+!qa/acceptance/results/.gitkeep
+
 .env
-.env.local
-.env.*.local
-*.log
-.DS_Store
-coverage
-playwright-report
-test-results
-.vercel
+.env*.local
+.env.local.backup.*
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+*.tsbuildinfo
+__pycache__/
+*.py[cod]
+.codex-logs/
+.history/
+
+# Local Cursor QA artifacts (keep .qa/README.md trackable)
+.qa/screenshots/
+.qa/findings/
+.qa/tasks/
+
+# Generated agent maintenance reports (keep schema and .gitkeep trackable)
+qa/reports/*
+!qa/reports/.gitkeep
+!qa/reports/health-report.schema.json
+qa/ai/
+
+# Local customer data-preparation inputs/outputs
+scripts/data-preparation/local/
+scripts/data-preparation/outputs/
+scripts/data-preparation/reports/
+scripts/data-preparation/tmp/
+scripts/data-preparation/customer-config*.json
+scripts/data-preparation/customer-config*.yaml
+scripts/data-preparation/customer-config*.yml
+*_Lead_Database_Standardized.xlsx
+# Private lead import/export working folders (local only)
+data/imports/
+qa/outreach/private-import-profile.raw.json
+qa/outreach/.private-acceptance-metrics.json
+data/exports/
+
+# Customer PC local runtime artifacts (logs, PID files, diagnostics)
+.customer-pc/

@@ -1,0 +1,30 @@
+---
+description: Cursor as lightweight QA, monitoring, and review agent
+alwaysApply: true
+---
+
+# Cursor QA Observer
+
+Cursor monitors and validates ForgeOS locally. Codex owns implementation unless the user explicitly assigns a small fix to Cursor.
+
+## Do
+
+- Run the app locally (`npm run dev`); inspect via Cursor browser.
+- Capture reproducible defects with evidence (console, network, viewport, screenshots).
+- Run deterministic checks: `npm run lint`, `npm run typecheck`, `npm run test`.
+- Write structured findings under `.qa/findings/` and scoped Codex tasks under `.qa/tasks/`.
+- Report missing orchestration only when `npm run agent:health` or `npm run agent:maintain` are unavailable.
+
+## Do not
+
+- Broad refactors, speculative styling, or subjective design changes without acceptance criteria.
+- Auto-fix issues unless explicitly instructed and Codex is not active on the same files.
+- Run heavy builds and full suites in parallel on this machine.
+
+## Viewports for responsive QA
+
+- Desktop 1440×900, tablet 1024×768, mobile 390×844.
+
+## Finding format
+
+Use the ForgeOS QA Finding template (ID `FORGE-QA-XXX`) documented in `.qa/README.md`.

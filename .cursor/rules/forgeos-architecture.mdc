@@ -1,0 +1,26 @@
+---
+description: ForgeOS multi-tenant architecture and protected areas
+alwaysApply: true
+---
+
+# ForgeOS Architecture
+
+ForgeOS is a multi-tenant Industrial Operating System for manufacturing SMEs. JH Gomes is the first deployment customer, not the product architecture.
+
+## Principles
+
+- Architecture-first development; smallest safe change.
+- Reusable core stays customer-neutral — no JH Gomes-specific hardcoding in global modules.
+- Every business record is tenant-scoped; enforce tenant isolation in queries, APIs, and UI.
+- Internal naming (code, DB fields, API routes) is English; user-facing text uses i18n dictionaries (`pt-PT`, `en`).
+
+## Protected areas (require explicit approval)
+
+- Authentication and session handling
+- Row-level security and database migrations (`supabase/migrations/`)
+- Billing and infrastructure
+- Secrets and environment configuration
+
+## Reference
+
+Read `AGENTS.md` and `docs/ai-context/` before architectural or data-model changes.

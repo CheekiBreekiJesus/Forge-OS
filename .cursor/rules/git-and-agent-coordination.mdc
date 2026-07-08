@@ -1,0 +1,31 @@
+---
+description: Git safety and multi-agent coordination with Codex
+alwaysApply: true
+---
+
+# Git and Agent Coordination
+
+Codex is the primary implementation agent. One agent owns a task at a time.
+
+## Before editing source
+
+1. Inspect `git status`.
+2. Confirm Codex or another agent is not actively modifying the same files.
+3. If uncommitted work is in progress, stay read-only except for QA config and reports.
+4. Do not run formatters or dependency installs that could touch unrelated files while Codex is active.
+
+## Git restrictions
+
+- No commits, pushes, merges, or deploys unless explicitly authorized.
+- No destructive Git commands (`reset --hard`, force push, etc.).
+- Preserve unrelated user and agent changes.
+
+## Cursor may without code edits
+
+- Monitor terminals and local URLs.
+- Run lint, typecheck, tests, and health checks.
+- Document findings and prepare Codex task briefs.
+
+## Reference
+
+See `AGENTS.md` for project rules and definition of done.

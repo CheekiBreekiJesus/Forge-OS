@@ -1,23 +1,66 @@
 {
-  "name": "forgeos",
+  "name": "forge-os",
+  "version": "0.1.0",
   "private": true,
-  "version": "1.0.0",
-  "description": "One Operating System for the Modern Factory",
   "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev --filter=@forgeos/web",
-    "lint": "turbo run lint",
-    "typecheck": "turbo run typecheck",
-    "test": "turbo run test",
-    "format": "prettier --write \"**/*.{ts,tsx,md,json}\""
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "test": "vitest run src",
+    "test:supabase:integration": "vitest run src/persistence/supabase/outreach-vertical.integration.test.ts",
+    "pretest:e2e": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/qa/prepare-playwright-tests.ps1 -TestPort 3012",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "pretest:acceptance": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/qa/prepare-playwright-tests.ps1 -TestPort 3001",
+    "test:acceptance": "playwright test --config playwright.acceptance.config.ts",
+    "test:acceptance:headed": "playwright test --config playwright.acceptance.config.ts --headed",
+    "test:acceptance:ui": "playwright test --config playwright.acceptance.config.ts --ui",
+    "test:acceptance:report": "playwright show-report qa/acceptance/results/html-report",
+    "test:acceptance:live-ai": "playwright test --config playwright.acceptance.config.ts e2e/acceptance/live-ai.spec.ts",
+    "typecheck": "tsc --noEmit",
+    "validate": "npm run lint && npm run typecheck && npm test && npm run build",
+    "test:customer-pc": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/customer-pc/Test-ForgeOS.ps1",
+    "test:customer-pc:smoke": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/customer-pc/Invoke-ForgeOSSmokeTest.ps1",
+    "ai:models": "tsx scripts/ai/models.ts",
+    "ai:doctor": "tsx scripts/ai/doctor.ts",
+    "ai:compare": "tsx scripts/ai/compare.ts",
+    "ai:env-template": "tsx scripts/ai/env-template.ts",
+    "agent:maintain": "tsx scripts/agent-orchestrator/maintain.ts",
+    "agent:health": "tsx scripts/agent-orchestrator/health.ts",
+    "agent:test": "vitest run scripts/agent-orchestrator",
+    "agent:canary": "tsx scripts/agent-orchestrator/canary.ts",
+    "outreach:hosted:migration:check": "tsx scripts/outreach-hosted-runtime/check-migrations.ts"
+  },
+  "dependencies": {
+    "@sentry/nextjs": "^10.64.0",
+    "@supabase/ssr": "^0.12.0",
+    "@supabase/supabase-js": "^2.110.0",
+    "dexie": "^4.4.4",
+    "next": "^16.2.9",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "xlsx": "^0.18.5",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "prettier": "^3.3.3",
-    "turbo": "^2.3.0",
-    "typescript": "^5.6.3"
+    "@playwright/test": "1.53.1",
+    "@types/node": "22.15.32",
+    "@types/pg": "^8.20.0",
+    "@types/react": "19.0.12",
+    "@types/react-dom": "19.0.4",
+    "autoprefixer": "10.4.21",
+    "eslint": "9.29.0",
+    "eslint-config-next": "^16.2.9",
+    "fake-indexeddb": "^6.2.5",
+    "pg": "^8.22.0",
+    "postcss": "8.5.10",
+    "tailwindcss": "3.4.17",
+    "tsx": "4.20.3",
+    "typescript": "5.8.3",
+    "vitest": "4.1.8"
   },
-  "packageManager": "pnpm@9.14.2",
-  "engines": {
-    "node": ">=20"
+  "overrides": {
+    "postcss": "8.5.10"
   }
 }

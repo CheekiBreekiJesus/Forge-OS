@@ -1,0 +1,4 @@
+company,contact,email,phone,website,region,industry,source,notes
+Acceptance Unique Co,Ana Test,acceptance.unique.1@example.invalid,210000001,https://example.com,Lisboa,Hospitality,acceptance-suite,Valid row 1
+Beta Events,Luis Test,acceptance.unique.2@example.invalid,210000002,https://example.com,Porto,Events,acceptance-suite,Valid row 2
+Gamma Hotels,Maria Test,acceptance.unique.3@example.invalid,210000003,https://example.com,Coimbra,Hospitality,acceptance-suite,Valid row 3

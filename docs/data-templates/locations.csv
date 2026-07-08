@@ -1,0 +1,2 @@
+warehouseCode,warehouseName,parentLocationCode,locationCode,locationName,locationType,active
+WH-A,Synthetic Warehouse,,A-R1-S1,Rack 1 Shelf 1,shelf,true
