@@ -1,3 +1,15 @@
+/** Backward-compatible CSV import API — delegates to the modular import pipeline. */
+
+import type { ImportFieldMapping } from "@/domain/import-types";
+import { detectFieldMapping, applyFieldMapping } from "@/features/leadops/import-mapping";
+import {
+  analyzeImportRow,
+  findFileDuplicateEmails,
+  type ParsedImportRowInput
+} from "@/features/leadops/import-deduplication";
+import { mapRowsToInput, parseCsvText } from "@/features/leadops/import-file-parser";
+import { isValidEmailSyntax } from "@/features/leadops/import-normalization";
+
 export type LeadImportRowStatus = "valid" | "review" | "invalid";
 
 export type ParsedLeadImportRow = {
@@ -24,37 +36,15 @@ export type LeadImportResult = {
   validRows: ParsedLeadImportRow[];
 };
 
-const fieldAliases = {
-  companyName: ["company name", "company", "empresa", "nome empresa", "nome da empresa"],
-  contactName: ["contact name", "contact", "nome", "pessoa contacto", "contacto"],
-  email: ["email", "e-mail", "mail"],
-  facebookUrl: ["facebook", "facebook url", "facebook_url", "fb"],
-  industry: ["industry", "category", "categoria", "setor", "sector"],
-  language: ["language", "idioma", "locale"],
-  notes: ["notes", "notas", "observacoes", "observações"],
-  phone: ["phone", "telefone", "telemovel", "telemóvel"],
-  region: ["region", "municipality", "localidade", "regiao", "região", "cidade"],
-  sourceDatabase: ["source database", "source", "origem", "base dados", "base de dados"],
-  website: ["website", "site", "url"]
-} as const;
+export function parseLeadCsv(csv: string, mapping?: ImportFieldMapping): LeadImportResult {
+  const { headers, rows } = parseCsvText(csv);
+  const detectedMapping = mapping ?? detectFieldMapping(headers);
+  const mappedRows = mapRowsToInput(headers, rows, detectedMapping);
+  const fileDuplicateEmails = findFileDuplicateEmails(mappedRows);
+  const duplicateEmails = [...fileDuplicateEmails].sort();
 
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-export function parseLeadCsv(csv: string): LeadImportResult {
-  const rows = parseCsv(csv);
-  const headers = rows[0]?.map(normalizeHeader) ?? [];
-  const dataRows = rows.slice(1).filter((row) => row.some((cell) => cell.trim().length > 0));
-  const mappedRows = dataRows.map((row) => mapImportRow(headers, row));
-  const duplicateEmails = findDuplicateEmails(mappedRows);
-  const duplicateEmailSet = new Set(duplicateEmails);
   const classifiedRows = mappedRows.map((row) =>
-    duplicateEmailSet.has(row.email.toLowerCase()) && row.status === "valid"
-      ? {
-          ...row,
-          status: "review" as const,
-          validationMessages: [...row.validationMessages, "Duplicate email detected."]
-        }
-      : row
+    toLegacyRow(row, fileDuplicateEmails, { leads: [], contacts: [] })
   );
 
   return {
@@ -66,117 +56,40 @@ export function parseLeadCsv(csv: string): LeadImportResult {
   };
 }
 
-function mapImportRow(headers: string[], row: string[]): ParsedLeadImportRow {
-  const get = (field: keyof typeof fieldAliases) => {
-    const aliases = fieldAliases[field];
-    const index = headers.findIndex((header) => aliases.includes(header as never));
-    return index >= 0 ? sanitizeCell(row[index] ?? "") : "";
-  };
-  const companyName = get("companyName");
-  const email = get("email");
-  const messages: string[] = [];
-
-  if (!companyName) {
-    messages.push("Company name is required.");
+function toLegacyRow(
+  row: ParsedImportRowInput,
+  fileDuplicateEmails: Set<string>,
+  existing: { leads: []; contacts: [] }
+): ParsedLeadImportRow {
+  const analysis = analyzeImportRow(row, existing, fileDuplicateEmails);
+  let status: LeadImportRowStatus = "valid";
+  if (analysis.status === "invalid") status = "invalid";
+  else if (
+    analysis.status === "duplicate" ||
+    analysis.status === "possible_duplicate" ||
+    analysis.status === "missing_email" ||
+    fileDuplicateEmails.has(row.email)
+  ) {
+    status = "review";
+  } else if (!row.industry || !row.region) {
+    status = "review";
   }
-
-  if (!email || !emailPattern.test(email)) {
-    messages.push("Valid email is required.");
-  }
-
-  const status: LeadImportRowStatus =
-    messages.length > 0 ? "invalid" : get("industry") && get("region") ? "valid" : "review";
 
   return {
-    companyName,
-    contactName: get("contactName"),
-    email,
-    facebookUrl: get("facebookUrl"),
-    industry: get("industry"),
-    language: get("language") || "pt-PT",
-    notes: get("notes"),
-    phone: get("phone"),
-    region: get("region"),
-    sourceDatabase: get("sourceDatabase"),
+    companyName: row.companyName,
+    contactName: row.contactName,
+    email: row.email,
+    facebookUrl: "",
+    industry: row.industry,
+    language: row.language,
+    notes: row.notes,
+    phone: row.phone,
+    region: row.region,
+    sourceDatabase: row.sourceDatabase,
     status,
-    validationMessages: status === "review" ? [...messages, "Missing enrichment fields."] : messages,
-    website: get("website")
+    validationMessages: [...analysis.validationErrors, ...analysis.warnings],
+    website: row.website
   };
 }
 
-function findDuplicateEmails(rows: ParsedLeadImportRow[]): string[] {
-  const seen = new Set<string>();
-  const duplicates = new Set<string>();
-
-  for (const row of rows) {
-    const email = row.email.toLowerCase();
-
-    if (!email || !emailPattern.test(email)) {
-      continue;
-    }
-
-    if (seen.has(email)) {
-      duplicates.add(email);
-    }
-
-    seen.add(email);
-  }
-
-  return [...duplicates].sort();
-}
-
-function parseCsv(csv: string): string[][] {
-  const rows: string[][] = [];
-  let currentRow: string[] = [];
-  let currentCell = "";
-  let inQuotes = false;
-
-  for (let index = 0; index < csv.length; index += 1) {
-    const char = csv[index];
-    const next = csv[index + 1];
-
-    if (char === "\"" && inQuotes && next === "\"") {
-      currentCell += "\"";
-      index += 1;
-      continue;
-    }
-
-    if (char === "\"") {
-      inQuotes = !inQuotes;
-      continue;
-    }
-
-    if (char === "," && !inQuotes) {
-      currentRow.push(currentCell);
-      currentCell = "";
-      continue;
-    }
-
-    if ((char === "\n" || char === "\r") && !inQuotes) {
-      if (char === "\r" && next === "\n") {
-        index += 1;
-      }
-
-      currentRow.push(currentCell);
-      rows.push(currentRow);
-      currentRow = [];
-      currentCell = "";
-      continue;
-    }
-
-    currentCell += char;
-  }
-
-  currentRow.push(currentCell);
-  rows.push(currentRow);
-
-  return rows;
-}
-
-function normalizeHeader(value: string): string {
-  return sanitizeCell(value).toLowerCase();
-}
-
-function sanitizeCell(value: string): string {
-  return value.replace(/\p{C}/gu, "").trim();
-}
+export { isValidEmailSyntax, applyFieldMapping, detectFieldMapping };

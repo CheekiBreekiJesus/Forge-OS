@@ -374,12 +374,39 @@ export type Dictionary = {
     note: string;
     googleSignIn: string;
     microsoftSignIn: string;
+    loadingGoogle: string;
+    loadingMicrosoft: string;
     orContinueLocal: string;
+    hostedOnlyNote: string;
+    membershipNote: string;
+    errors: {
+      missing_code: string;
+      oauth_exchange_failed: string;
+      oauth_provider_failed: string;
+      supabase_not_configured: string;
+      tenant_access_denied: string;
+    };
     googleDialogTitle: string;
     googleDialogBody: string;
     microsoftDialogTitle: string;
     microsoftDialogBody: string;
     closeDialog: string;
+  };
+  authAccess: {
+    signOut: string;
+    pending: {
+      title: string;
+      body: string;
+    };
+    denied: {
+      title: string;
+      body: string;
+    };
+    tenants: {
+      title: string;
+      body: string;
+      select: string;
+    };
   };
   settings: {
     eyebrow: string;
@@ -387,7 +414,9 @@ export type Dictionary = {
     description: string;
     loading: string;
     save: string;
+    saving: string;
     saved: string;
+    saveFailed: string;
     sections: {
       company: string;
       profile: string;
@@ -430,6 +459,7 @@ export type Dictionary = {
     senders: {
       add: string;
       created: string;
+      saved: string;
       defaultBadge: string;
       inactive: string;
       preview: string;
@@ -437,6 +467,11 @@ export type Dictionary = {
       archive: string;
       archived: string;
       signaturePreview: string;
+      displayName: string;
+      fromEmail: string;
+      replyToEmail: string;
+      phone: string;
+      jobTitle: string;
     };
     team: {
       notice: string;
@@ -449,6 +484,24 @@ export type Dictionary = {
     integrations: {
       diagnostic: string;
       statuses: Record<string, string>;
+      provider: {
+        title: string;
+        description: string;
+        refresh: string;
+        loading: string;
+        unavailable: string;
+        provider: string;
+        configured: string;
+        realSend: string;
+        testSend: string;
+        apiKey: string;
+        sender: string;
+        allowlist: string;
+        yes: string;
+        no: string;
+        missing: string;
+        warnings: string;
+      };
     };
     backup: {
       description: string;
@@ -514,7 +567,418 @@ export type Dictionary = {
       quality: string;
       sourceDatabase: string;
       language: string;
+      region: string;
+      country: string;
       all: string;
+    };
+    management: {
+      importHistory: string;
+      noImportHistory: string;
+      createCampaignFromFilters: string;
+      createCampaignFromSelection: string;
+      viewCampaigns: string;
+      clearSelection: string;
+      category: string;
+      region: string;
+      sourceImport: string;
+      emailValidity: string;
+      emailValidityValues: Record<"valid" | "missing" | "invalid", string>;
+      suppressionStatus: string;
+      suppressionValues: Record<"none" | "unsubscribed" | "bounced", string>;
+      lastContacted: string;
+      campaignCount: string;
+      neverContacted: string;
+      neverContactedOnly: string;
+      sendability: string;
+      sendabilityValues: Record<"sendable" | "blocked", string>;
+      importSummary: {
+        selectBatch: string;
+        status: string;
+        rows: string;
+        organizations: string;
+        contacts: string;
+        duplicates: string;
+        invalid: string;
+        profile: string;
+        sheet: string;
+        linkedLeads: string;
+      };
+      pageLabel: string;
+      previousPage: string;
+      nextPage: string;
+    };
+    segmentation: {
+      createTitle: string;
+      createDescription: string;
+      matchingOrganizations: string;
+      matchingContacts: string;
+      sendableRecipients: string;
+      exclusionsTitle: string;
+      exclusions: Record<
+        "missingEmail" | "invalidEmail" | "suppressed" | "duplicate" | "inactive",
+        string
+      >;
+      campaignName: string;
+      campaignDescription: string;
+      reviewDefinition: string;
+      nameRequired: string;
+      createFailed: string;
+      creating: string;
+      confirmCreate: string;
+    };
+    campaigns: {
+      eyebrow: string;
+      listTitle: string;
+      listDescription: string;
+      backToList: string;
+      name: string;
+      status: string;
+      createdAt: string;
+      recipientCount: string;
+      sendableCount: string;
+      language: string;
+      deliveryMode: string;
+      deliveryModes: Record<"simulation" | "provider_handoff", string>;
+      metadataTitle: string;
+      noDescription: string;
+      snapshotCreated: string;
+      exclusionsTitle: string;
+      excludedCount: string;
+      segmentDefinitionTitle: string;
+      snapshotTitle: string;
+      refreshRecipients: string;
+      confirmRefresh: string;
+      refreshSummary: string;
+      inclusionReason: string;
+      recipientStatus: string;
+      includedCount: string;
+      nextStepTemplate: string;
+      nextStepTemplateHint: string;
+      nextStepDrafts: string;
+      nextStepDraftsHint: string;
+      templates: {
+        title: string;
+        description: string;
+        subjectLabel: string;
+        bodyLabel: string;
+        variablesTitle: string;
+        saveTemplate: string;
+        saving: string;
+        templateSaved: string;
+        previewSample: string;
+        previewTitle: string;
+        templateVersion: string;
+        senderIncomplete: string;
+        refreshSender: string;
+        refreshingSender: string;
+        senderRefreshed: string;
+        previewFieldsTitle: string;
+        previewGreeting: string;
+        previewContact: string;
+        previewOrganization: string;
+        previewOrganizationDisplay: string;
+        previewCategory: string;
+        previewSender: string;
+        previewSubject: string;
+        previewDemoWarning: string;
+        previewOrgAsContact: string;
+        previewUntranslatedCategory: string;
+        greetingOverride: string;
+        organizationDisplayOverride: string;
+        applyPersonalization: string;
+        includedRecipients: string;
+        unresolvedCount: string;
+        htmlPreview: string;
+      };
+      drafts: {
+        title: string;
+        description: string;
+        generateAll: string;
+        generating: string;
+        generateSummary: string;
+        filterLabel: string;
+        filterAll: string;
+        pending: string;
+        drafted: string;
+        needsReview: string;
+        edited: string;
+        unresolved: string;
+        countSummary: string;
+        statusColumn: string;
+        subjectColumn: string;
+        statuses: Record<
+          | "PENDING"
+          | "DRAFTED"
+          | "NEEDS_REVIEW"
+          | "APPROVED"
+          | "EXCLUDED"
+          | "OPENED_EXTERNALLY"
+          | "SENT_MANUALLY"
+          | "DELIVERED"
+          | "SOFT_BOUNCED"
+          | "HARD_BOUNCED"
+          | "COMPLAINED"
+          | "UNSUBSCRIBED"
+          | "DELIVERY_FAILED"
+          | "DEFERRED"
+          | "SKIPPED"
+          | "SUPPRESSED",
+          string
+        >;
+        editedBadge: string;
+        editorTitle: string;
+        unresolvedWarning: string;
+        saveDraft: string;
+        saving: string;
+        draftSaved: string;
+        regenerateOne: string;
+        confirmRegenerate: string;
+        regenerated: string;
+      };
+      review: {
+        title: string;
+        description: string;
+        approveOne: string;
+        bulkApproveSafe: string;
+        bulkSummary: string;
+        unsafeReasons: string;
+        blockReasons: Record<
+          | "missing_email"
+          | "invalid_email"
+          | "suppressed"
+          | "no_draft"
+          | "needs_review"
+          | "missing_subject"
+          | "missing_body"
+          | "unresolved_variables"
+          | "sender_incomplete"
+          | "missing_opt_out"
+          | "campaign_locked"
+          | "already_sent"
+          | "not_approved"
+          | "approval_stale",
+          string
+        >;
+        approved: string;
+        openedExternal: string;
+        openedExternalStatus: string;
+        sentManualStatus: string;
+        markSentExternally: string;
+        confirmSent: string;
+        confirmSentBody: string;
+        operatorNote: string;
+        markedSent: string;
+        simulateSend: string;
+        simulated: string;
+        invalidated: string;
+        duplicateBlocked: string;
+        cooldownWarning: string;
+        cooldownOverride: string;
+        protectedTestTitle: string;
+        protectedTestDescription: string;
+        protectedTestRecipient: string;
+        protectedTestConfirmation: string;
+        protectedTestConfirmationHint: string;
+        protectedTestSend: string;
+        protectedTestSending: string;
+        protectedTestUnavailable: string;
+        protectedTestSuccess: string;
+        protectedTestAlreadyProcessed: string;
+        protectedTestBlocked: string;
+        protectedTestFailed: string;
+        protectedTestPreviewHtml: string;
+        protectedTestPreviewPlain: string;
+      };
+      progress: {
+        title: string;
+        total: string;
+        drafted: string;
+        needsReview: string;
+        approved: string;
+        openedExternally: string;
+        manuallySent: string;
+        excluded: string;
+        suppressed: string;
+        skipped: string;
+      };
+      workflow: {
+        navLabel: string;
+        stepNumber: string;
+        steps: Record<"draft" | "approve" | "queue" | "delivery", string>;
+      };
+      advanced: {
+        title: string;
+        show: string;
+        hide: string;
+        segmentHint: string;
+      };
+    };
+    providerEvents: {
+      title: string;
+      description: string;
+      empty: string;
+      eventType: string;
+      status: string;
+      effect: string;
+      receivedAt: string;
+      message: string;
+    };
+    sendJobs: {
+      title: string;
+      description: string;
+      simulationBanner: string;
+      productionIncomplete: string;
+      brevoDisabled: string;
+      empty: string;
+      queueSimulation: string;
+      processNextBatch: string;
+      pause: string;
+      resume: string;
+      cancel: string;
+      status: string;
+      mode: string;
+      provider: string;
+      batchSize: string;
+      dailyUsage: string;
+      processed: string;
+      sent: string;
+      failed: string;
+      retryPending: string;
+      skipped: string;
+      remaining: string;
+      lock: string;
+      lastProcessed: string;
+      queued: string;
+      processing: string;
+      completed: string;
+      paused: string;
+      cancelled: string;
+      confirmationRequired: string;
+      confirmPause: string;
+      confirmCancel: string;
+      alreadyQueued: string;
+      queuedSimulationJob: string;
+      pausedResult: string;
+      resumedResult: string;
+      cancelledResult: string;
+      result: string;
+      localMvpNotice: string;
+      intervalMinutes: string;
+      autoProcessingHint: string;
+      queueSend: {
+        stepLabel: string;
+        title: string;
+        description: string;
+        localMvpNotice: string;
+        realSendDisabledWarning: string;
+        batchSize: string;
+        intervalMinutes: string;
+        intervalError: string;
+        startTime: string;
+        startNow: string;
+        startScheduled: string;
+        scheduleError: string;
+        safetyTitle: string;
+        approvedDrafts: string;
+        eligibleRecipients: string;
+        excludedRecipients: string;
+        needsApproval: string;
+        refreshEligibility: string;
+        queueAction: string;
+        queueing: string;
+        queued: string;
+        notEligible: string;
+        queueFailed: string;
+      };
+      hostedPreparation: {
+        title: string;
+        description: string;
+        prepare: string;
+        preparing: string;
+        refresh: string;
+        tenant: string;
+        noTenants: string;
+        approvalState: string;
+        approvedRecipients: string;
+        staleApprovals: string;
+        status: string;
+        eligibility: string;
+        eligible: string;
+        notEligible: string;
+        needsApproval: string;
+        hasStaleApprovals: string;
+        emptySnapshot: string;
+        preparedAt: string;
+        preparedBy: string;
+        audit: string;
+        authUnavailable: string;
+        statusFailed: string;
+        prepareFailed: string;
+        senderIncomplete: string;
+        createdPrepared: string;
+        reusedPrepared: string;
+        states: Record<"not_prepared" | "loading" | "preparing" | "prepared" | "failed" | "stale", string>;
+      };
+    };
+    suppression: {
+      title: string;
+      description: string;
+      emailPlaceholder: string;
+      notesPlaceholder: string;
+      searchPlaceholder: string;
+      allReasons: string;
+      allSources: string;
+      add: string;
+      remove: string;
+      created: string;
+      removed: string;
+      error: string;
+      removeConfirm: string;
+      elevatedRequired: string;
+      elevatedConfirmLabel: string;
+      removalReasonPlaceholder: string;
+      confirmRemove: string;
+      viewContact: string;
+      viewCampaign: string;
+      reasons: Record<
+        | "manual"
+        | "unsubscribe"
+        | "hard_bounce"
+        | "complaint"
+        | "invalid_address"
+        | "duplicate"
+        | "legal_request"
+        | "other",
+        string
+      >;
+      sources: Record<
+        "operator" | "import" | "campaign" | "lead_detail" | "provider_webhook" | "public_unsubscribe" | "system",
+        string
+      >;
+      columns: {
+        email: string;
+        reason: string;
+        source: string;
+        createdAt: string;
+        actions: string;
+      };
+    };
+    operationalSummary: {
+      title: string;
+      description: string;
+      metrics: Record<
+        | "importedOrganizations"
+        | "validContacts"
+        | "invalidOrMissingEmailContacts"
+        | "draftCampaigns"
+        | "draftsAwaitingReview"
+        | "approvedRecipients"
+        | "openedExternally"
+        | "manuallySent"
+        | "suppressed"
+        | "recentWarnings",
+        string
+      >;
     };
     table: {
       company: string;
@@ -531,15 +995,61 @@ export type Dictionary = {
     };
     import: {
       chooseCsv: string;
+      chooseFile: string;
       description: string;
       duplicateEmails: string;
+      duplicateRows: string;
       invalidRows: string;
       reviewRows: string;
       validRows: string;
+      totalRows: string;
+      possibleDuplicates: string;
+      missingEmailRows: string;
       confirmImport: string;
       importing: string;
       summary: string;
       failed: string;
+      fileHint: string;
+      mappingTitle: string;
+      unmapped: string;
+      cancel: string;
+      continuePreview: string;
+      repeatImportWarning: string;
+      repeatImportConfirm: string;
+      filterStatus: string;
+      filterAll: string;
+      copyErrors: string;
+      attachStrongDuplicates: string;
+      approvePossible: string;
+      backToMapping: string;
+      retryMapping: string;
+      importAnother: string;
+      messages: string;
+      selectSheet: string;
+      mappingProfile: string;
+      saveProfile: string;
+      saveProfilePlaceholder: string;
+      profileSaved: string;
+      deleteProfile: string;
+      deleteProfileConfirm: string;
+      warningsFilter: string;
+      showNormalized: string;
+      downloadErrors: string;
+      fields: Record<
+        | "companyName"
+        | "contactName"
+        | "email"
+        | "phone"
+        | "website"
+        | "region"
+        | "country"
+        | "industry"
+        | "notes"
+        | "sourceDatabase"
+        | "status"
+        | "language",
+        string
+      >;
     };
     statuses: Record<
       "ready" | "queued" | "contacted" | "replied" | "positive_reply" | "bounced",
@@ -550,7 +1060,17 @@ export type Dictionary = {
       "Hospitality" | "Events" | "Food & Beverage" | "Packaging" | "Sports venues",
       string
     >;
-    campaignStatuses: Record<"active" | "paused" | "completed", string>;
+    campaignStatuses: Record<
+      | "draft"
+      | "ready_for_review"
+      | "approved"
+      | "in_progress"
+      | "completed"
+      | "paused"
+      | "cancelled"
+      | "active",
+      string
+    >;
     activities: Record<
       | "lead-imported"
       | "campaign-started"
@@ -996,19 +1516,20 @@ export type Dictionary = {
       cupType: string;
       printColors: string;
       printArea: string;
-      artworkPosition: string;
       artworkScale: string;
       artworkOffsetX: string;
       artworkOffsetY: string;
       artworkRotation: string;
       deliveryDate: string;
       notes: string;
+      previewScene: string;
       selectCustomer: string;
       selectLead: string;
       required: string;
     };
-    printAreas: Record<"wrap" | "front" | "back", string>;
-    artworkPositions: Record<"left" | "center" | "right", string>;
+    printAreas: Record<"deg180" | "deg360", string>;
+    cupTypes: Record<"reusable_pp" | "paper", string>;
+    materials: Record<"polypropylene" | "paper", string>;
     artwork: {
       upload: string;
       useLogo: string;
@@ -1021,7 +1542,24 @@ export type Dictionary = {
     };
     preview: {
       label: string;
+      generate: string;
+      generated: string;
+      stale: string;
+      missingAsset: string;
       brokenProductImage: string;
+      sceneDay: string;
+      sceneNight: string;
+      legacyPaperWarning: string;
+      metadata: {
+        cupType: string;
+        cupSize: string;
+        printArea: string;
+        quantity: string;
+        artwork: string;
+        scene: string;
+      };
+      inkCoverage: string;
+      inkCoverageTooltip: string;
     };
     pricing: {
       estimateBadge: string;

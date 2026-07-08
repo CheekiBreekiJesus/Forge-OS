@@ -41,7 +41,7 @@ describe("customizer integration persistence", () => {
         cupType: cup.category,
         desiredDeliveryDate: null,
         material: cup.material,
-        printArea: "wrap",
+        printArea: "deg_360",
         printColorCount: 1
       },
       pricing: {
@@ -95,7 +95,7 @@ describe("customizer integration persistence", () => {
         cupType: "personalized-cups",
         desiredDeliveryDate: null,
         material: "PP",
-        printArea: "wrap",
+        printArea: "deg_360",
         printColorCount: 1
       },
       pricing: {
@@ -124,5 +124,45 @@ describe("customizer integration persistence", () => {
 
     const restored = await simulations.restore(DEFAULT_TENANT_ID, created.id);
     expect(restored.status).toBe("saved");
+  });
+
+  it("isolates customizer simulations and assets by tenant", async () => {
+    const repos = getTestRepos();
+    const otherTenant = "tenant_other";
+    const products = await repos.products.list(DEFAULT_TENANT_ID);
+    const cup = products[0];
+
+    const simulation = await repos.customizerSimulations.create(DEFAULT_TENANT_ID, {
+      configuration: {
+        artworkOffsetX: 0,
+        artworkOffsetY: 0,
+        artworkPosition: "center",
+        artworkRotation: 0,
+        artworkScale: 1,
+        cupSize: "330 ml",
+        cupType: "personalized-cups",
+        desiredDeliveryDate: null,
+        material: "PP",
+        printArea: "deg_360",
+        printColorCount: 1
+      },
+      pricing: {
+        assumptions: [],
+        isEstimate: true,
+        manualUnitPriceOverride: null,
+        overrideReason: null,
+        ruleId: null,
+        setupCost: 0,
+        subtotal: 100,
+        total: 123,
+        unitPrice: 0.1,
+        vat: 23
+      },
+      productId: cup.id,
+      productName: cup.name,
+      quantity: 500
+    });
+
+    expect(await repos.customizerSimulations.getById(otherTenant, simulation.id)).toBeNull();
   });
 });

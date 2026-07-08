@@ -23,7 +23,7 @@ import {
   toggleLeadSelection,
   toggleSelectAllVisible
 } from "./selection";
-import { EMPTY_LEADOPS_FILTERS } from "./types";
+import { EMPTY_LEADOPS_FILTERS, type LeadOpsFilters } from "./types";
 import { buildLeadListViewModel } from "./view-models";
 
 describe("LeadOps domain", () => {
@@ -79,7 +79,8 @@ describe("LeadOps domain", () => {
   });
 
   it("clears active filters back to the empty filter state", () => {
-    const activeFilters = {
+    const activeFilters: LeadOpsFilters = {
+      ...EMPTY_LEADOPS_FILTERS,
       industry: "Events",
       status: "queued",
       quality: "high",

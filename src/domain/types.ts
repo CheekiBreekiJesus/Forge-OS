@@ -20,18 +20,23 @@ export type Lead = {
   id: string;
   tenantId: string;
   companyName: string;
+  normalizedCompanyName: string;
   contactName: string;
   email: string;
   phone: string;
+  normalizedPhone: string;
   website: string | null;
+  websiteDomain: string | null;
   facebookUrl: string | null;
   location: string;
+  country: string;
   industry: string;
   crmStatus: CrmLeadStatus;
   outreachStatus: LeadOpsStatus;
   quality: LeadOpsQuality;
   source: string;
   sourceDatabase: string;
+  sourceImportId: string | null;
   contactSource: string;
   language: string;
   campaignId: string | null;
@@ -56,9 +61,11 @@ export type CreateLeadInput = {
   website?: string | null;
   facebookUrl?: string | null;
   location?: string;
+  country?: string;
   industry?: string;
   source?: string;
   sourceDatabase?: string;
+  sourceImportId?: string | null;
   contactSource?: string;
   language?: string;
   requestedProductId?: string | null;
@@ -143,16 +150,22 @@ export type Opportunity = {
   updatedAt: string;
 };
 
-export type CampaignStatus = "active" | "paused" | "completed";
+export type CampaignStatus = "draft" | "active" | "paused" | "completed";
 
-export type Campaign = {
-  id: string;
-  tenantId: string;
-  name: string;
-  status: CampaignStatus;
-  sentCount: number;
-  totalCount: number;
-};
+export type {
+  CampaignDeliveryMode,
+  CampaignRecipient,
+  CampaignRecipientStatus,
+  CreateCampaignRecipientInput,
+  CreateOutreachCampaignInput,
+  OutreachCampaign,
+  RecipientRefreshDiff,
+  SegmentDefinition,
+  SegmentDefinitionMode
+} from "@/domain/campaign-types";
+
+/** @deprecated Use OutreachCampaign from campaign-types for new code. */
+export type Campaign = import("@/domain/campaign-types").OutreachCampaign;
 
 export type OutreachMessage = {
   id: string;
@@ -294,7 +307,57 @@ export type ActivityAction =
   | "stock_adjusted"
   | "production_status_changed"
   | "customizer_simulation_created"
-  | "customizer_simulation_converted";
+  | "customizer_simulation_converted"
+  | "campaign_created"
+  | "campaign_segment_snapshotted"
+  | "campaign_recipients_refreshed"
+  | "campaign_template_updated"
+  | "campaign_drafts_generated"
+  | "campaign_sender_refreshed"
+  | "campaign_draft_approved"
+  | "campaign_draft_approval_invalidated"
+  | "campaign_draft_opened_external"
+  | "campaign_draft_sent_manual"
+  | "campaign_draft_sent_simulated"
+  | "campaign_draft_duplicate_blocked"
+  | "campaign_draft_cooldown_override"
+  | "campaign_test_email_attempted"
+  | "campaign_queued"
+  | "send_job_created"
+  | "send_job_queue_requested"
+  | "send_job_queued"
+  | "send_job_process_requested"
+  | "send_job_batch_processed"
+  | "send_job_pause_requested"
+  | "send_job_lock_acquired"
+  | "send_job_batch_started"
+  | "send_job_batch_completed"
+  | "send_job_authorization_denied"
+  | "send_job_invalid_transition"
+  | "send_job_paused"
+  | "send_job_resume_requested"
+  | "send_job_resumed"
+  | "send_job_cancel_requested"
+  | "send_job_cancelled"
+  | "send_job_retry_requested"
+  | "send_job_retry_accepted"
+  | "send_job_completed"
+  | "recipient_send_started"
+  | "recipient_sent"
+  | "recipient_failed"
+  | "recipient_retry_scheduled"
+  | "recipient_suppressed_before_send"
+  | "recipient_skipped"
+  | "daily_limit_reached"
+  | "provider_event_received"
+  | "provider_event_reconciled"
+  | "public_unsubscribe_confirmed"
+  | "suppression_created"
+  | "suppression_removed"
+  | "lead_record_corrected"
+  | "lead_record_anonymized"
+  | "lead_record_deleted"
+  | "backup_restored";
 
 export type ActivityEntityType =
   | "lead"
@@ -304,6 +367,7 @@ export type ActivityEntityType =
   | "production_order"
   | "outreach"
   | "campaign"
+  | "send_job"
   | "product"
   | "machine"
   | "inventory"

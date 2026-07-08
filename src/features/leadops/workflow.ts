@@ -6,11 +6,13 @@ import type {
   LeadOpsLead,
   LeadOpsProductKey,
   LeadOpsProductRecommendation,
-  LeadOpsQueueValidation,
   LeadOpsSequenceStep,
   LeadOpsTone,
   LeadOpsWorkflowState
 } from "./types";
+import { validateOutreachDelivery } from "./delivery-validation";
+
+export { validateOutreachDelivery as validateQueue } from "./delivery-validation";
 
 export const leadOpsProductCatalog: Record<LeadOpsProductKey, { label: string; ptLabel: string }> = {
   "customized-plastic-cups": {
@@ -169,40 +171,8 @@ export function buildSequencePreview(message: LeadOpsGeneratedMessage | null): L
   ];
 }
 
-export function validateQueue(state: LeadOpsWorkflowState): LeadOpsQueueValidation {
-  if (state.providerState === "sent" || state.sentAt) {
-    return { message: "Mensagem já enviada; envio duplicado bloqueado.", ok: false, reason: "already-sent" };
-  }
-
-  if (!state.lead.email) {
-    return { message: "O lead não tem email válido para fila.", ok: false, reason: "missing-email" };
-  }
-
-  if (!state.campaign) {
-    return { message: "Associe a mensagem a uma campanha antes de colocar em fila.", ok: false, reason: "missing-campaign" };
-  }
-
-  if (state.lead.consentStatus === "unsubscribed") {
-    return { message: "Lead removido/subscrição cancelada; envio bloqueado.", ok: false, reason: "unsubscribed" };
-  }
-
-  if (state.lead.status === "bounced") {
-    return { message: "Lead com bounce; requer limpeza manual antes de nova fila.", ok: false, reason: "bounced" };
-  }
-
-  if (!state.message?.subject || !state.message.body) {
-    return { message: "Gere e preencha a mensagem antes de colocar em fila.", ok: false, reason: "missing-message" };
-  }
-
-  if (!state.message.approved) {
-    return { message: "A mensagem precisa de aprovação antes de entrar em fila.", ok: false, reason: "unapproved" };
-  }
-
-  return { message: "Mensagem pronta para fila demo.", ok: true, reason: "ok" };
-}
-
 export function queueApprovedMessage(state: LeadOpsWorkflowState): LeadOpsWorkflowState {
-  const validation = validateQueue(state);
+  const validation = validateOutreachDelivery(state);
 
   if (!validation.ok) {
     return {

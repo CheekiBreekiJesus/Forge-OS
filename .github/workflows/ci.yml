@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - release/**
+      - integration/**
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    env:
+      FORGEOS_E2E: "true"
+      FORGEOS_TEST_AUTH_ENABLED: "true"
+      FORGEOS_TEST_TENANT_ID: tenant_jh_gomes
+      FORGEOS_TEST_USER_ID: ci-user
+      FORGEOS_TEST_ROLES: outreach_operator
+      AI_DEFAULT_PROVIDER: deterministic
+      AI_FALLBACK_PROVIDER: deterministic
+      AI_OUTREACH_PROVIDER: deterministic
+      OUTREACH_DELIVERY_PROVIDER: simulation
+      ABACUS_API_KEY: ""
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Print Node and npm versions
+        run: |
+          node --version
+          npm --version
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install chromium --with-deps
+      - run: npm run test:e2e -- e2e/outreach-workflow.spec.ts e2e/campaign-send-job-simulation.spec.ts e2e/acceptance/03-leads-import-outreach.spec.ts

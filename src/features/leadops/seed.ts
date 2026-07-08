@@ -208,33 +208,53 @@ export const leadOpsCampaigns: LeadOpsCampaign[] = [
     id: "campaign_001",
     tenantId: LEADOPS_DEMO_TENANT_ID,
     name: "Q2 Hospitality Outreach",
+    description: "Seed campaign for hospitality outreach.",
+    language: "pt-PT",
     status: "active",
     sentCount: 48,
-    totalCount: 120
+    totalCount: 120,
+    recipientSnapshotCount: 120,
+    deliveryMode: "simulation",
+    createdAt: "2026-01-15T09:00:00.000Z"
   },
   {
     id: "campaign_002",
     tenantId: LEADOPS_DEMO_TENANT_ID,
     name: "Events Spring Sequence",
+    description: "Seed campaign for events segment.",
+    language: "en",
     status: "active",
     sentCount: 72,
-    totalCount: 90
+    totalCount: 90,
+    recipientSnapshotCount: 90,
+    deliveryMode: "simulation",
+    createdAt: "2026-02-01T09:00:00.000Z"
   },
   {
     id: "campaign_003",
     tenantId: LEADOPS_DEMO_TENANT_ID,
     name: "Food Service Pilot",
+    description: "Seed campaign for food service pilot.",
+    language: "pt-PT",
     status: "paused",
     sentCount: 15,
-    totalCount: 60
+    totalCount: 60,
+    recipientSnapshotCount: 60,
+    deliveryMode: "simulation",
+    createdAt: "2026-03-10T09:00:00.000Z"
   },
   {
     id: "campaign_004",
     tenantId: LEADOPS_DEMO_TENANT_ID,
     name: "Packaging Reactivation",
+    description: "Seed campaign for packaging reactivation.",
+    language: "pt-PT",
     status: "completed",
     sentCount: 40,
-    totalCount: 40
+    totalCount: 40,
+    recipientSnapshotCount: 40,
+    deliveryMode: "simulation",
+    createdAt: "2026-04-05T09:00:00.000Z"
   }
 ];
 
@@ -296,12 +316,52 @@ export function getTenantActivities(
     .sort((left, right) => right.occurredAt.localeCompare(left.occurredAt));
 }
 
-export function getFilterOptions(leads: LeadOpsLead[]) {
+export function getFilterOptions(
+  leads: LeadOpsLead[],
+  rows?: Array<{
+    region: string;
+    country: string;
+    sourceImport: string;
+    leadStatus?: string;
+    category?: string;
+    sourceDatabase?: string;
+  }>
+) {
+  const regionSource = rows ?? leads.map((lead) => ({
+    region: lead.location,
+    country: "Portugal",
+    sourceImport: "",
+    leadStatus: lead.status,
+    category: lead.industry,
+    sourceDatabase: lead.sourceDatabase
+  }));
   return {
-    industries: [...new Set(leads.map((lead) => lead.industry))].sort(),
-    statuses: [...new Set(leads.map((lead) => lead.status))].sort(),
+    industries: [
+      ...new Set(
+        regionSource
+          .map((row) => ("category" in row ? row.category : undefined))
+          .filter(Boolean) as string[]
+      )
+    ].sort(),
+    statuses: [...new Set(regionSource.map((row) => row.leadStatus).filter(Boolean) as string[])].sort(),
     qualities: [...new Set(leads.map((lead) => lead.quality))].sort(),
-    sourceDatabases: [...new Set(leads.map((lead) => lead.sourceDatabase))].sort(),
-    languages: [...new Set(leads.map((lead) => lead.language))].sort()
+    sourceDatabases: [
+      ...new Set(
+        regionSource
+          .map((row) => row.sourceDatabase)
+          .filter(Boolean) as string[]
+      )
+    ].sort(),
+    languages: [
+      ...new Set(
+        regionSource
+          .map((row) => ("language" in row ? row.language : leads.find(() => false)?.language))
+          .concat(leads.map((lead) => lead.language))
+          .filter(Boolean) as string[]
+      )
+    ].sort(),
+    regions: [...new Set(regionSource.map((row) => row.region).filter(Boolean))].sort(),
+    countries: [...new Set(regionSource.map((row) => row.country).filter(Boolean))].sort(),
+    sourceImports: [...new Set(regionSource.map((row) => row.sourceImport).filter(Boolean))].sort()
   };
 }

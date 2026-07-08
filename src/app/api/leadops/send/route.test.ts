@@ -88,6 +88,7 @@ describe("/api/leadops/send", () => {
   });
 
   it("reports blocked when Smartlead is selected but not configured", async () => {
+    vi.stubEnv("EMAIL_DELIVERY_PROVIDER", "smartlead");
     vi.stubEnv("OUTREACH_DELIVERY_PROVIDER", "smartlead");
     vi.stubEnv("SMARTLEAD_API_KEY", "");
 

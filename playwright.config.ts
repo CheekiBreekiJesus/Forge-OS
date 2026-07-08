@@ -1,12 +1,22 @@
 import { defineConfig, devices } from "@playwright/test";
+import {
+  buildPlaywrightWebServerEnv,
+  E2E_BASE_URL,
+  E2E_DB_NAME,
+  PLAYWRIGHT_RUNTIME
+} from "./e2e/helpers/runtime";
 
 const e2eDbName =
   process.env.FORGEOS_LOCAL_DB_NAME ??
   process.env.NEXT_PUBLIC_FORGEOS_LOCAL_DB_NAME ??
-  "forgeos:e2e:default";
+  E2E_DB_NAME;
+
+process.env.FORGEOS_LOCAL_DB_NAME = e2eDbName;
+process.env.NEXT_PUBLIC_FORGEOS_LOCAL_DB_NAME = e2eDbName;
 
 export default defineConfig({
   testDir: "./e2e",
+  testIgnore: ["**/acceptance/**"],
   fullyParallel: false,
   workers: 1,
   forbidOnly: Boolean(process.env.CI),
@@ -14,7 +24,7 @@ export default defineConfig({
   reporter: "list",
   timeout: 60000,
   use: {
-    baseURL: "http://localhost:3002",
+    baseURL: E2E_BASE_URL,
     trace: "on-first-retry"
   },
   projects: [
@@ -24,20 +34,10 @@ export default defineConfig({
     }
   ],
   webServer: {
-    command: "npm run dev -- --port 3002",
-    env: {
-      ...process.env,
-      ABACUS_API_KEY: "",
-      AI_DEFAULT_PROVIDER: "deterministic",
-      AI_FALLBACK_PROVIDER: "deterministic",
-      AI_OUTREACH_PROVIDER: "deterministic",
-      FORGEOS_E2E: "true",
-      FORGEOS_LOCAL_DB_NAME: e2eDbName,
-      NEXT_PUBLIC_FORGEOS_LOCAL_DB_NAME: e2eDbName,
-      OUTREACH_DELIVERY_PROVIDER: "simulation"
-    },
+    command: `npm run dev -- --port ${PLAYWRIGHT_RUNTIME.e2e.port}`,
+    env: buildPlaywrightWebServerEnv(e2eDbName),
     reuseExistingServer: false,
     timeout: 180000,
-    url: "http://localhost:3002/pt-PT/leadops"
+    url: `${E2E_BASE_URL}${PLAYWRIGHT_RUNTIME.e2e.entryPath}`
   }
 });

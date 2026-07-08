@@ -23,7 +23,12 @@ import {
 } from "@/features/leadops/seed";
 import { recordActivity } from "@/features/crud/activity-recorder";
 import { resolveCustomerName } from "@/features/crud/relationships";
-import { normalizeEmail } from "@/features/crud/validation";
+import {
+  normalizeEmail,
+  normalizeOrganizationComparisonKey,
+  normalizePhone,
+  normalizeWebsite
+} from "@/features/leadops/import-normalization";
 import {
   createArchivePatch,
   createRestorePatch,
@@ -42,6 +47,26 @@ import {
 } from "./profile-repositories";
 import { createProductRepository, demoProductToCreateInput } from "./product-repositories";
 import { createCustomizerSimulationRepository } from "./customizer-repositories";
+import {
+  campaignFromSeed,
+  createCampaignRecipientRepository,
+  createOutreachCampaignRepository
+} from "./campaign-repositories";
+import {
+  createImportBatchRepository,
+  createImportRowRepository,
+  createLeadContactRepository
+} from "./import-repositories";
+import { createImportMappingProfileRepository } from "./import-mapping-profile-repositories";
+import { createEmailSuppressionRepository } from "./suppression-repositories";
+import { createOutreachProviderEventRepository } from "./provider-event-repositories";
+import { createOutreachSendAttemptRepository } from "./send-attempt-repositories";
+import {
+  createOutreachSendJobAttemptRepository,
+  createOutreachSendJobDailyUsageRepository,
+  createOutreachSendJobRecipientRepository,
+  createOutreachSendJobRepository
+} from "./send-job-repositories";
 import {
   createCustomerContactRepository,
   createInventoryRepository,
@@ -111,27 +136,36 @@ export function createLeadRepository(
     },
     async create(tenantId, input) {
       const email = normalizeEmail(input.email);
-      const existing = await this.getByEmail(tenantId, email);
-      if (existing && isActiveRecord(existing)) {
-        throw new PersistenceError("duplicate", "A lead with this email already exists.");
+      if (email) {
+        const existing = await this.getByEmail(tenantId, email);
+        if (existing && isActiveRecord(existing)) {
+          throw new PersistenceError("duplicate", "A lead with this email already exists.");
+        }
       }
+      const phoneResult = normalizePhone(input.phone ?? "");
+      const websiteResult = normalizeWebsite(input.website ?? "");
       const timestamp = nowIso();
       const lead: Lead = {
         id: createRecordId("lead"),
         tenantId,
         companyName: input.companyName.trim(),
+        normalizedCompanyName: normalizeOrganizationComparisonKey(input.companyName),
         contactName: input.contactName.trim(),
         email,
-        phone: input.phone?.trim() ?? "",
-        website: input.website ?? null,
+        phone: phoneResult.display,
+        normalizedPhone: phoneResult.normalized,
+        website: websiteResult.display,
+        websiteDomain: websiteResult.domain,
         facebookUrl: input.facebookUrl ?? null,
         location: input.location?.trim() ?? "",
+        country: input.country?.trim() ?? "Portugal",
         industry: input.industry?.trim() ?? "General",
         crmStatus: "new",
         outreachStatus: input.outreachStatus ?? "ready",
         quality: input.quality ?? "medium",
         source: input.source?.trim() ?? "manual",
         sourceDatabase: input.sourceDatabase?.trim() ?? "Manual",
+        sourceImportId: input.sourceImportId ?? null,
         contactSource: input.contactSource?.trim() ?? input.sourceDatabase?.trim() ?? "Manual",
         language: input.language ?? "pt-PT",
         campaignId: null,
@@ -892,16 +926,7 @@ export function createOutreachMessageRepository(db: ForgeOSDatabase): OutreachMe
 }
 
 export function createCampaignRepository(db: ForgeOSDatabase): CampaignRepository {
-  return {
-    async list(tenantId) {
-      return db.campaigns.where("tenantId").equals(tenantId).toArray();
-    },
-    async getById(tenantId, campaignId) {
-      const row = await db.campaigns.get(campaignId);
-      if (!row || row.tenantId !== tenantId) return null;
-      return row;
-    }
-  };
+  return createOutreachCampaignRepository(db);
 }
 
 export function createActivityRepository(db: ForgeOSDatabase): ActivityRepository {
@@ -964,11 +989,11 @@ async function seedProfileDefaults(db: ForgeOSDatabase, tenantId: string): Promi
 
   const user = await userProfiles.ensureDefault(tenantId, {
     active: true,
-    email: "joao.gomes@demo.local",
-    fullName: "João Gomes",
+    email: "operador@forgeos.preview",
+    fullName: "Operador ForgeOS",
     isLocalPreview: false,
     jobTitle: "Diretor Comercial",
-    phone: "+351 910 000 000",
+    phone: "+351 256 000 001",
     preferredLanguage: "pt-PT",
     profileImageLocalAssetId: null,
     role: "admin"
@@ -1041,14 +1066,7 @@ export async function seedDatabase(
 
   const campaigns: Campaign[] = leadOpsCampaigns
     .filter((c) => c.tenantId === tenantId)
-    .map((c) => ({
-      id: c.id,
-      tenantId: c.tenantId,
-      name: c.name,
-      status: c.status,
-      sentCount: c.sentCount,
-      totalCount: c.totalCount
-    }));
+    .map((c) => campaignFromSeed(c, timestamp));
 
   const leads: Lead[] = leadOpsLeads
     .filter((l) => l.tenantId === tenantId)
@@ -1183,12 +1201,14 @@ export async function resetDemoRecords(db: ForgeOSDatabase, tenantId: string): P
     "rw",
     [
       db.leads,
+      db.leadContacts,
       db.customers,
       db.opportunities,
       db.quotes,
       db.productionOrders,
       db.outreachMessages,
       db.campaigns,
+      db.campaignRecipients,
       db.activities,
       db.customizerSimulations
     ],
@@ -1221,7 +1241,13 @@ export async function resetDemoRecords(db: ForgeOSDatabase, tenantId: string): P
       await Promise.all([
         db.outreachMessages.bulkDelete(seedLeadIds),
         db.leads.bulkDelete(seedLeadIds),
+        db.leadContacts.where("tenantId").equals(tenantId).filter((contact) => seedLeadIds.includes(contact.leadId)).delete(),
         db.campaigns.bulkDelete(seedCampaignIds),
+        db.campaignRecipients
+          .where("tenantId")
+          .equals(tenantId)
+          .filter((recipient) => seedCampaignIds.includes(recipient.campaignId))
+          .delete(),
         db.customers.bulkDelete(seedCustomerIds),
         db.opportunities
           .where("tenantId")
@@ -1297,8 +1323,20 @@ export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
       db.barcodeRecords,
       db.labelTemplates,
       db.labelPrintJobs,
+      db.inventoryProductImportBatches,
+      db.inventoryProductImportStagedRows,
       db.importBatches,
-      db.importStagedRows
+      db.importRows,
+      db.importMappingProfiles,
+      db.leadContacts,
+      db.campaignRecipients,
+      db.emailSuppressions,
+      db.outreachSendAttempts,
+      db.outreachProviderEvents,
+      db.outreachSendJobs,
+      db.outreachSendJobRecipients,
+      db.outreachSendJobAttempts,
+      db.outreachSendJobDailyUsage
     ],
     async () => {
       await db.meta.clear();
@@ -1336,8 +1374,20 @@ export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
       await db.barcodeRecords.clear();
       await db.labelTemplates.clear();
       await db.labelPrintJobs.clear();
+      await db.inventoryProductImportBatches.clear();
+      await db.inventoryProductImportStagedRows.clear();
       await db.importBatches.clear();
-      await db.importStagedRows.clear();
+      await db.importRows.clear();
+      await db.importMappingProfiles.clear();
+      await db.leadContacts.clear();
+      await db.campaignRecipients.clear();
+      await db.emailSuppressions.clear();
+      await db.outreachSendAttempts.clear();
+      await db.outreachProviderEvents.clear();
+      await db.outreachSendJobs.clear();
+      await db.outreachSendJobRecipients.clear();
+      await db.outreachSendJobAttempts.clear();
+      await db.outreachSendJobDailyUsage.clear();
     }
   );
 }
@@ -1364,7 +1414,19 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
       db.machines,
       db.inventoryItems,
       db.stockMovements,
-      db.customizerSimulations
+      db.customizerSimulations,
+      db.importBatches,
+      db.importRows,
+      db.importMappingProfiles,
+      db.leadContacts,
+      db.campaignRecipients,
+      db.emailSuppressions,
+      db.outreachSendAttempts,
+      db.outreachProviderEvents,
+      db.outreachSendJobs,
+      db.outreachSendJobRecipients,
+      db.outreachSendJobAttempts,
+      db.outreachSendJobDailyUsage
     ],
     async () => {
       await db.leads.bulkPut(tables.leads);
@@ -1379,6 +1441,18 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
       await db.userProfiles.bulkPut(tables.userProfiles);
       await db.senderIdentities.bulkPut(tables.senderIdentities);
       await db.products.bulkPut(tables.products);
+      await db.importBatches.bulkPut(tables.importBatches ?? []);
+      await db.importRows.bulkPut(tables.importRows ?? []);
+      await db.importMappingProfiles.bulkPut(tables.importMappingProfiles ?? []);
+      await db.leadContacts.bulkPut(tables.leadContacts ?? []);
+      await db.campaignRecipients.bulkPut(tables.campaignRecipients ?? []);
+      await db.emailSuppressions.bulkPut(tables.emailSuppressions ?? []);
+      await db.outreachSendAttempts.bulkPut(tables.outreachSendAttempts ?? []);
+      await db.outreachProviderEvents.bulkPut(tables.outreachProviderEvents ?? []);
+      await db.outreachSendJobs.bulkPut(tables.outreachSendJobs ?? []);
+      await db.outreachSendJobRecipients.bulkPut(tables.outreachSendJobRecipients ?? []);
+      await db.outreachSendJobAttempts.bulkPut(tables.outreachSendJobAttempts ?? []);
+      await db.outreachSendJobDailyUsage.bulkPut(tables.outreachSendJobDailyUsage ?? []);
       if (localAssets) {
         for (const asset of localAssets) {
           const binary = atob(asset.blobBase64);
@@ -1394,7 +1468,26 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
       await db.meta.put({ key: "seedVersion", value: String(SEED_VERSION) });
     }
   );
-  await writeInventoryProductSnapshot(db, tenantId, tables.inventoryProduct);
+  await writeInventoryProductSnapshot(db, tenantId, tables.inventoryProduct ?? {
+    barcodes: [],
+    conversions: [],
+    entries: [],
+    importBatch: null,
+    importRows: [],
+    items: [],
+    labelPrintJobs: [],
+    labelTemplates: [],
+    locations: [],
+    lots: [],
+    packaging: [],
+    products: [],
+    reservations: [],
+    stockCounts: [],
+    transactions: [],
+    unitOfMeasures: [],
+    variants: [],
+    warehouses: []
+  });
   const productRows = await db.products.where("tenantId").equals(tenantId).toArray();
   const machineCount = await db.machines.where("tenantId").equals(tenantId).count();
   if (machineCount === 0 && productRows.length > 0) {
@@ -1428,6 +1521,18 @@ export function createLocalRepositoryBundle(db: ForgeOSDatabase) {
   const products = createProductRepository(db, activities);
   const customizerSimulations = createCustomizerSimulationRepository(db, activities);
   const inventoryProduct = createInventoryProductRepository(db);
+  const importBatches = createImportBatchRepository(db);
+  const importRows = createImportRowRepository(db);
+  const importMappingProfiles = createImportMappingProfileRepository(db);
+  const leadContacts = createLeadContactRepository(db);
+  const emailSuppressions = createEmailSuppressionRepository(db);
+  const campaignRecipients = createCampaignRecipientRepository(db);
+  const outreachSendAttempts = createOutreachSendAttemptRepository(db);
+  const outreachProviderEvents = createOutreachProviderEventRepository(db);
+  const outreachSendJobs = createOutreachSendJobRepository(db);
+  const outreachSendJobRecipients = createOutreachSendJobRecipientRepository(db);
+  const outreachSendJobAttempts = createOutreachSendJobAttemptRepository(db);
+  const outreachSendJobDailyUsage = createOutreachSendJobDailyUsageRepository(db);
 
   return {
     meta,
@@ -1442,6 +1547,7 @@ export function createLocalRepositoryBundle(db: ForgeOSDatabase) {
     inventoryProduct,
     outreachMessages,
     campaigns,
+    campaignRecipients,
     activities,
     companyProfiles,
     userProfiles,
@@ -1449,6 +1555,17 @@ export function createLocalRepositoryBundle(db: ForgeOSDatabase) {
     localAssets,
     products,
     customizerSimulations,
+    importBatches,
+    importRows,
+    importMappingProfiles,
+    leadContacts,
+    emailSuppressions,
+    outreachSendAttempts,
+    outreachProviderEvents,
+    outreachSendJobs,
+    outreachSendJobRecipients,
+    outreachSendJobAttempts,
+    outreachSendJobDailyUsage,
     async reset() {
       await resetDatabase(db);
     },

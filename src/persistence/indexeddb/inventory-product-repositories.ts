@@ -30,8 +30,8 @@ function inventoryProductTables(db: ForgeOSDatabase) {
     db.barcodeRecords,
     db.labelTemplates,
     db.labelPrintJobs,
-    db.importBatches,
-    db.importStagedRows
+    db.inventoryProductImportBatches,
+    db.inventoryProductImportStagedRows
   ];
 }
 
@@ -73,8 +73,8 @@ export async function writeInventoryProductSnapshot(
     await bulkPutIfAny(db.barcodeRecords, snapshot.barcodes);
     await bulkPutIfAny(db.labelTemplates, snapshot.labelTemplates);
     await bulkPutIfAny(db.labelPrintJobs, snapshot.labelPrintJobs);
-    await bulkPutIfAny(db.importBatches, snapshot.importBatch ? [snapshot.importBatch] : []);
-    await bulkPutIfAny(db.importStagedRows, snapshot.importRows);
+    await bulkPutIfAny(db.inventoryProductImportBatches, snapshot.importBatch ? [snapshot.importBatch] : []);
+    await bulkPutIfAny(db.inventoryProductImportStagedRows, snapshot.importRows);
   });
 }
 
@@ -118,8 +118,8 @@ export async function readInventoryProductSnapshot(
     db.barcodeRecords.where("tenantId").equals(tenantId).toArray(),
     db.labelTemplates.where("tenantId").equals(tenantId).toArray(),
     db.labelPrintJobs.where("tenantId").equals(tenantId).toArray(),
-    db.importBatches.where("tenantId").equals(tenantId).toArray(),
-    db.importStagedRows.where("tenantId").equals(tenantId).toArray()
+    db.inventoryProductImportBatches.where("tenantId").equals(tenantId).toArray(),
+    db.inventoryProductImportStagedRows.where("tenantId").equals(tenantId).toArray()
   ]);
 
   return {

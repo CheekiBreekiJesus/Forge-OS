@@ -5,6 +5,7 @@ import type {
   CustomerContact,
   InventoryItem,
   Machine,
+  StockChangeInput,
   StockMovement,
   UpdateInventoryItemInput,
   UpdateMachineInput
@@ -67,7 +68,26 @@ import type {
   UpdateQuoteInput
 } from "@/domain/types";
 import type { ArchiveInput, ListOptions } from "@/persistence/archive-utils";
-import type { StockChangeInput } from "@/domain/operations-types";
+import type { OutreachCampaign } from "@/domain/campaign-types";
+import type {
+  CampaignRecipientRepository,
+  OutreachCampaignRepository
+} from "@/persistence/indexeddb/campaign-repositories";
+import type { EmailSuppressionRepository } from "@/persistence/indexeddb/suppression-repositories";
+import type { OutreachProviderEventRepository } from "@/persistence/indexeddb/provider-event-repositories";
+import type { OutreachSendAttemptRepository } from "@/persistence/indexeddb/send-attempt-repositories";
+import type {
+  OutreachSendJobAttemptRepository,
+  OutreachSendJobDailyUsageRepository,
+  OutreachSendJobRecipientRepository,
+  OutreachSendJobRepository
+} from "@/persistence/indexeddb/send-job-repositories";
+import type {
+  ImportBatchRepository,
+  ImportRowRepository,
+  LeadContactRepository
+} from "@/persistence/indexeddb/import-repositories";
+import type { ImportMappingProfileRepository } from "@/persistence/indexeddb/import-mapping-profile-repositories";
 
 export type { ListOptions, ArchiveInput };
 
@@ -315,10 +335,7 @@ export interface ProductRepository {
   listEmailPromotable(tenantId: string): Promise<Product[]>;
 }
 
-export interface CampaignRepository {
-  list(tenantId: string): Promise<Campaign[]>;
-  getById(tenantId: string, campaignId: string): Promise<Campaign | null>;
-}
+export type CampaignRepository = OutreachCampaignRepository;
 
 export interface ActivityRepository {
   list(tenantId: string): Promise<ActivityEvent[]>;
@@ -358,6 +375,7 @@ export interface LocalRepositoryBundle {
   inventoryProduct: InventoryProductRepository;
   outreachMessages: OutreachMessageRepository;
   campaigns: CampaignRepository;
+  campaignRecipients: CampaignRecipientRepository;
   activities: ActivityRepository;
   meta: MetaRepository;
   companyProfiles: CompanyProfileRepository;
@@ -366,6 +384,17 @@ export interface LocalRepositoryBundle {
   localAssets: LocalAssetRepository;
   products: ProductRepository;
   customizerSimulations: CustomizerSimulationRepository;
+  importBatches: ImportBatchRepository;
+  importRows: ImportRowRepository;
+  importMappingProfiles: ImportMappingProfileRepository;
+  leadContacts: LeadContactRepository;
+  emailSuppressions: EmailSuppressionRepository;
+  outreachSendAttempts: OutreachSendAttemptRepository;
+  outreachProviderEvents: OutreachProviderEventRepository;
+  outreachSendJobs: OutreachSendJobRepository;
+  outreachSendJobRecipients: OutreachSendJobRecipientRepository;
+  outreachSendJobAttempts: OutreachSendJobAttemptRepository;
+  outreachSendJobDailyUsage: OutreachSendJobDailyUsageRepository;
   reset(): Promise<void>;
   resetDemoData(tenantId: string): Promise<void>;
   seed(tenantId: string): Promise<void>;
@@ -381,7 +410,8 @@ export type PersistenceErrorCode =
   | "not_found"
   | "duplicate"
   | "invalid_transition"
-  | "missing_link";
+  | "missing_link"
+  | "forbidden";
 
 export class PersistenceError extends Error {
   constructor(
