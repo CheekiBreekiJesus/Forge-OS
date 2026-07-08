@@ -1022,7 +1022,8 @@ export const dictionary: Dictionary = {
         organizationDisplayOverride: "Nome formal manual",
         applyPersonalization: "Aplicar personalização",
         includedRecipients: "Destinatários incluídos",
-        unresolvedCount: "Variáveis de modelo por resolver"
+        unresolvedCount: "Variáveis de modelo por resolver",
+        htmlPreview: "Pré-visualização HTML"
       },
       drafts: {
         title: "Rascunhos personalizados",
@@ -1134,6 +1135,23 @@ export const dictionary: Dictionary = {
         excluded: "Excluídos",
         suppressed: "Suprimidos",
         skipped: "Ignorados"
+      },
+      workflow: {
+        navLabel: "Fluxo da campanha",
+        stepNumber: "Passo {number}",
+        steps: {
+          draft: "Rascunhar emails",
+          approve: "Aprovar rascunhos",
+          queue: "Colocar em fila",
+          delivery: "Fila de envio / estado de entrega"
+        }
+      },
+      advanced: {
+        title: "Avançado / detalhes da campanha",
+        show: "Mostrar detalhes",
+        hide: "Ocultar detalhes",
+        segmentHint:
+          "A definição de segmento é informativa neste MVP. Crie segmentos no painel LeadOps."
       }
     },
     providerEvents: {
@@ -1185,7 +1203,77 @@ export const dictionary: Dictionary = {
       pausedResult: "Pausada",
       resumedResult: "Retomada",
       cancelledResult: "Cancelada",
-      result: "Ultimo resultado"
+      result: "Ultimo resultado",
+      localMvpNotice:
+        "No MVP local, a fila só corre enquanto o ForgeOS/servidor de desenvolvimento estiver ativo. Em produção, isto deve correr através de um worker de servidor, cron ou n8n.",
+      intervalMinutes: "Intervalo (minutos)",
+      autoProcessingHint:
+        "O processamento da fila corre automaticamente enquanto esta página estiver aberta e o servidor de desenvolvimento ativo. Use os controlos manuais se necessário.",
+      queueSend: {
+        stepLabel: "Passo 3",
+        title: "Colocar envio em fila",
+        description:
+          "Coloque rascunhos aprovados na tarefa de simulação local com tamanho de lote e intervalo entre emails.",
+        localMvpNotice:
+          "No MVP local, a fila só corre enquanto o ForgeOS/servidor de desenvolvimento estiver ativo. Em produção, isto deve correr através de um worker de servidor, cron ou n8n.",
+        realSendDisabledWarning:
+          "O envio real de campanha permanece desativado a menos que OUTREACH_REAL_SEND_ENABLED=true. O modo de auto-teste usa OUTREACH_TEST_SEND_ENABLED=true e não contacta destinatários da campanha.",
+        batchSize: "Tamanho do lote",
+        intervalMinutes: "Intervalo entre emails (minutos)",
+        intervalError: "O intervalo deve estar entre 0 e 60 minutos.",
+        startTime: "Hora de início",
+        startNow: "Iniciar agora",
+        startScheduled: "Agendar hora local",
+        scheduleError: "Introduza uma data e hora local válidas.",
+        safetyTitle: "Resumo de segurança da fila",
+        approvedDrafts: "{count} rascunhos aprovados na campanha",
+        eligibleRecipients: "{count} destinatários elegíveis para fila",
+        excludedRecipients: "{count} destinatários excluídos da fila",
+        needsApproval: "Aprove todos os rascunhos antes de colocar em fila.",
+        refreshEligibility: "Atualizar elegibilidade",
+        queueAction: "Colocar rascunhos aprovados em fila",
+        queueing: "A colocar em fila…",
+        queued: "Fila de envio criada",
+        notEligible: "A campanha não é elegível para fila.",
+        queueFailed: "Não foi possível colocar a campanha em fila."
+      },
+      hostedPreparation: {
+        title: "Preparacao para envio no servidor",
+        description:
+          "Prepara a fotografia aprovada da campanha para simulacao duravel alojada. Nao envia email nem ativa envio Brevo.",
+        prepare: "Preparar para envio no servidor",
+        preparing: "A preparar...",
+        refresh: "Atualizar estado preparado",
+        tenant: "Tenant",
+        noTenants: "Sem membership de tenant confiavel",
+        approvalState: "Aprovacao",
+        approvedRecipients: "Destinatarios aprovados",
+        staleApprovals: "Aprovacoes desatualizadas",
+        status: "Estado preparado",
+        eligibility: "Elegibilidade",
+        eligible: "Pronto para preparar",
+        notEligible: "Nao esta pronto",
+        needsApproval: "A campanha tem de estar aprovada antes da preparacao.",
+        hasStaleApprovals: "Resolva aprovacoes desatualizadas antes da preparacao.",
+        emptySnapshot: "E necessario pelo menos um destinatario incluido e aprovado.",
+        preparedAt: "Preparado em",
+        preparedBy: "Preparado por",
+        audit: "Auditoria alojada recente",
+        authUnavailable: "Autenticacao alojada ou membership de tenant indisponivel nesta sessao local.",
+        statusFailed: "Nao foi possivel carregar o estado preparado.",
+        prepareFailed: "A preparacao da campanha falhou. Nenhum email foi enviado.",
+        senderIncomplete: "Empresa ou identidade de remetente incompleta.",
+        createdPrepared: "{count} destinatarios preparados para simulacao duravel alojada.",
+        reusedPrepared: "Ja estava preparado. A fotografia alojada existente foi reutilizada.",
+        states: {
+          failed: "Falhou",
+          loading: "A carregar",
+          not_prepared: "Nao preparado",
+          prepared: "Preparado",
+          preparing: "A preparar",
+          stale: "Fotografia desatualizada / invalida"
+        }
+      }
     },
     suppression: {
       title: "Lista de supressão",

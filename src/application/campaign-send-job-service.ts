@@ -14,6 +14,7 @@ import type {
   SendJobEligibleRecipient,
   SendJobExclusionReason
 } from "@/domain/send-job-types";
+import { MAX_QUEUE_DELAY_MS } from "@/features/leadops/campaign-workflow";
 import { isValidEmailSyntax, normalizeEmail } from "@/features/leadops/import-normalization";
 import type { LocalRepositoryBundle } from "@/persistence/interfaces";
 import { PersistenceError } from "@/persistence/interfaces";
@@ -27,6 +28,13 @@ const RETRYABLE_CODES = new Set(["timeout", "rate_limited", "provider_unavailabl
 
 function nowIso(): string {
   return new Date().toISOString();
+}
+
+function sleep(ms: number): Promise<void> {
+  if (ms <= 0) return Promise.resolve();
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 function todayIsoDate(): string {
@@ -224,6 +232,9 @@ export async function queueCampaignSendJob(
   }
 
   const timestamp = nowIso();
+  const scheduledStartAt = input.scheduledStartAt?.trim() || null;
+  const queuedAt =
+    scheduledStartAt && scheduledStartAt > timestamp ? scheduledStartAt : timestamp;
   const job = await repos.outreachSendJobs.create({
     approvedBy: input.actorId ?? "local-user",
     batchSize: clampNumber(input.batchSize, DEFAULT_BATCH_SIZE, 1, 100),
@@ -235,7 +246,7 @@ export async function queueCampaignSendJob(
     createdAt: timestamp,
     createdBy: input.actorId ?? "local-user",
     dailyLimit: clampNumber(input.dailyLimit, DEFAULT_DAILY_LIMIT, 0, 1000),
-    delayMs: clampNumber(input.delayMs, 0, 0, 5000),
+    delayMs: clampNumber(input.delayMs, 0, 0, MAX_QUEUE_DELAY_MS),
     deliveryMode,
     lastProcessedAt: null,
     lastStopReason: null,
@@ -244,7 +255,7 @@ export async function queueCampaignSendJob(
     pausedBy: null,
     pauseReason: null,
     provider,
-    queuedAt: timestamp,
+    queuedAt,
     remainingCount: eligibility.eligibleRecipients.length,
     resumedAt: null,
     resumedBy: null,
@@ -317,6 +328,9 @@ export async function processNextCampaignBatch(
     if (job.status === "CANCELLED") return emptyResult(job, "cancelled");
     if (job.status === "COMPLETED") return emptyResult(job, "completed");
     if (TERMINAL_JOB_STATUSES.has(job.status)) return emptyResult(job, "completed");
+    if (job.queuedAt && job.queuedAt > now) {
+      return emptyResult(job, "scheduled");
+    }
 
     const diagnostic = provider.diagnostic();
     if (job.deliveryMode === "brevo" && (!diagnostic.configured || !diagnostic.realSendEnabled)) {
@@ -361,7 +375,11 @@ export async function processNextCampaignBatch(
     let suppressed = 0;
     let skipped = 0;
 
-    for (const jobRecipient of processable) {
+    for (let index = 0; index < processable.length; index += 1) {
+      if (index > 0 && job.delayMs > 0) {
+        await sleep(job.delayMs);
+      }
+      const jobRecipient = processable[index];
       const result = await processOneRecipient(repos, provider, job, jobRecipient, input.actorId ?? "local-user");
       if (result === "sent") sent += 1;
       else if (result === "failed") failed += 1;

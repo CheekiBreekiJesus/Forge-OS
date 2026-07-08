@@ -1022,7 +1022,8 @@ export const dictionary: Dictionary = {
         organizationDisplayOverride: "Manual formal name",
         applyPersonalization: "Apply personalization",
         includedRecipients: "Included recipients",
-        unresolvedCount: "Unresolved template variables"
+        unresolvedCount: "Unresolved template variables",
+        htmlPreview: "HTML preview"
       },
       drafts: {
         title: "Personalized drafts",
@@ -1134,6 +1135,22 @@ export const dictionary: Dictionary = {
         excluded: "Excluded",
         suppressed: "Suppressed",
         skipped: "Skipped"
+      },
+      workflow: {
+        navLabel: "Campaign workflow",
+        stepNumber: "Step {number}",
+        steps: {
+          draft: "Draft emails",
+          approve: "Approve drafts",
+          queue: "Queue send",
+          delivery: "Sending queue / delivery status"
+        }
+      },
+      advanced: {
+        title: "Advanced / campaign details",
+        show: "Show details",
+        hide: "Hide details",
+        segmentHint: "Segment definition is informational for this MVP. Create segments from the LeadOps dashboard."
       }
     },
     providerEvents: {
@@ -1185,7 +1202,77 @@ export const dictionary: Dictionary = {
       pausedResult: "Paused",
       resumedResult: "Resumed",
       cancelledResult: "Cancelled",
-      result: "Last result"
+      result: "Last result",
+      localMvpNotice:
+        "For local MVP, the queue only runs while ForgeOS/dev server is running. For production, this should run through a server worker, cron, or n8n.",
+      intervalMinutes: "Interval (minutes)",
+      autoProcessingHint:
+        "Queue processing runs automatically while this page is open and the dev server is running. Use manual batch controls if needed.",
+      queueSend: {
+        stepLabel: "Step 3",
+        title: "Queue send",
+        description:
+          "Queue approved drafts into the local simulation send job with batch size and interval between emails.",
+        localMvpNotice:
+          "For local MVP, the queue only runs while ForgeOS/dev server is running. For production, this should run through a server worker, cron, or n8n.",
+        realSendDisabledWarning:
+          "Real campaign sending stays disabled unless OUTREACH_REAL_SEND_ENABLED=true. Self-test mode uses OUTREACH_TEST_SEND_ENABLED=true and does not contact campaign recipients.",
+        batchSize: "Batch size",
+        intervalMinutes: "Interval between emails (minutes)",
+        intervalError: "Interval must be between 0 and 60 minutes.",
+        startTime: "Start time",
+        startNow: "Start now",
+        startScheduled: "Schedule local time",
+        scheduleError: "Enter a valid local date and time.",
+        safetyTitle: "Queue safety summary",
+        approvedDrafts: "{count} approved drafts in campaign",
+        eligibleRecipients: "{count} recipients eligible to queue",
+        excludedRecipients: "{count} recipients excluded from queue",
+        needsApproval: "Approve all drafts before queueing.",
+        refreshEligibility: "Refresh eligibility",
+        queueAction: "Queue approved drafts",
+        queueing: "Queueing…",
+        queued: "Send queue created",
+        notEligible: "Campaign is not eligible to queue.",
+        queueFailed: "Could not queue campaign."
+      },
+      hostedPreparation: {
+        title: "Server-send preparation",
+        description:
+          "Prepare the approved campaign snapshot for hosted durable simulation. This does not send email or enable Brevo delivery.",
+        prepare: "Prepare for server sending",
+        preparing: "Preparing...",
+        refresh: "Refresh prepared state",
+        tenant: "Tenant",
+        noTenants: "No trusted tenant membership",
+        approvalState: "Approval",
+        approvedRecipients: "Approved recipients",
+        staleApprovals: "Stale approvals",
+        status: "Prepared state",
+        eligibility: "Eligibility",
+        eligible: "Ready to prepare",
+        notEligible: "Not ready",
+        needsApproval: "Campaign must be approved before preparation.",
+        hasStaleApprovals: "Resolve stale recipient approvals before preparation.",
+        emptySnapshot: "At least one approved included recipient is required.",
+        preparedAt: "Prepared at",
+        preparedBy: "Prepared by",
+        audit: "Recent hosted audit",
+        authUnavailable: "Hosted authentication or tenant membership is not available in this local session.",
+        statusFailed: "Prepared status could not be loaded.",
+        prepareFailed: "Campaign preparation failed. No email was sent.",
+        senderIncomplete: "Company or sender identity is incomplete.",
+        createdPrepared: "Prepared {count} recipients for hosted durable simulation.",
+        reusedPrepared: "Already prepared. Reused the existing hosted snapshot.",
+        states: {
+          failed: "Failed",
+          loading: "Loading",
+          not_prepared: "Not prepared",
+          prepared: "Prepared",
+          preparing: "Preparing",
+          stale: "Stale / invalid snapshot"
+        }
+      }
     },
     suppression: {
       title: "Suppression list",
