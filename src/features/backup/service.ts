@@ -5,6 +5,7 @@ import type {
   UserProfile
 } from "@/domain/profile-types";
 import type { Product } from "@/domain/product-types";
+import type { InventoryProductSnapshot } from "@/persistence/interfaces";
 import type {
   ActivityEvent,
   Campaign,
@@ -32,8 +33,8 @@ import {
   type BackupRestoreReport
 } from "@/features/backup/restore-validation";
 
-export const BACKUP_VERSION = 8 as const;
-export const SUPPORTED_BACKUP_VERSIONS = [4, 5, 6, 7, 8] as const;
+export const BACKUP_VERSION = 9 as const;
+export const SUPPORTED_BACKUP_VERSIONS = [3, 4, 5, 6, 7, 8, 9] as const;
 
 export type ForgeOSBackup = {
   version: typeof BACKUP_VERSION;
@@ -52,6 +53,7 @@ export type ForgeOSBackup = {
     userProfiles: UserProfile[];
     senderIdentities: SenderIdentity[];
     products: Product[];
+    inventoryProduct?: InventoryProductSnapshot;
     importBatches: ImportBatch[];
     importRows: ImportRow[];
     importMappingProfiles: ImportMappingProfile[];
@@ -86,6 +88,7 @@ export async function exportBackup(
     userProfiles,
     senderIdentities,
     products,
+    inventoryProduct,
     importBatches,
     importRows,
     importMappingProfiles,
@@ -112,6 +115,7 @@ export async function exportBackup(
     repos.userProfiles.list(tenantId),
     repos.senderIdentities.listAll(tenantId),
     repos.products.list(tenantId),
+    repos.inventoryProduct.getSnapshot(tenantId),
     repos.importBatches.list(tenantId),
     Promise.resolve([] as ImportRow[]).then(async () => {
       const batches = await repos.importBatches.list(tenantId);
@@ -166,6 +170,7 @@ export async function exportBackup(
       outreachMessages,
       productionOrders,
       products,
+      inventoryProduct,
       quotes,
       senderIdentities,
       userProfiles,
@@ -208,7 +213,9 @@ export async function exportBackup(
 export function validateBackup(data: unknown): data is ForgeOSBackup {
   if (!data || typeof data !== "object") return false;
   const record = data as Record<string, unknown>;
-  if (!SUPPORTED_BACKUP_VERSIONS.includes(record.version as 4 | 5 | 6 | 7 | 8)) return false;
+  if (!SUPPORTED_BACKUP_VERSIONS.includes(record.version as (typeof SUPPORTED_BACKUP_VERSIONS)[number])) {
+    return false;
+  }
   if (typeof record.tenantId !== "string") return false;
   if (!record.tables || typeof record.tables !== "object") return false;
   const tables = record.tables as Record<string, unknown>;
@@ -220,7 +227,23 @@ export function validateBackup(data: unknown): data is ForgeOSBackup {
     "senderIdentities",
     "products"
   ];
-  return required.every((key) => Array.isArray(tables[key]));
+  if (!required.every((key) => Array.isArray(tables[key]))) return false;
+  if (record.version === BACKUP_VERSION) {
+    const inventoryProduct = tables.inventoryProduct as Record<string, unknown> | undefined;
+    if (!inventoryProduct || typeof inventoryProduct !== "object") return false;
+    return [
+      "unitOfMeasures",
+      "items",
+      "products",
+      "variants",
+      "transactions",
+      "entries",
+      "barcodes",
+      "labelTemplates",
+      "labelPrintJobs"
+    ].every((key) => Array.isArray(inventoryProduct[key]));
+  }
+  return true;
 }
 
 export async function importBackup(

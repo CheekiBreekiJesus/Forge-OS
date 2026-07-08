@@ -1,6 +1,6 @@
 import type {
   CreateCustomerContactInput,
-  CreateInventoryItemInput,
+  CreateInventoryItemInput as LegacyCreateInventoryItemInput,
   CreateMachineInput,
   CustomerContact,
   InventoryItem,
@@ -29,6 +29,32 @@ import type {
   UpdateCustomizerSimulationInput
 } from "@/domain/customizer-types";
 import type { CreateProductInput, Product, UpdateProductInput } from "@/domain/product-types";
+import type {
+  BarcodeRecord,
+  ImportBatch,
+  ImportStagedRow,
+  InventoryItemMaster,
+  InventoryLedgerEntry,
+  InventoryLot,
+  InventoryReservation,
+  InventoryTransaction,
+  LabelPrintJob,
+  LabelTemplate,
+  PackagingConfiguration,
+  ProductMaster,
+  ProductVariant,
+  StockCountSession,
+  StockLocation,
+  UnitConversion,
+  UnitOfMeasure,
+  Warehouse
+} from "@/domain/inventory-product-types";
+import type { PostTransactionInput } from "@/features/inventory-product/ledger";
+import type {
+  CreateInventoryItemMasterInput,
+  CreateReservationInput,
+  StockMovementRequest
+} from "@/features/inventory-product/operations";
 import type {
   ActivityEvent,
   Campaign,
@@ -195,7 +221,7 @@ export interface MachineRepository {
 export interface InventoryRepository {
   list(tenantId: string, options?: ListOptions): Promise<InventoryItem[]>;
   getById(tenantId: string, id: string): Promise<InventoryItem | null>;
-  create(tenantId: string, input: CreateInventoryItemInput): Promise<InventoryItem>;
+  create(tenantId: string, input: LegacyCreateInventoryItemInput): Promise<InventoryItem>;
   update(tenantId: string, id: string, input: UpdateInventoryItemInput): Promise<InventoryItem>;
   archive(tenantId: string, id: string, input?: ArchiveInput): Promise<InventoryItem>;
   restore(tenantId: string, id: string): Promise<InventoryItem>;
@@ -215,6 +241,74 @@ export interface InventoryRepository {
     input: StockChangeInput
   ): Promise<{ item: InventoryItem; movement: StockMovement }>;
   listMovements(tenantId: string, inventoryItemId: string): Promise<StockMovement[]>;
+}
+
+export type InventoryProductSnapshot = {
+  unitOfMeasures: UnitOfMeasure[];
+  conversions: UnitConversion[];
+  items: InventoryItemMaster[];
+  products: ProductMaster[];
+  variants: ProductVariant[];
+  packaging: PackagingConfiguration[];
+  warehouses: Warehouse[];
+  locations: StockLocation[];
+  lots: InventoryLot[];
+  transactions: InventoryTransaction[];
+  entries: InventoryLedgerEntry[];
+  reservations: InventoryReservation[];
+  stockCounts: StockCountSession[];
+  barcodes: BarcodeRecord[];
+  labelTemplates: LabelTemplate[];
+  labelPrintJobs: LabelPrintJob[];
+  importBatch: ImportBatch | null;
+  importRows: ImportStagedRow[];
+};
+
+export interface InventoryProductRepository {
+  getSnapshot(tenantId: string): Promise<InventoryProductSnapshot>;
+  replaceSnapshot(tenantId: string, snapshot: InventoryProductSnapshot): Promise<void>;
+  seedDemoFoundation(tenantId: string): Promise<void>;
+  postTransaction(
+    tenantId: string,
+    input: PostTransactionInput
+  ): Promise<{ transaction: InventoryTransaction; entries: InventoryLedgerEntry[] }>;
+  reverseTransaction(
+    tenantId: string,
+    transactionId: string,
+    operatorId: string,
+    reasonCode: string
+  ): Promise<{ transaction: InventoryTransaction; entries: InventoryLedgerEntry[] }>;
+  recordLabelPrintJob(tenantId: string, job: LabelPrintJob): Promise<LabelPrintJob>;
+  validateIntegrity(tenantId: string): Promise<{ ok: boolean; issues: string[] }>;
+  createItem(tenantId: string, input: CreateInventoryItemMasterInput): Promise<InventoryItemMaster>;
+  updateItem(
+    tenantId: string,
+    itemId: string,
+    input: Partial<CreateInventoryItemMasterInput>
+  ): Promise<InventoryItemMaster>;
+  receiveStock(tenantId: string, request: StockMovementRequest): Promise<{
+    transaction: InventoryTransaction;
+    entries: InventoryLedgerEntry[];
+  }>;
+  issueStock(tenantId: string, request: StockMovementRequest): Promise<{
+    transaction: InventoryTransaction;
+    entries: InventoryLedgerEntry[];
+  }>;
+  transferStock(tenantId: string, request: StockMovementRequest): Promise<{
+    transaction: InventoryTransaction;
+    entries: InventoryLedgerEntry[];
+  }>;
+  adjustStock(
+    tenantId: string,
+    request: StockMovementRequest,
+    direction: "increase" | "decrease"
+  ): Promise<{ transaction: InventoryTransaction; entries: InventoryLedgerEntry[] }>;
+  createReservation(tenantId: string, input: CreateReservationInput): Promise<InventoryReservation>;
+  releaseReservation(
+    tenantId: string,
+    reservationId: string,
+    status?: "released" | "consumed"
+  ): Promise<InventoryReservation>;
 }
 
 export interface OutreachMessageRepository {
@@ -312,6 +406,7 @@ export interface LocalRepositoryBundle {
   productionOrders: ProductionOrderRepository;
   machines: MachineRepository;
   inventory: InventoryRepository;
+  inventoryProduct: InventoryProductRepository;
   outreachMessages: OutreachMessageRepository;
   campaigns: CampaignRepository;
   campaignRecipients: CampaignRecipientRepository;

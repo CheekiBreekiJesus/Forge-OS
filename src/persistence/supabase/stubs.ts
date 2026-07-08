@@ -21,6 +21,7 @@ export function createSupabaseStubRepositories(): Pick<
   | "productionOrders"
   | "machines"
   | "inventory"
+  | "inventoryProduct"
   | "outreachMessages"
   | "meta"
   | "companyProfiles"
@@ -49,6 +50,23 @@ export function createSupabaseStubRepositories(): Pick<
     productionOrders: stubRepo(["list", "getById", "getByQuoteId", "getByMachineId", "createFromQuote", "create", "update", "assignMachine", "archive", "restore"]),
     machines: stubRepo(["list", "getById", "getByCode", "create", "update", "duplicate", "archive", "restore", "listForProduct"]),
     inventory: stubRepo(["list", "getById", "create", "update", "archive", "restore", "recordReceipt", "recordConsumption", "adjustStock", "listMovements"]),
+    inventoryProduct: stubRepo([
+      "getSnapshot",
+      "replaceSnapshot",
+      "seedDemoFoundation",
+      "postTransaction",
+      "reverseTransaction",
+      "recordLabelPrintJob",
+      "validateIntegrity",
+      "createItem",
+      "updateItem",
+      "receiveStock",
+      "issueStock",
+      "transferStock",
+      "adjustStock",
+      "createReservation",
+      "releaseReservation"
+    ]),
     outreachMessages: stubRepo(["listForLead", "listAll", "getForLead", "saveDraft", "countBySenderIdentity"]),
     meta: stubRepo(["get", "set", "delete"]),
     companyProfiles: stubRepo(["getForTenant", "getById", "create", "update", "ensureDefault"]),
@@ -77,6 +95,7 @@ export function createSupabaseStubRepositories(): Pick<
     | "productionOrders"
     | "machines"
     | "inventory"
+    | "inventoryProduct"
     | "outreachMessages"
     | "meta"
     | "companyProfiles"

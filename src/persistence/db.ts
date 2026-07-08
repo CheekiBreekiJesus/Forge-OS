@@ -33,6 +33,26 @@ import type {
 } from "@/domain/send-job-types";
 import type { EmailSuppression } from "@/domain/suppression-types";
 import type { ImportBatch, ImportRow, LeadContact, ImportMappingProfile } from "@/domain/import-types";
+import type {
+  BarcodeRecord,
+  ImportBatch as InventoryProductImportBatch,
+  ImportStagedRow,
+  InventoryItemMaster,
+  InventoryLedgerEntry,
+  InventoryLot,
+  InventoryReservation,
+  InventoryTransaction,
+  LabelPrintJob,
+  LabelTemplate,
+  PackagingConfiguration,
+  ProductMaster,
+  ProductVariant,
+  StockCountSession,
+  StockLocation,
+  UnitConversion,
+  UnitOfMeasure,
+  Warehouse
+} from "@/domain/inventory-product-types";
 import type { Product } from "@/domain/product-types";
 import { DEFAULT_ARCHIVABLE } from "@/persistence/archive-utils";
 
@@ -77,6 +97,24 @@ export class ForgeOSDatabase extends Dexie {
   outreachSendJobRecipients!: Table<OutreachSendJobRecipient, string>;
   outreachSendJobAttempts!: Table<OutreachSendJobAttempt, string>;
   outreachSendJobDailyUsage!: Table<OutreachSendJobDailyUsage, string>;
+  unitOfMeasures!: Table<UnitOfMeasure, string>;
+  unitConversions!: Table<UnitConversion, string>;
+  inventoryItemMasters!: Table<InventoryItemMaster, string>;
+  productMasters!: Table<ProductMaster, string>;
+  productVariants!: Table<ProductVariant, string>;
+  packagingConfigurations!: Table<PackagingConfiguration, string>;
+  warehouses!: Table<Warehouse, string>;
+  stockLocations!: Table<StockLocation, string>;
+  inventoryLots!: Table<InventoryLot, string>;
+  inventoryTransactions!: Table<InventoryTransaction, string>;
+  inventoryLedgerEntries!: Table<InventoryLedgerEntry, string>;
+  inventoryReservations!: Table<InventoryReservation, string>;
+  stockCountSessions!: Table<StockCountSession, string>;
+  barcodeRecords!: Table<BarcodeRecord, string>;
+  labelTemplates!: Table<LabelTemplate, string>;
+  labelPrintJobs!: Table<LabelPrintJob, string>;
+  inventoryProductImportBatches!: Table<InventoryProductImportBatch, string>;
+  inventoryProductImportStagedRows!: Table<ImportStagedRow, string>;
 
   constructor(name: string = LOCAL_DB_NAME) {
     super(name);
@@ -503,7 +541,7 @@ export class ForgeOSDatabase extends Dexie {
         await tx.table("meta").put({ key: "schemaVersion", value: "11" });
       });
 
-    this.version(SCHEMA_VERSION)
+    this.version(12)
       .stores({
         meta: "key",
         leads:
@@ -559,7 +597,7 @@ export class ForgeOSDatabase extends Dexie {
           if (row.csvDelimiter === undefined) row.csvDelimiter = null;
           if (row.importedBy === undefined) row.importedBy = null;
         });
-        await tx.table("meta").put({ key: "schemaVersion", value: String(SCHEMA_VERSION) });
+        await tx.table("meta").put({ key: "schemaVersion", value: "12" });
       });
 
     this.version(13)
@@ -619,6 +657,84 @@ export class ForgeOSDatabase extends Dexie {
           if (row.contactSalutation === undefined) row.contactSalutation = null;
         });
         await tx.table("meta").put({ key: "schemaVersion", value: "13" });
+      });
+
+    this.version(14)
+      .stores({
+        meta: "key",
+        leads:
+          "id, tenantId, email, crmStatus, outreachStatus, active, normalizedCompanyName, websiteDomain, sourceImportId, [tenantId+email], [tenantId+normalizedCompanyName]",
+        customers: "id, tenantId, leadId, active, [tenantId+leadId]",
+        customerContacts: "id, tenantId, customerId, active, [tenantId+customerId]",
+        opportunities: "id, tenantId, leadId, customerId, [tenantId+leadId]",
+        quotes:
+          "id, tenantId, quoteNumber, leadId, customerId, status, active, simulationId, [tenantId+leadId]",
+        productionOrders:
+          "id, tenantId, orderNumber, quoteId, status, machineId, active, [tenantId+quoteId]",
+        outreachMessages: "id, tenantId, leadId, [tenantId+leadId]",
+        campaigns: "id, tenantId, status, createdAt, [tenantId+status]",
+        campaignRecipients:
+          "id, tenantId, campaignId, leadId, status, draftStatus, [tenantId+campaignId], [tenantId+leadId], [tenantId+draftStatus]",
+        activities: "id, tenantId, occurredAt, action, [tenantId+occurredAt]",
+        companyProfiles: "id, tenantId, [tenantId+id]",
+        userProfiles: "id, tenantId, email, active, [tenantId+email]",
+        senderIdentities:
+          "id, tenantId, userProfileId, companyProfileId, isDefault, active, [tenantId+isDefault]",
+        localAssets: "id, tenantId, assetType, [tenantId+assetType]",
+        products: "id, tenantId, sku, category, active, [tenantId+sku]",
+        machines: "id, tenantId, code, status, active, [tenantId+code]",
+        inventoryItems: "id, tenantId, sku, active, [tenantId+sku]",
+        stockMovements: "id, tenantId, inventoryItemId, [tenantId+inventoryItemId]",
+        customizerSimulations:
+          "id, tenantId, customerId, leadId, productId, quoteId, status, active, [tenantId+status]",
+        importBatches: "id, tenantId, fileFingerprint, status, createdAt, [tenantId+fileFingerprint]",
+        importRows: "id, tenantId, importBatchId, rowIndex, status, [tenantId+importBatchId]",
+        importMappingProfiles: "id, tenantId, label, sourceLabel, [tenantId+label]",
+        leadContacts:
+          "id, tenantId, leadId, normalizedEmail, active, isPrimary, [tenantId+leadId], [tenantId+normalizedEmail]",
+        emailSuppressions:
+          "id, tenantId, normalizedEmail, reason, source, active, campaignId, leadId, [tenantId+normalizedEmail], [tenantId+reason], [tenantId+source]",
+        outreachSendAttempts:
+          "id, tenantId, provider, deliveryMode, campaignId, campaignRecipientId, leadId, idempotencyKey, status, startedAt, providerMessageId, [tenantId+campaignId], [tenantId+campaignRecipientId], [tenantId+idempotencyKey], [tenantId+status]",
+        outreachProviderEvents:
+          "id, tenantId, provider, eventFingerprint, providerMessageId, eventType, receivedAt, campaignRecipientId, sendAttemptId, processingStatus, [tenantId+eventFingerprint], [tenantId+eventType], [tenantId+processingStatus], [tenantId+campaignRecipientId]",
+        outreachSendJobs:
+          "id, tenantId, campaignId, provider, deliveryMode, status, lockExpiresAt, [tenantId+campaignId], [tenantId+status]",
+        outreachSendJobRecipients:
+          "id, tenantId, sendJobId, campaignId, campaignRecipientId, leadId, normalizedEmail, status, idempotencyKey, nextAttemptAt, [tenantId+sendJobId], [tenantId+campaignRecipientId], [tenantId+idempotencyKey], [tenantId+status]",
+        outreachSendJobAttempts:
+          "id, tenantId, sendJobId, sendJobRecipientId, campaignId, campaignRecipientId, idempotencyKey, status, providerMessageId, [tenantId+sendJobId], [tenantId+idempotencyKey], [tenantId+campaignRecipientId]",
+        outreachSendJobDailyUsage:
+          "id, tenantId, provider, usageDate, [tenantId+provider+usageDate]",
+        unitOfMeasures: "id, tenantId, code, [tenantId+code]",
+        unitConversions:
+          "id, tenantId, itemId, packagingConfigurationId, fromUnitId, toUnitId",
+        inventoryItemMasters:
+          "id, tenantId, internalReference, itemType, active, [tenantId+internalReference]",
+        productMasters: "id, tenantId, productCode, active, [tenantId+productCode]",
+        productVariants: "id, tenantId, productId, outputItemId, customerId, status",
+        packagingConfigurations: "id, tenantId, itemId, productVariantId",
+        warehouses: "id, tenantId, code, active, [tenantId+code]",
+        stockLocations:
+          "id, tenantId, warehouseId, parentLocationId, code, locationType, active, [tenantId+code]",
+        inventoryLots: "id, tenantId, itemId, internalLotNumber, [tenantId+internalLotNumber]",
+        inventoryTransactions:
+          "id, tenantId, transactionType, status, idempotencyKey, occurredAt, [tenantId+idempotencyKey]",
+        inventoryLedgerEntries:
+          "id, tenantId, transactionId, itemId, productVariantId, warehouseId, locationId, lotId, stockCondition",
+        inventoryReservations:
+          "id, tenantId, itemId, productVariantId, warehouseId, locationId, lotId, status",
+        stockCountSessions: "id, tenantId, warehouseId, locationId, itemId, status",
+        barcodeRecords:
+          "id, tenantId, normalizedValue, ownershipType, itemId, productVariantId, status, [tenantId+normalizedValue]",
+        labelTemplates: "id, tenantId, purpose, customerId, active",
+        labelPrintJobs: "id, tenantId, templateId, itemId, productVariantId, status, requestedAt",
+        inventoryProductImportBatches: "id, tenantId, importType, state",
+        inventoryProductImportStagedRows:
+          "id, tenantId, importBatchId, sourceRowNumber, proposedAction, approvalState"
+      })
+      .upgrade(async (tx) => {
+        await tx.table("meta").put({ key: "schemaVersion", value: "14" });
       });
   }
 }

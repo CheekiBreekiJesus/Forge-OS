@@ -113,11 +113,33 @@ export function validateBackupRestoreIntegrity(backup: ForgeOSBackup): BackupRes
   };
 }
 
+const emptyInventoryProductSnapshot = {
+  barcodes: [],
+  conversions: [],
+  entries: [],
+  importBatch: null,
+  importRows: [],
+  items: [],
+  labelPrintJobs: [],
+  labelTemplates: [],
+  locations: [],
+  lots: [],
+  packaging: [],
+  products: [],
+  reservations: [],
+  stockCounts: [],
+  transactions: [],
+  unitOfMeasures: [],
+  variants: [],
+  warehouses: []
+};
+
 export function normalizeBackupTables(backup: ForgeOSBackup): ForgeOSBackup {
   return {
     ...backup,
     tables: {
       ...backup.tables,
+      inventoryProduct: backup.tables.inventoryProduct ?? emptyInventoryProductSnapshot,
       importBatches: backup.tables.importBatches ?? [],
       importRows: backup.tables.importRows ?? [],
       importMappingProfiles: backup.tables.importMappingProfiles ?? [],

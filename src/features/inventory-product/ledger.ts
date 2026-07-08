@@ -23,6 +23,7 @@ type IdFactory = (prefix: string) => string;
 export type LedgerState = {
   transactions: InventoryTransaction[];
   entries: InventoryLedgerEntry[];
+  reservations?: InventoryReservation[];
 };
 
 export type LedgerEntryInput = Omit<
@@ -280,6 +281,25 @@ export function buildStockBalances(
   );
 }
 
+function hasNegativeAggregatedAvailable(balances: StockBalance[]): boolean {
+  const availableByLocation = new Map<string, number>();
+  for (const balance of balances) {
+    if (balance.stockCondition !== "available") continue;
+    const key = [
+      balance.tenantId,
+      balance.itemId,
+      balance.warehouseId,
+      balance.locationId,
+      balance.lotId ?? ""
+    ].join("|");
+    availableByLocation.set(
+      key,
+      (availableByLocation.get(key) ?? 0) + balance.availableStock
+    );
+  }
+  return [...availableByLocation.values()].some((available) => available < -0.000001);
+}
+
 export function postInventoryTransaction(
   state: LedgerState,
   input: PostTransactionInput,
@@ -332,14 +352,12 @@ export function postInventoryTransaction(
     transactionId: transaction.id
   }));
 
-  const projected = buildStockBalances([...state.entries, ...newEntries]);
-  const negative = projected.find(
-    (balance) => balance.stockCondition === "available" && balance.availableStock < 0
-  );
-  if (negative && !input.allowNegativeAvailable) {
+  const projected = buildStockBalances([...state.entries, ...newEntries], state.reservations ?? []);
+  const negativeAvailable = hasNegativeAggregatedAvailable(projected);
+  if (negativeAvailable && !input.allowNegativeAvailable) {
     throw new Error("Negative available stock is blocked by default.");
   }
-  if (negative && input.allowNegativeAvailable && !input.overrideReason?.trim()) {
+  if (negativeAvailable && input.allowNegativeAvailable && !input.overrideReason?.trim()) {
     throw new Error("Negative stock override requires a reason.");
   }
 
