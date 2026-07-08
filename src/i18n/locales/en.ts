@@ -1788,7 +1788,8 @@ export const dictionary: Dictionary = {
         owner: "Owner",
         sales: "Sales",
         production_manager: "Production manager",
-        warehouse_manager: "Warehouse manager"
+        warehouse_manager: "Warehouse manager",
+        warehouse_operator: "Warehouse operator"
       }
     },
     commandPalette: {

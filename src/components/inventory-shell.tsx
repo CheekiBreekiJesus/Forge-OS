@@ -27,6 +27,7 @@ import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries";
 import { getLocalizedModuleHref } from "@/modules/config";
 import { getInventoryProductCopy } from "@/features/inventory-product/copy";
+import { getInventoryMobileCopy } from "@/features/inventory-mobile/copy";
 
 type InventoryShellProps = {
   dictionary: Dictionary;
@@ -56,6 +57,7 @@ const emptyForm: InventoryForm = {
 export function InventoryShell({ dictionary, locale }: InventoryShellProps) {
   const copy = dictionary.inventoryModule;
   const workspaceCopy = getInventoryProductCopy(locale);
+  const mobileCopy = getInventoryMobileCopy(locale);
   const shared = dictionary.crudModule;
   const loading = usePersistenceLoading();
   const { state, tenantId, notifyDataChanged } = usePersistence();
@@ -172,7 +174,17 @@ export function InventoryShell({ dictionary, locale }: InventoryShellProps) {
   return (
     <AppFrame activeModule="inventory" dictionary={dictionary} locale={locale}>
       <PageHeader
-        actions={<PrimaryActionButton onClick={openCreate}>{copy.actions.create}</PrimaryActionButton>}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Link
+              className="inline-flex min-h-10 items-center rounded-lg border border-[var(--forge-border)] bg-[var(--forge-surface)] px-4 text-sm font-semibold"
+              href={`/${locale}/inventory/scan`}
+            >
+              {mobileCopy.desktop.openScanner}
+            </Link>
+            <PrimaryActionButton onClick={openCreate}>{copy.actions.create}</PrimaryActionButton>
+          </div>
+        }
         backHref={getLocalizedModuleHref(locale, "dashboard")}
         backLabel={dictionary.modulePage.backToDashboard}
         description={copy.description}

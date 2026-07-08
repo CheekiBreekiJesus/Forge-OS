@@ -16,6 +16,7 @@ import {
   resolveBarcode
 } from "@/features/inventory-product/ledger";
 import { getInventoryProductCopy } from "@/features/inventory-product/copy";
+import { getInventoryMobileCopy } from "@/features/inventory-mobile/copy";
 import { createInventoryProductDemoState } from "@/features/inventory-product/demo";
 import { usePersistence } from "@/persistence/provider";
 import type { InventoryProductSnapshot } from "@/persistence/interfaces";
@@ -69,6 +70,7 @@ const inventorySections: InventoryProductSection[] = [
 
 export function InventoryProductWorkspaceShell({ dictionary, locale, mode, section }: Props) {
   const copy = getInventoryProductCopy(locale);
+  const mobileCopy = getInventoryMobileCopy(locale);
   const { notifyDataChanged, state: persistenceState, tenantId } = usePersistence();
   const [state, setState] = useState<InventoryProductSnapshot>(() => createInventoryProductDemoState());
   const [barcodeInput, setBarcodeInput] = useState("05601234001005");
@@ -161,8 +163,18 @@ export function InventoryProductWorkspaceShell({ dictionary, locale, mode, secti
               {mode === "products" ? copy.products.description : copy.inventory.description}
             </p>
           </div>
-          <div className="rounded-lg border border-[var(--forge-warning)]/40 bg-[var(--forge-warning-soft)] px-3 py-2 text-xs font-semibold text-[var(--forge-warning)]">
-            {copy.messages.previewAuthorization}
+          <div className="flex flex-col items-start gap-2">
+            <div className="rounded-lg border border-[var(--forge-warning)]/40 bg-[var(--forge-warning-soft)] px-3 py-2 text-xs font-semibold text-[var(--forge-warning)]">
+              {copy.messages.previewAuthorization}
+            </div>
+            {mode === "inventory" ? (
+              <Link
+                className="inline-flex min-h-10 items-center rounded-lg border border-[var(--forge-border)] bg-[var(--forge-surface)] px-4 text-sm font-semibold"
+                href={`/${locale}/inventory/scan`}
+              >
+                {mobileCopy.desktop.openScanner}
+              </Link>
+            ) : null}
           </div>
         </header>
 

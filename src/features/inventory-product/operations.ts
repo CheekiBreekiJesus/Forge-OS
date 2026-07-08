@@ -71,6 +71,8 @@ export function mapPreviewRoleToInventoryRole(role: PreviewRole): InventoryPermi
       return "company_owner";
     case "warehouse_manager":
       return "warehouse_manager";
+    case "warehouse_operator":
+      return "warehouse_operator";
     case "production_manager":
       return "warehouse_manager";
     case "sales":

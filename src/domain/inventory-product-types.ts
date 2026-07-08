@@ -482,6 +482,7 @@ export type InventoryPermissionAction =
   | "import"
   | "approve"
   | "adjust"
+  | "issue"
   | "manage_products"
   | "receive"
   | "transfer"
