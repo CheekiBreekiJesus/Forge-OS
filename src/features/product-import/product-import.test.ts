@@ -58,7 +58,7 @@ describe("product import parsing", () => {
     expect(parsed.format).toBe("csv");
     expect(parsed.worksheets[0].rows.length).toBe(5);
     const mapping = suggestFieldMapping(parsed.worksheets[0].headers);
-    expect(mapping.reference ?? mapping.Referencia).toBeDefined();
+    expect(Object.values(mapping)).toContain("internalReference");
   });
 
   it("parses synthetic invoice CSV with semicolon delimiter", () => {
