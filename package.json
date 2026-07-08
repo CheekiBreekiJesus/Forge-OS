@@ -32,6 +32,7 @@
     "agent:canary": "tsx scripts/agent-orchestrator/canary.ts"
   },
   "dependencies": {
+    "@sentry/nextjs": "^10.64.0",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.110.0",
     "dexie": "^4.4.4",
