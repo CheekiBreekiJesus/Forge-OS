@@ -168,19 +168,34 @@ export function validateStockMovementRequest(
   if (!snapshot.items.some((row) => row.id === request.itemId && row.tenantId === request.tenantId)) {
     errors.push("Item does not belong to the tenant.");
   }
-  if (!snapshot.warehouses.some((row) => row.id === request.warehouseId)) {
+  if (
+    !snapshot.warehouses.some(
+      (row) => row.id === request.warehouseId && row.tenantId === request.tenantId
+    )
+  ) {
     errors.push("Warehouse not found.");
   }
-  if (!snapshot.locations.some((row) => row.id === request.locationId)) {
+  if (
+    !snapshot.locations.some(
+      (row) => row.id === request.locationId && row.tenantId === request.tenantId
+    )
+  ) {
     errors.push("Location not found.");
   }
-  if (request.lotId && !snapshot.lots.some((row) => row.id === request.lotId)) {
+  if (
+    request.lotId &&
+    !snapshot.lots.some((row) => row.id === request.lotId && row.tenantId === request.tenantId)
+  ) {
     errors.push("Lot not found.");
   }
   if (kind === "transfer") {
     if (!request.destinationLocationId?.trim()) {
       errors.push("Destination location is required for transfers.");
-    } else if (!snapshot.locations.some((row) => row.id === request.destinationLocationId)) {
+    } else if (
+      !snapshot.locations.some(
+        (row) => row.id === request.destinationLocationId && row.tenantId === request.tenantId
+      )
+    ) {
       errors.push("Destination location not found.");
     }
     if (request.destinationLocationId === request.locationId) {

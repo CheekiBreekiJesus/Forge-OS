@@ -177,6 +177,9 @@ export function createInventoryProductRepository(
       await seedInventoryProductDefaults(db, tenantId);
     },
     async postTransaction(tenantId, input) {
+      if (input.tenantId !== tenantId) {
+        throw new Error("Transaction tenant does not match repository scope.");
+      }
       const snapshot = await readInventoryProductSnapshot(db, tenantId);
       const existing = snapshot.transactions.find(
         (transaction) =>

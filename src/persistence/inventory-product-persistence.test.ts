@@ -94,6 +94,37 @@ describe("inventory product persistence", () => {
     expect(after.entries.filter((entry) => entry.transactionId === result.transaction.id)).toHaveLength(1);
   });
 
+  it("rejects transactions when input tenant does not match repository scope", async () => {
+    const repos = await setupRepos();
+
+    await expect(
+      repos.inventoryProduct.postTransaction(DEFAULT_TENANT_ID, {
+        entries: [
+          {
+            baseQuantityDelta: 1,
+            costBasis: 0.042,
+            itemId: "item_clear_cup_330",
+            itemReferenceSnapshot: "FG-CUP-330-CLR",
+            locationId: "loc_a_r1_s1",
+            lotId: "lot_cup_330_001",
+            productVariantId: null,
+            productVariantSnapshot: null,
+            quantityDelta: 1,
+            stockCondition: "available",
+            unitOfMeasureId: "uom_unit",
+            warehouseId: "wh_main"
+          }
+        ],
+        idempotencyKey: "test:tenant-mismatch",
+        occurredAt: "2026-07-01T12:00:00.000Z",
+        operatorId: "operator_test",
+        reasonCode: "receipt",
+        tenantId: "tenant_other",
+        transactionType: "receipt"
+      })
+    ).rejects.toThrow("Transaction tenant does not match repository scope.");
+  });
+
   it("preserves canonical inventory data during demo reset", async () => {
     const repos = await setupRepos();
     const before = await repos.inventoryProduct.getSnapshot(DEFAULT_TENANT_ID);
