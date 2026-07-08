@@ -1,159 +1,262 @@
-# ForgeOS Phase B — Workspace Cleanup Final Report
+# ForgeOS Workspace Cleanup — Final Report
 
 **Date:** 2026-07-08  
-**Canonical repository:** `C:\Users\J35U5\Desktop\VS Code\Forge-OS`
+**Canonical repository:** `C:\Users\J35U5\Desktop\VS Code\Forge-OS`  
+**Main HEAD:** `98ecc08` (`main` == `origin/main`)
 
 ---
 
-## 1. Release SHAs
+## 1. Worktrees before cleanup
 
-| Item | SHA |
-|------|-----|
-| Starting release (expected) | `1a00eb8` |
-| Final release (incl. Supabase fix) | `8059973` |
-| Archive branch | `archive/pre-main-merge-20260708` @ `8059973` |
+30 registered worktrees (including canonical), after Phase B had already removed 5 agent/runtime worktrees from an original 35.
 
 ---
 
-## 2. Supabase
+## 2. Worktrees removed (21)
 
-| Step | Result |
-|------|--------|
-| Docker Desktop | Available |
-| `npx supabase start` + `db reset --local --yes` | **PASS** (after migration/seed fixes) |
-| Migrations | All 12 migrations applied |
-| Seed | **PASS** after `tenant_key` added to `supabase/seed.sql` |
-| Integration tests (`FORGEOS_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres`) | **3/3 PASS** |
+| Path | Branch | Method |
+|------|--------|--------|
+| `Forge-OS-auth-activation` | `integration/jh-gomes-auth-activation` | `git worktree remove` |
+| `Forge-OS-auth-membership` | `feat/supabase-auth-membership` | `git worktree remove` |
+| `Forge-OS-oauth-foundation` | `feat/supabase-oauth-foundation` | `git worktree remove` |
+| `Forge-OS-send-jobs` | `feat/email-outreach-send-jobs` | `git worktree remove` |
+| `Forge-OS-outreach-integration` | `feat/email-outreach-mvp-integration` | `git worktree remove` |
+| `Forge-OS-dependency-audit` | `chore/dependency-audit-triage` | `git worktree remove` |
+| `Forge-OS-repository-hygiene` | `chore/repository-hygiene` | `git worktree remove` |
+| `Forge-OS-playwright-remediation` | `fix/playwright-audit-remediation` | `git worktree remove` |
+| `Forge-OS-dependency-integration` | `integration/dependency-security-remediation` | `git worktree remove` |
+| `Forge-OS-spreadsheet-security-review` | `review/xlsx-security-remediation` | `git worktree remove` |
+| `Forge-OS-xlsx-remediation` | `fix/xlsx-security-remediation` | `git worktree remove` |
+| `Forge-OS-cursor-dependency-convergence` | `integration/dependency-security-cursor` | `git worktree remove` |
+| `Forge-OS-cursor-feature-convergence` | `integration/jh-gomes-feature-convergence-cursor` | `git worktree remove` |
+| `Forge-OS-cursor-final-convergence` | `integration/jh-gomes-cursor-convergence` | `git worktree remove` |
+| `Forge-OS-outreach` | `feat/email-outreach-live-mvp` | `git worktree remove --force` (`next-env.d.ts` only) |
+| `Forge-OS-cup-customizer-integration` | `feat/cup-customizer-integration-ui` | `--force` (`next-env.d.ts` only) |
+| `Forge-OS-cup-customizer-preview-ux` | `fix/cup-customizer-preview-layout` | `--force` (`next-env.d.ts` only) |
+| `Forge-OS-send-jobs-7d2` | `feat/email-outreach-send-jobs-7d2` | `--force` (`next-env.d.ts` only) |
+| `Forge-OS-supabase-7d2-integration` | `integration/jh-gomes-outreach-supabase-7d2` | `--force` (`next-env.d.ts` only; canonical `.env.local` retained) |
+| `Forge-OS-0.2.0-local-demo` | `release/forgeos-0.2.0-local-demo` | `--force` (temp showcase SVG) |
+| `Forge-OS-release-candidate` | `integration/jh-gomes-release-candidate` | `--force` (uncommitted README docs only) |
 
-**Fixes applied on release (now in `main`):**
-
-- `202607031400`: composite unique index before FK-dependent tables
-- `202607031500`: `leads(tenant_id,id)` index before send-attempt FK; idempotent claim returns `already_processed` on duplicate key
-- `supabase/seed.sql`: `tenant_key = 'tenant_jh_gomes'`
-
----
-
-## 3. Automated validation (release / main)
-
-| Command | Result |
-|---------|--------|
-| `npm ci --dry-run` | PASS |
-| `npm run lint` | PASS (warnings only) |
-| `npm run typecheck` | PASS on `main` after PR#1 scaffold removal |
-| `npm test` | **383/383** pass |
-| `npm run validate` | PASS |
-| `npm run build` | PASS |
-| `node scripts/cup-customizer/validate-assets.mjs` | **Expected fail** — 250ml/330ml baked checkerboard |
-| `npx vitest run packages/cup-customizer` | **38/38** pass |
-| `npm run outreach:hosted:migration:check` | PASS |
+No `--force` used except where remaining differences were generated files or non-integrated documentation.
 
 ---
 
-## 4. Playwright
+## 3. Worktrees retained (9)
 
-| Suite | Tests | Result |
-|-------|-------|--------|
-| Campaign release checkpoint | 2 | PASS |
-| Campaign review / manual send | 1 | PASS |
-| Campaign send-job simulation | 4 | PASS |
-| Campaign templates / drafts | 1 | PASS |
-| Cup customizer (workflows + visual) | 18 | PASS |
-| **Total (Phase B run)** | **26** | **26/26 PASS** |
-
-Screenshots: `.qa/cup-customizer-visual/` (local, untracked).
-
-**Tooling note:** Standard `npm run test:e2e` conflicts if another `next dev` instance is running in the same repo (Next.js single-instance lock). Phase B stopped the manual dev server before Playwright on port 3012.
-
-**Cursor embedded browser:** Not used (grey-screen limitation documented).
+Canonical plus eight deferred or review worktrees.
 
 ---
 
-## 5. Asset validator (expected failure)
+## 4. Retained paths and reasons
 
-250 ml and 330 ml reusable PP PNGs: `bakedBackgroundSuspected: true`, no real alpha.  
-430 ml and 500 ml: PASS. External and git-history candidates independently confirmed defective. **Unresolved source-asset debt** — does not block merge.
-
----
-
-## 6. Main merge and push
-
-| Item | SHA / result |
-|------|----------------|
-| `origin/main` pre-merge | `1b15d2a` (PR #1 foundation monorepo) |
-| Merge commit | `db8737e` (`merge: integrate JH Gomes outreach release into main`) |
-| Scaffold cleanup | `626a348` (removed superseded PR#1 `apps/` + foundation `packages/*`) |
-| `origin/main` final | `626a348` |
-| Force push | **No** |
+| Path | Branch | Reason |
+|------|--------|--------|
+| `Forge-OS` | `main` | **KEEP_CANONICAL** — active product repository |
+| `Forge-OS-inventory` | `feat/inventory-product-foundation` | **KEEP_DEFERRED_FEATURE** — dirty inventory WIP; patch preserved |
+| `Forge-OS-inventory-mobile` | `feat/inventory-mobile-barcode-mvp` | **KEEP_DEFERRED_FEATURE** — experimental mobile barcode MVP |
+| `Forge-OS-table-ui` | `fix/table-density-and-action-overlays` | **KEEP_DEFERRED_FEATURE** — table density work |
+| `Forge-OS-product-import` | `feat/jhgomes-product-data-staging` | **KEEP_DEFERRED_FEATURE** — product staging import |
+| `Forge-OS-jh-gomes-mail` | `feat/jh-gomes-mail-connector` | **KEEP_DEFERRED_FEATURE** — mail connector track |
+| `Forge-OS-marketing-studio` | `feat/marketing-studio-foundation` | **KEEP_DEFERRED_FEATURE** — marketing studio foundation |
+| `Forge-OS-outlook-local` | `feat/outlook-local-send-mvp` | **KEEP_DEFERRED_FEATURE** — outlook local-send MVP |
+| `Forge-OS-maintenance` | `maintenance/light-scan-20260704-1357` | **MANUAL_REVIEW** — 3 dirty leadops files (unknown classification) |
 
 ---
 
-## 7. Pull request recommendations
+## 5. Dirty work preserved
 
-| PR | Recommendation |
-|----|----------------|
-| **#2** `codex/forgeos-foundation-app-shell` | **Close as superseded** — foundation shell replaced by integrated release on `main` |
-| **#3** `integration/jh-gomes-release-candidate` | **Close as superseded** — selective extracts (Node 22 CI, auth, Playwright prep) merged via `release/jh-gomes-outreach-supabase`; retain worktrees until env/archive review |
+| Worktree | Preservation | Location |
+|----------|--------------|----------|
+| Inventory WIP (7 modified + 2 untracked) | Git patch + file copies | `ForgeOS-Consolidation-Preservation-20260708/forge-OS-inventory-wip.patch` (67,574 B) and `.../inventory/` |
+| Maintenance leadops edits | Record only (prior manifest) | `docs/audits/forgeos-dirty-worktree-preservation.md` |
+| Canonical QA assets | Untracked in place | `.qa/cup-asset-check/`, `.qa/cup-customizer-visual/` |
+| Stash | Not applied | `stash@{0}` on `codex/forgeos-foundation-app-shell` |
 
 ---
 
-## 8. Worktree cleanup
+## 6. Archive branches or patches created
 
-| Metric | Value |
+No new archives created in this pass. Existing preservation:
+
+| Artifact | SHA / hash |
+|----------|------------|
+| `archive/pre-main-merge-20260708` | `8059973` |
+| `release/jh-gomes-outreach-supabase` | `8059973` |
+| Inventory WIP patch | 67,574 bytes |
+
+---
+
+## 7. Local branches deleted (21)
+
+`integration/jh-gomes-auth-activation`, `feat/supabase-auth-membership`, `feat/supabase-oauth-foundation`, `feat/email-outreach-send-jobs`, `feat/email-outreach-mvp-integration`, `feat/email-outreach-live-mvp`, `feat/cup-customizer-integration-ui`, `fix/cup-customizer-preview-layout`, `chore/dependency-audit-triage`, `chore/repository-hygiene`, `fix/playwright-audit-remediation`, `review/xlsx-security-remediation`, `fix/xlsx-security-remediation`, `integration/dependency-security-cursor`, `integration/jh-gomes-feature-convergence-cursor`, `integration/jh-gomes-cursor-convergence`, `integration/dependency-security-remediation`, `integration/jh-gomes-release-candidate`, `integration/jh-gomes-outreach-supabase-7d2`, `feat/email-outreach-send-jobs-7d2`, `release/forgeos-0.2.0-local-demo`.
+
+All had `origin/*` counterparts except `review/xlsx-security-remediation` (duplicate of `fix/xlsx-security-remediation` on origin).
+
+---
+
+## 8. Local branches retained
+
+| Branch | Notes |
 |--------|-------|
-| Worktrees before | 35 |
-| Removed | 5 |
-| Retained | 30 |
-
-See `docs/audits/forgeos-worktree-removal-plan.md` for per-path disposition.
-
----
-
-## 9. Preservation (do not delete)
-
-- `ForgeOS-Consolidation-Preservation-20260708/` (inventory WIP patch)
-- `ForgeOS-7D2-Recovery-Backup/`
-- `.qa/cup-asset-check/`, `.qa/cup-customizer-visual/`
-- Canonical `.env.local` (not committed)
-- `Forge-OS-inventory` dirty worktree until WIP merged or re-archived
-
----
-
-## 10. Deferred features (Phase B decisions)
-
-| Item | Decision |
-|------|----------|
-| Inventory WIP | **VALID BUT DEFERRED** — patch preserved |
-| Table density | **DEFERRED** |
-| Product staging import | **DEFERRED** |
-| Outlook local-send | **EXPERIMENTAL / DEFERRED** |
-| Marketing studio | **EXPERIMENTAL / DEFERRED** |
-| Mobile barcode | **EXPERIMENTAL / DEFERRED** |
-| PR #2 foundation shell | **SUPERSEDED** |
-| 250/330 ml cup PNGs | **PRESERVED ONLY** — external correction required |
+| `main` | canonical |
+| `release/jh-gomes-outreach-supabase` | release line @ `8059973` |
+| `archive/pre-main-merge-20260708` | merge archive @ `8059973` |
+| `feat/inventory-product-foundation` | deferred WIP worktree |
+| `feat/inventory-mobile-barcode-mvp` | deferred |
+| `fix/table-density-and-action-overlays` | deferred |
+| `feat/jhgomes-product-data-staging` | deferred |
+| `feat/jh-gomes-mail-connector` | deferred |
+| `feat/marketing-studio-foundation` | deferred |
+| `feat/outlook-local-send-mvp` | deferred |
+| `maintenance/light-scan-20260704-1357` | manual review |
+| `backup/jh-gomes-outreach-de654e2` | recovery |
+| `backup/jh-gomes-outreach-runtime-bf5f3fe` | recovery |
+| `release/jh-gomes-outreach` | legacy release |
+| `integration/jh-gomes-outreach-runtime` | runtime integration |
+| `codex/forgeos-foundation-app-shell` | superseded PR #2 reference |
+| `feat/cup-customizer-integration` | feature reference (no worktree) |
 
 ---
 
-## 11. Rollback
+## 9. Remote branches recommended for later deletion
 
-```bash
-git checkout main
-git reset --hard 1b15d2a   # pre-merge main (use only if rollback required)
-# Or restore release line:
-git checkout archive/pre-main-merge-20260708
+Do **not** delete during this task. Candidates after stakeholder sign-off:
+
+- `origin/chore/dependency-audit-triage`
+- `origin/chore/repository-hygiene`
+- `origin/codex/forgeos-foundation-app-shell`
+- `origin/cursor/forgeos-foundation-4a5a`
+- `origin/feat/cup-customizer-integration-ui`
+- `origin/feat/customer-pc-local-runtime`
+- `origin/feat/email-outreach-live-mvp`
+- `origin/feat/email-outreach-mvp-integration`
+- `origin/feat/email-outreach-provider`
+- `origin/feat/email-outreach-send-jobs`
+- `origin/feat/email-outreach-send-jobs-7d2`
+- `origin/feat/outreach-import-ops-hardening`
+- `origin/feat/supabase-auth-membership`
+- `origin/feat/supabase-oauth-foundation`
+- `origin/fix/cup-customizer-preview-layout`
+- `origin/fix/playwright-audit-remediation`
+- `origin/fix/xlsx-security-remediation`
+- `origin/integration/dependency-security-cursor`
+- `origin/integration/dependency-security-remediation`
+- `origin/integration/jh-gomes-auth-activation`
+- `origin/integration/jh-gomes-cursor-convergence`
+- `origin/integration/jh-gomes-feature-convergence-cursor`
+- `origin/integration/jh-gomes-outreach-supabase-7d2`
+- `origin/integration/jh-gomes-release-candidate`
+- `origin/release/forgeos-0.2.0-local-demo`
+
+Retain on remote until deferred features merge or explicit archive policy: `feat/inventory-*`, `feat/jh-gomes-mail-connector`, `feat/jhgomes-product-data-staging`, `feat/marketing-studio-foundation`, `feat/outlook-local-send-mvp`, `fix/table-density-and-action-overlays`, `release/jh-gomes-outreach-supabase`, `archive/pre-main-merge-20260708`.
+
+---
+
+## 10. Generated folders removed
+
+| Path | Reason |
+|------|--------|
+| `Forge-OS/test-results/` | stale Playwright output |
+| `Forge-OS/qa/acceptance/results/` | stale HTML report artifacts (1.9 MB) |
+| 21 removed worktree directories | included `node_modules`, `.next`, and per-worktree generated output |
+
+---
+
+## 11. Preservation folders retained
+
+| Path | Status |
+|------|--------|
+| `ForgeOS-Consolidation-Preservation-20260708` | intact (patch + inventory file copies) |
+| `ForgeOS-7D2-Recovery-Backup` | intact |
+| `.forgeos-agent-locks` | intact |
+
+---
+
+## 12. Final `git worktree list`
+
+```
+C:/Users/J35U5/Desktop/VS Code/Forge-OS                  98ecc08 [main]
+C:/Users/J35U5/Desktop/VS Code/Forge-OS-inventory        f02471c [feat/inventory-product-foundation]
+C:/Users/J35U5/Desktop/VS Code/Forge-OS-inventory-mobile 6a99030 [feat/inventory-mobile-barcode-mvp]
+C:/Users/J35U5/Desktop/VS Code/Forge-OS-jh-gomes-mail    0a60750 [feat/jh-gomes-mail-connector]
+C:/Users/J35U5/Desktop/VS Code/Forge-OS-maintenance      4ed280e [maintenance/light-scan-20260704-1357]
+C:/Users/J35U5/Desktop/VS Code/Forge-OS-marketing-studio ecbb190 [feat/marketing-studio-foundation]
+C:/Users/J35U5/Desktop/VS Code/Forge-OS-outlook-local    8d146ff [feat/outlook-local-send-mvp]
+C:/Users/J35U5/Desktop/VS Code/Forge-OS-product-import   314f6fb [feat/jhgomes-product-data-staging]
+C:/Users/J35U5/Desktop/VS Code/Forge-OS-table-ui         7ac724d [fix/table-density-and-action-overlays]
 ```
 
-Preferred rollback: `git revert -m 1 db8737e` on `main` (non-destructive).
+---
+
+## 13. Final VS Code root inventory
+
+```
+.forgeos-agent-locks
+Forge-OS
+Forge-OS-inventory
+Forge-OS-inventory-mobile
+Forge-OS-jh-gomes-mail
+Forge-OS-maintenance
+Forge-OS-marketing-studio
+Forge-OS-outlook-local
+Forge-OS-product-import
+Forge-OS-table-ui
+ForgeOS-7D2-Recovery-Backup
+ForgeOS-Consolidation-Preservation-20260708
+```
+
+No WATTS, Veloura, or NordSmith directories present under this root.
 
 ---
 
-## 12. Remaining manual cleanup
+## 14. Remaining manual review items
 
-1. Archive and remove 19 recovery worktrees after remote branch tags
-2. Compare `.env.local` name-only across `supabase-7d2-integration` and canonical
-3. Obtain corrected 250/330 ml PNG sources with real alpha
-4. Close GitHub PRs #2 and #3 when approved
-5. Delete `blank-page-response.html` and other local diagnostics after review
+1. `Forge-OS-maintenance` — 3 dirty leadops files; classify and merge or archive
+2. `stash@{0}` on `codex/forgeos-foundation-app-shell` — inspect before drop
+3. Deferred feature worktrees (7) — merge schedule or additional archiving
+4. 250 ml / 330 ml cup PNG source-asset debt — `.qa/cup-asset-check/` retained
+5. Remote branch cleanup per §9 after approval
+6. Close superseded GitHub PRs #2 and #3 when approved
 
 ---
 
-*End of Phase B report.*
+## 15. Rollback instructions
+
+Worktree removal is destructive to local checkouts but recoverable from `origin`:
+
+```powershell
+cd "C:\Users\J35U5\Desktop\VS Code\Forge-OS"
+git fetch origin
+git worktree add "../Forge-OS-<name>" <branch>
+```
+
+To restore a deleted local branch:
+
+```powershell
+git branch <branch> origin/<branch>
+```
+
+Inventory WIP patch:
+
+```powershell
+cd "C:\Users\J35U5\Desktop\VS Code\Forge-OS"
+git apply "..\ForgeOS-Consolidation-Preservation-20260708\forge-OS-inventory-wip.patch"
+```
+
+---
+
+## 16. Confirmations
+
+| Check | Result |
+|-------|--------|
+| Force push | **No** |
+| Email sent | **No** |
+| Unrelated projects modified | **No** |
+| `git reset --hard` / `git clean` | **Not used** |
+| Canonical `.env.local` | **Retained** |
+| `npm run typecheck` on canonical | **PASS** |
+
+---
+
+*End of workspace cleanup report.*
