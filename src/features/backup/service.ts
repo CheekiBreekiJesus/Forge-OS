@@ -5,6 +5,7 @@ import type {
   UserProfile
 } from "@/domain/profile-types";
 import type { Product } from "@/domain/product-types";
+import type { InventoryProductSnapshot } from "@/persistence/interfaces";
 import type {
   ActivityEvent,
   Campaign,
@@ -25,7 +26,6 @@ import type {
 } from "@/domain/send-job-types";
 import type { EmailSuppression } from "@/domain/suppression-types";
 import type { ImportBatch, ImportRow, LeadContact, ImportMappingProfile } from "@/domain/import-types";
-import type { InventoryProductSnapshot } from "@/persistence/interfaces";
 import type { LocalRepositoryBundle } from "@/persistence/interfaces";
 import {
   normalizeBackupTables,
@@ -34,7 +34,7 @@ import {
 } from "@/features/backup/restore-validation";
 
 export const BACKUP_VERSION = 9 as const;
-export const SUPPORTED_BACKUP_VERSIONS = [4, 5, 6, 7, 8, 9] as const;
+export const SUPPORTED_BACKUP_VERSIONS = [3, 4, 5, 6, 7, 8, 9] as const;
 
 export type ForgeOSBackup = {
   version: typeof BACKUP_VERSION;
@@ -53,6 +53,7 @@ export type ForgeOSBackup = {
     userProfiles: UserProfile[];
     senderIdentities: SenderIdentity[];
     products: Product[];
+    inventoryProduct?: InventoryProductSnapshot;
     importBatches: ImportBatch[];
     importRows: ImportRow[];
     importMappingProfiles: ImportMappingProfile[];
@@ -65,7 +66,6 @@ export type ForgeOSBackup = {
     outreachSendJobRecipients: OutreachSendJobRecipient[];
     outreachSendJobAttempts: OutreachSendJobAttempt[];
     outreachSendJobDailyUsage: OutreachSendJobDailyUsage[];
-    inventoryProduct?: InventoryProductSnapshot;
   };
   localAssets?: Array<Omit<LocalAsset, "blob"> & { blobBase64: string }>;
 };
@@ -88,6 +88,7 @@ export async function exportBackup(
     userProfiles,
     senderIdentities,
     products,
+    inventoryProduct,
     importBatches,
     importRows,
     importMappingProfiles,
@@ -100,7 +101,6 @@ export async function exportBackup(
     outreachSendJobRecipients,
     outreachSendJobAttempts,
     outreachSendJobDailyUsage,
-    inventoryProduct,
     assets
   ] = await Promise.all([
     repos.leads.list(tenantId),
@@ -115,6 +115,7 @@ export async function exportBackup(
     repos.userProfiles.list(tenantId),
     repos.senderIdentities.listAll(tenantId),
     repos.products.list(tenantId),
+    repos.inventoryProduct.getSnapshot(tenantId),
     repos.importBatches.list(tenantId),
     Promise.resolve([] as ImportRow[]).then(async () => {
       const batches = await repos.importBatches.list(tenantId);
@@ -154,7 +155,6 @@ export async function exportBackup(
       );
       return rows.filter((row): row is OutreachSendJobDailyUsage => Boolean(row));
     }),
-    repos.inventoryProduct.getSnapshot(tenantId),
     includeAssets ? repos.localAssets.list(tenantId) : Promise.resolve([])
   ]);
 
@@ -170,6 +170,7 @@ export async function exportBackup(
       outreachMessages,
       productionOrders,
       products,
+      inventoryProduct,
       quotes,
       senderIdentities,
       userProfiles,
@@ -184,8 +185,7 @@ export async function exportBackup(
       outreachSendJobs,
       outreachSendJobRecipients,
       outreachSendJobAttempts,
-      outreachSendJobDailyUsage,
-      inventoryProduct
+      outreachSendJobDailyUsage
     },
     tenantId,
     version: BACKUP_VERSION
@@ -213,7 +213,9 @@ export async function exportBackup(
 export function validateBackup(data: unknown): data is ForgeOSBackup {
   if (!data || typeof data !== "object") return false;
   const record = data as Record<string, unknown>;
-  if (!SUPPORTED_BACKUP_VERSIONS.includes(record.version as 4 | 5 | 6 | 7 | 8 | 9)) return false;
+  if (!SUPPORTED_BACKUP_VERSIONS.includes(record.version as (typeof SUPPORTED_BACKUP_VERSIONS)[number])) {
+    return false;
+  }
   if (typeof record.tenantId !== "string") return false;
   if (!record.tables || typeof record.tables !== "object") return false;
   const tables = record.tables as Record<string, unknown>;
@@ -225,7 +227,23 @@ export function validateBackup(data: unknown): data is ForgeOSBackup {
     "senderIdentities",
     "products"
   ];
-  return required.every((key) => Array.isArray(tables[key]));
+  if (!required.every((key) => Array.isArray(tables[key]))) return false;
+  if (record.version === BACKUP_VERSION) {
+    const inventoryProduct = tables.inventoryProduct as Record<string, unknown> | undefined;
+    if (!inventoryProduct || typeof inventoryProduct !== "object") return false;
+    return [
+      "unitOfMeasures",
+      "items",
+      "products",
+      "variants",
+      "transactions",
+      "entries",
+      "barcodes",
+      "labelTemplates",
+      "labelPrintJobs"
+    ].every((key) => Array.isArray(inventoryProduct[key]));
+  }
+  return true;
 }
 
 export async function importBackup(
@@ -246,8 +264,7 @@ export async function importBackup(
       outreachSendJobs: backup.tables.outreachSendJobs ?? [],
       outreachSendJobRecipients: backup.tables.outreachSendJobRecipients ?? [],
       outreachSendJobAttempts: backup.tables.outreachSendJobAttempts ?? [],
-      outreachSendJobDailyUsage: backup.tables.outreachSendJobDailyUsage ?? [],
-      inventoryProduct: backup.tables.inventoryProduct
+      outreachSendJobDailyUsage: backup.tables.outreachSendJobDailyUsage ?? []
     }
   });
   const report = validateBackupRestoreIntegrity(normalized);

@@ -1112,8 +1112,8 @@ export async function seedDatabase(
     db.barcodeRecords,
     db.labelTemplates,
     db.labelPrintJobs,
-    db.importBatches,
-    db.importStagedRows
+    db.inventoryProductImportBatches,
+    db.inventoryProductImportStagedRows
   ];
 
   await db.transaction("rw", allTables, async () => {
@@ -1151,8 +1151,8 @@ export async function seedDatabase(
       await db.barcodeRecords.where("tenantId").equals(tenantId).delete();
       await db.labelTemplates.where("tenantId").equals(tenantId).delete();
       await db.labelPrintJobs.where("tenantId").equals(tenantId).delete();
-      await db.importBatches.where("tenantId").equals(tenantId).delete();
-      await db.importStagedRows.where("tenantId").equals(tenantId).delete();
+      await db.inventoryProductImportBatches.where("tenantId").equals(tenantId).delete();
+      await db.inventoryProductImportStagedRows.where("tenantId").equals(tenantId).delete();
     }
 
     await db.campaigns.bulkPut(campaigns);

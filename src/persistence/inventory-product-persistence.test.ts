@@ -111,14 +111,15 @@ describe("inventory product persistence", () => {
     const backup = await exportBackup(repos, DEFAULT_TENANT_ID, false);
 
     expect(validateBackup(backup)).toBe(true);
-    expect(backup.tables.inventoryProduct.items.length).toBeGreaterThan(0);
-    expect(backup.tables.inventoryProduct.entries.length).toBeGreaterThan(0);
+    const inventoryProduct = backup.tables.inventoryProduct!;
+    expect(inventoryProduct.items.length).toBeGreaterThan(0);
+    expect(inventoryProduct.entries.length).toBeGreaterThan(0);
 
     await importBackup(repos, backup);
 
     const restored = await repos.inventoryProduct.getSnapshot(DEFAULT_TENANT_ID);
-    expect(restored.items).toHaveLength(backup.tables.inventoryProduct.items.length);
-    expect(restored.transactions).toHaveLength(backup.tables.inventoryProduct.transactions.length);
-    expect(restored.entries).toHaveLength(backup.tables.inventoryProduct.entries.length);
+    expect(restored.items).toHaveLength(inventoryProduct.items.length);
+    expect(restored.transactions).toHaveLength(inventoryProduct.transactions.length);
+    expect(restored.entries).toHaveLength(inventoryProduct.entries.length);
   });
 });
