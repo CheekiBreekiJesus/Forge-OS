@@ -30,7 +30,7 @@ type ProductImportShellProps = {
   locale: Locale;
 };
 
-type WizardStep = "file" | "worksheet" | "mapping" | "preview" | "history";
+type WizardStep = "file" | "worksheet" | "mapping" | "preview" | "approve" | "history";
 
 const PAGE_SIZE = 25;
 
@@ -51,6 +51,7 @@ export function ProductImportShell({ dictionary, locale }: ProductImportShellPro
   const [filter, setFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [selectedRowIds, setSelectedRowIds] = useState<Set<string>>(new Set());
+  const [approved, setApproved] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [batches, setBatches] = useState<ProductImportBatch[]>([]);
 
@@ -135,8 +136,21 @@ export function ProductImportShell({ dictionary, locale }: ProductImportShellPro
     }
   };
 
-  const onCommit = async () => {
+  const updateRowAction = async (rowId: string, action: ProductImportRow["proposedAction"]) => {
+    if (state.status !== "ready") return;
+    await state.repos.productImport.rows.update(tenantId, rowId, { approvedAction: action });
+    setRows((prev) => prev.map((row) => (row.id === rowId ? { ...row, approvedAction: action } : row)));
+    setApproved(false);
+  };
+
+  const onApprove = () => {
+    setApproved(true);
+    setStep("approve");
+  };
+
+  const onCommit = async (force = false) => {
     if (!batch || state.status !== "ready" || busy || selectedRowIds.size === 0) return;
+    if (!force && !approved) return;
     setBusy(true);
     setMessage(null);
     try {
@@ -188,7 +202,7 @@ export function ProductImportShell({ dictionary, locale }: ProductImportShellPro
       />
 
       <div className="mb-4 flex flex-wrap gap-2 text-sm">
-        {(["file", "worksheet", "mapping", "preview", "history"] as WizardStep[]).map((key) => (
+        {(["file", "worksheet", "mapping", "preview", "approve", "history"] as WizardStep[]).map((key) => (
           <button
             key={key}
             className={`rounded-full px-3 py-1 ${step === key ? "bg-forge-accent text-white" : "bg-forge-surface-muted"}`}
@@ -198,7 +212,7 @@ export function ProductImportShell({ dictionary, locale }: ProductImportShellPro
             }}
             type="button"
           >
-            {copy.steps[key === "preview" ? "preview" : key === "history" ? "history" : key]}
+            {copy.steps[key === "preview" ? "preview" : key === "approve" ? "review" : key === "history" ? "history" : key]}
           </button>
         ))}
       </div>
@@ -353,6 +367,7 @@ export function ProductImportShell({ dictionary, locale }: ProductImportShellPro
                   <th className="p-2 text-left">{copy.description}</th>
                   <th className="p-2 text-left">{copy.status}</th>
                   <th className="p-2 text-left">{copy.action}</th>
+                  <th className="p-2 text-left">{copy.conflictChanges}</th>
                 </tr>
               </thead>
               <tbody>
@@ -370,7 +385,32 @@ export function ProductImportShell({ dictionary, locale }: ProductImportShellPro
                     <td className="p-2">{row.normalizedValues.internalReference ?? "—"}</td>
                     <td className="p-2 max-w-xs truncate">{row.normalizedValues.description ?? "—"}</td>
                     <td className="p-2">{row.status}</td>
-                    <td className="p-2">{row.proposedAction}</td>
+                    <td className="p-2">
+                      <select
+                        className={inputClassName}
+                        data-testid={`row-action-${row.sourceRowNumber}`}
+                        onChange={(e) =>
+                          void updateRowAction(
+                            row.id,
+                            e.target.value as ProductImportRow["proposedAction"]
+                          )
+                        }
+                        value={row.approvedAction ?? row.proposedAction}
+                      >
+                        <option value="create_new">{copy.resolutionCreate}</option>
+                        <option value="update_missing_only">{copy.resolutionUpdate}</option>
+                        <option value="use_incoming">{copy.resolutionUpdate}</option>
+                        <option value="skip">{copy.resolutionSkip}</option>
+                        <option value="manual_review">{row.proposedAction}</option>
+                      </select>
+                    </td>
+                    <td className="p-2 max-w-xs text-xs text-forge-muted">
+                      {row.conflictFields.length > 0
+                        ? row.conflictFields
+                            .map((field) => `${field.field}: ${field.existingValue} → ${field.incomingValue}`)
+                            .join("; ")
+                        : "—"}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -388,9 +428,32 @@ export function ProductImportShell({ dictionary, locale }: ProductImportShellPro
             </button>
           </div>
           <PrimaryActionButton
+            data-testid="product-import-approve"
+            disabled={busy || selectedRowIds.size === 0}
+            onClick={onApprove}
+            type="button"
+          >
+            {copy.approveStep}
+          </PrimaryActionButton>
+        </section>
+      ) : null}
+
+      {step === "approve" && batch ? (
+        <section className="space-y-4 rounded-lg border border-forge-border p-4">
+          <p className="text-sm text-forge-muted">{copy.approveHint}</p>
+          <p className="text-sm">
+            {copy.selected}: {selectedRowIds.size} · {batch.invalidRows} invalid · {batch.duplicateRows} duplicates
+          </p>
+          {batch.invalidRows > 0 ? (
+            <p className="text-sm text-amber-600 dark:text-amber-400">{copy.downloadErrorReport}</p>
+          ) : null}
+          <PrimaryActionButton
             data-testid="product-import-commit"
             disabled={busy || selectedRowIds.size === 0}
-            onClick={() => void onCommit()}
+            onClick={() => {
+              setApproved(true);
+              void onCommit(true);
+            }}
             type="button"
           >
             {busy ? copy.doubleSubmit : copy.commitSelected}

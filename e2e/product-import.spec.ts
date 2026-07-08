@@ -15,6 +15,7 @@ test.describe("Product import workspace", () => {
 
     const firstCheckbox = page.getByTestId("select-row-1");
     await firstCheckbox.check();
+    await page.getByTestId("product-import-approve").click();
     await page.getByTestId("product-import-commit").click();
     await expect(page.getByText(/Committed products/i)).toBeVisible({ timeout: 10000 });
 
