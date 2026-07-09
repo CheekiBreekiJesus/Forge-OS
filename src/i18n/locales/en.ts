@@ -1501,6 +1501,8 @@ export const dictionary: Dictionary = {
       sequencePanel: "Sequence preview",
       activityPanel: "Activity timeline",
       importSummary: "Data source summary",
+      importSummaryUnavailable:
+        "Import totals for this lead are shown on the LeadOps dashboard after a file import. This panel no longer uses placeholder figures.",
       noWebsiteContext: "No website context available",
       websiteContextAvailable: "Website context available",
       personalizationWarning: "Limited personalization: do not claim website review without context.",
@@ -1591,7 +1593,7 @@ export const dictionary: Dictionary = {
       draft: "Draft",
       approved: "Approved",
       queued: "Queued",
-      sent: "Sent",
+      sent: "Simulated delivery",
       blocked: "Blocked"
     }
   },

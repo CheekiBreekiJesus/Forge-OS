@@ -1108,6 +1108,7 @@ export type Dictionary = {
       sequencePanel: string;
       activityPanel: string;
       importSummary: string;
+      importSummaryUnavailable: string;
       noWebsiteContext: string;
       websiteContextAvailable: string;
       personalizationWarning: string;

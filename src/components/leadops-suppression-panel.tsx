@@ -22,9 +22,10 @@ const REASONS: SuppressionReason[] = [
 
 type LeadOpsSuppressionPanelProps = {
   dictionary: Dictionary;
+  locale: string;
 };
 
-export function LeadOpsSuppressionPanel({ dictionary }: LeadOpsSuppressionPanelProps) {
+export function LeadOpsSuppressionPanel({ dictionary, locale }: LeadOpsSuppressionPanelProps) {
   const copy = dictionary.leadops.suppression;
   const { state, tenantId, notifyDataChanged } = usePersistence();
   const [rows, setRows] = useState<EmailSuppression[]>([]);
@@ -215,14 +216,14 @@ export function LeadOpsSuppressionPanel({ dictionary }: LeadOpsSuppressionPanelP
                 <td className="px-3 py-2">
                   <div className="flex flex-wrap gap-2">
                     {row.leadId ? (
-                      <a className="text-orange-300 hover:underline" href={`/pt-PT/leadops/${row.leadId}`}>
+                      <a className="text-orange-300 hover:underline" href={`/${locale}/leadops/${row.leadId}`}>
                         {copy.viewContact}
                       </a>
                     ) : null}
                     {row.campaignId ? (
                       <a
                         className="text-orange-300 hover:underline"
-                        href={`/pt-PT/leadops/campaigns/${row.campaignId}`}
+                        href={`/${locale}/leadops/campaigns/${row.campaignId}`}
                       >
                         {copy.viewCampaign}
                       </a>

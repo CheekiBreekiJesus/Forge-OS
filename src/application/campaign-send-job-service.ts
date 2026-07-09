@@ -469,7 +469,8 @@ async function processOneRecipient(
   });
 
   const startedAt = nowIso();
-  const response = await provider.send(buildDeliveryRequest(job, recipient, jobRecipient, actorId));
+  const deliveryRequest = await resolveDeliveryRequest(job, recipient, jobRecipient, actorId);
+  const response = await provider.send(deliveryRequest);
   const completedAt = nowIso();
   const attemptNumber = jobRecipient.attemptCount + 1;
   const attemptStatus = mapAttemptStatus(response);
@@ -524,28 +525,41 @@ async function processOneRecipient(
   return retryable ? "retry" : "failed";
 }
 
-function buildDeliveryRequest(
+async function resolveDeliveryRequest(
   job: OutreachSendJob,
   recipient: import("@/domain/campaign-types").CampaignRecipient,
   jobRecipient: OutreachSendJobRecipient,
   actorId: string
-): EmailDeliveryRequest {
-  return {
-    approvedContentHash: jobRecipient.approvedContentVersion,
-    campaignId: job.campaignId,
-    campaignRecipientId: recipient.id,
-    html: recipient.personalizedHtml,
-    idempotencyKey: jobRecipient.idempotencyKey,
-    initiatedBy: actorId,
-    leadId: recipient.leadId,
-    mode: job.deliveryMode === "brevo" ? "provider_test" : "simulation",
-    plainText: recipient.personalizedPlainText,
-    subject: recipient.personalizedSubject,
-    tenantId: job.tenantId,
-    toEmail: jobRecipient.normalizedEmail,
-    toName: recipient.snapshotContactName || recipient.snapshotCompanyName,
-    unsubscribeUrl: undefined
-  };
+): Promise<EmailDeliveryRequest> {
+  if (job.deliveryMode === "simulation") {
+    return {
+      approvedContentHash: jobRecipient.approvedContentVersion,
+      campaignId: job.campaignId,
+      campaignRecipientId: recipient.id,
+      html: recipient.personalizedHtml,
+      idempotencyKey: jobRecipient.idempotencyKey,
+      initiatedBy: actorId,
+      leadId: recipient.leadId,
+      mode: "simulation",
+      plainText: recipient.personalizedPlainText,
+      subject: recipient.personalizedSubject,
+      tenantId: job.tenantId,
+      toEmail: jobRecipient.normalizedEmail,
+      toName: recipient.snapshotContactName || recipient.snapshotCompanyName
+    };
+  }
+
+  if (typeof window !== "undefined") {
+    throw new PersistenceError(
+      "invalid_transition",
+      "Real campaign delivery must be processed through the hosted send-job server."
+    );
+  }
+
+  const { buildServerCampaignDeliveryRequest } = await import(
+    "@/features/email-delivery/build-campaign-delivery-request"
+  );
+  return buildServerCampaignDeliveryRequest({ actorId, job, jobRecipient, recipient });
 }
 
 function mapAttemptStatus(response: EmailDeliveryResponse): OutreachSendJobAttemptStatus {

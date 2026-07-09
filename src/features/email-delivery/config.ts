@@ -115,6 +115,19 @@ export function isAllowlistedTestRecipient(config: EmailDeliveryConfig, email: s
   return config.testRecipientAllowlist.includes(normalized);
 }
 
+export function isRealCampaignSendReady(
+  config: EmailDeliveryConfig = readEmailDeliveryConfig()
+): boolean {
+  const diagnostic = buildEmailProviderDiagnostic(config);
+  return (
+    config.provider === "brevo" &&
+    diagnostic.configured &&
+    config.realSendEnabled &&
+    diagnostic.publicBaseUrlConfigured &&
+    diagnostic.unsubscribeSecretConfigured
+  );
+}
+
 export function isValidPublicBaseUrl(value: string): boolean {
   try {
     const url = new URL(value);

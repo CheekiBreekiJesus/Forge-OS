@@ -1508,6 +1508,8 @@ export const dictionary: Dictionary = {
       sequencePanel: "Preview da sequência",
       activityPanel: "Linha temporal",
       importSummary: "Resumo da fonte de dados",
+      importSummaryUnavailable:
+        "Os totais de importação deste contacto aparecem no painel LeadOps após importar um ficheiro. Este painel já não usa valores de exemplo.",
       noWebsiteContext: "Sem contexto de website disponível",
       websiteContextAvailable: "Contexto de website disponível",
       personalizationWarning: "Personalização limitada: não afirmar revisão de website sem contexto.",
@@ -1598,7 +1600,7 @@ export const dictionary: Dictionary = {
       draft: "Rascunho",
       approved: "Aprovado",
       queued: "Em fila",
-      sent: "Enviado",
+      sent: "Envio simulado",
       blocked: "Bloqueado"
     }
   },

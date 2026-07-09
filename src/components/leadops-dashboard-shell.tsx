@@ -246,7 +246,7 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
       </section>
 
       <section className="mb-4">
-        <LeadOpsSuppressionPanel dictionary={dictionary} />
+        <LeadOpsSuppressionPanel dictionary={dictionary} locale={locale} />
       </section>
 
       <section className="mb-4 grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
@@ -262,7 +262,11 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
               const progress = getCampaignProgress(campaign);
 
               return (
-                <div className="rounded-lg border border-slate-800 bg-slate-950/40 p-4" key={campaign.id}>
+                <a
+                  className="block rounded-lg border border-slate-800 bg-slate-950/40 p-4 transition hover:border-orange-400/40 hover:bg-slate-950/70"
+                  href={`/${locale}/leadops/campaigns/${campaign.id}`}
+                  key={campaign.id}
+                >
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <div className="font-semibold">{campaign.name}</div>
@@ -281,7 +285,7 @@ export function LeadOpsDashboardShell({ dictionary, locale }: LeadOpsDashboardSh
                     />
                   </div>
                   <div className="mt-2 text-xs text-slate-500">{progress}%</div>
-                </div>
+                </a>
               );
             })}
           </div>

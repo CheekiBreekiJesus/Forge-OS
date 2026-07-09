@@ -254,6 +254,29 @@ describe("send-job server mutation boundaries", () => {
     expect(retryPayload.error.code).toBe("invalid_transition");
   });
 
+  it("rejects Brevo queue requests when real send is not enabled", async () => {
+    const { campaign, repos: r } = await prepareApprovedCampaign(1);
+    const provider = new ScriptedProvider();
+    const handler = createSendJobRouteHandler(queueCampaignThroughServer, {
+      deps: { provider, repos: r }
+    });
+
+    const response = await handler(
+      trustedRequest({
+        batchSize: 1,
+        campaignId: campaign.id,
+        confirmation: "QUEUE BREVO",
+        deliveryMode: "brevo",
+        provider: "brevo"
+      })
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.error.code).toBe("unsupported_provider");
+    expect(await r.outreachSendJobs.listForCampaign(DEFAULT_TENANT_ID, campaign.id)).toHaveLength(0);
+  });
+
   it("keeps server errors sanitized and does not expose service-role values", async () => {
     vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "service-role-test-value");
     const handler = createSendJobRouteHandler(queueCampaignThroughServer);

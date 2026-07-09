@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import type { EmailDeliveryRequest } from "@/domain/email-delivery-types";
 import { buildProtectedTestSendRequest } from "@/features/email-delivery/build-protected-test-send-request";
 import { createEmailDeliveryProvider } from "@/features/email-delivery/provider";
+import { resolveForgeOSSession } from "@/lib/auth/session";
+import { checkRateLimit } from "@/lib/auth/rate-limit";
+import { requireOutreachPermission, ForgeOSAuthError } from "@/lib/auth/types";
+import { getForgeOSPersistenceMode } from "@/lib/auth/membership";
 
 type ProtectedTestSendPayload = EmailDeliveryRequest & {
   confirmation?: string;
@@ -12,23 +16,42 @@ type ProtectedTestSendPayload = EmailDeliveryRequest & {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(request: Request) {
-  const payload = await request.json().catch(() => null);
-  const parsed = parsePayload(payload);
+  try {
+    if (getForgeOSPersistenceMode() === "supabase") {
+      const session = await resolveForgeOSSession(request);
+      requireOutreachPermission(session, "deliver");
+      const limit = checkRateLimit(`protected-test-send:${session.userId}`, 10, 60_000);
+      if (!limit.allowed) {
+        return NextResponse.json(
+          { error: "Rate limit exceeded." },
+          { status: 429, headers: { "Retry-After": String(Math.ceil(limit.retryAfterMs / 1000)) } }
+        );
+      }
+    }
 
-  if (!parsed) {
-    return NextResponse.json({ error: "Invalid protected test-email request." }, { status: 400 });
+    const payload = await request.json().catch(() => null);
+    const parsed = parsePayload(payload);
+
+    if (!parsed) {
+      return NextResponse.json({ error: "Invalid protected test-email request." }, { status: 400 });
+    }
+
+    const provider = createEmailDeliveryProvider();
+    const result = await provider.send(parsed);
+    const status =
+      result.status === "failed"
+        ? 502
+        : result.status === "blocked"
+          ? 403
+          : 200;
+
+    return NextResponse.json(result, { status });
+  } catch (error) {
+    if (error instanceof ForgeOSAuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+    throw error;
   }
-
-  const provider = createEmailDeliveryProvider();
-  const result = await provider.send(parsed);
-  const status =
-    result.status === "failed"
-      ? 502
-      : result.status === "blocked"
-        ? 403
-        : 200;
-
-  return NextResponse.json(result, { status });
 }
 
 function parsePayload(payload: unknown): EmailDeliveryRequest | null {
@@ -50,19 +73,19 @@ function parsePayload(payload: unknown): EmailDeliveryRequest | null {
       campaignRecipientId: value.campaignRecipientId,
       html: value.html,
       idempotencyKey: value.idempotencyKey,
-      initiatedBy: value.initiatedBy || "local-user",
+      initiatedBy: value.initiatedBy,
       leadId: value.leadId,
       mode: "provider_test",
       plainText: value.plainText,
       subject: value.subject,
       tenantId: value.tenantId,
-      toEmail: value.toEmail.trim().toLowerCase(),
-      toName: value.toName || value.toEmail,
+      toEmail: value.toEmail,
+      toName: value.toName,
       unsubscribeUrl: value.unsubscribeUrl
     };
   }
 
-  if (!value.snapshotEmail?.trim() || !value.language?.trim()) return null;
+  if (!value.snapshotEmail || !value.language) return null;
 
   return buildProtectedTestSendRequest({
     approvedContentHash: value.approvedContentHash,
@@ -70,7 +93,7 @@ function parsePayload(payload: unknown): EmailDeliveryRequest | null {
     campaignRecipientId: value.campaignRecipientId,
     html: value.html,
     idempotencyKey: value.idempotencyKey,
-    initiatedBy: value.initiatedBy || "local-user",
+    initiatedBy: value.initiatedBy,
     language: value.language,
     leadId: value.leadId,
     plainText: value.plainText,
@@ -78,6 +101,6 @@ function parsePayload(payload: unknown): EmailDeliveryRequest | null {
     subject: value.subject,
     tenantId: value.tenantId,
     toEmail: value.toEmail,
-    toName: value.toName || value.toEmail
+    toName: value.toName
   });
 }
