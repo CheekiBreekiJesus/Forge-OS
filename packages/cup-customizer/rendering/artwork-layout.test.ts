@@ -56,6 +56,19 @@ describe("artwork-layout", () => {
     expect(clamped.artworkOffsetY).toBeGreaterThanOrEqual(bounds.minY);
   });
 
+  it("tightens offset bounds when artwork scale increases", () => {
+    const loose = { ...baseTransform, artworkOffsetX: 28, artworkOffsetY: 22, artworkScale: 1 };
+    const tight = { ...loose, artworkScale: 1.6 };
+    const looseBounds = computeArtworkOffsetBounds(loose);
+    const tightBounds = computeArtworkOffsetBounds(tight);
+    expect(tightBounds.maxX).toBeLessThan(looseBounds.maxX);
+    expect(tightBounds.maxY).toBeLessThan(looseBounds.maxY);
+
+    const reclamped = clampArtworkOffsets(tight, loose.artworkOffsetX, loose.artworkOffsetY);
+    expect(reclamped.artworkOffsetX).toBeLessThan(loose.artworkOffsetX);
+    expect(reclamped.artworkOffsetY).toBeLessThan(loose.artworkOffsetY);
+  });
+
   it("maps pointer deltas to offset deltas for drag positioning", () => {
     const region = computePrintableRegion(330, "deg_180");
     const { deltaOffsetX, deltaOffsetY } = pointerDeltaToOffsetDelta(12, -6, 360, region);
@@ -129,6 +142,14 @@ describe("artwork-layout", () => {
     expect(source).toContain('data-testid="cup-preview-frame"');
     expect(source).not.toContain("rounded-2xl border border-slate-700");
     expect(source).toContain("onPointerDown={handleArtworkPointerDown}");
+    expect(source).toContain("onPreviewResolvedRef");
+    expect(source).not.toMatch(/}, \[cupPath, onPreviewResolved, scenePath\]/);
+  });
+
+  it("marks exported previews stale when the day/night scene changes", () => {
+    const shell = readFileSync(path.resolve(process.cwd(), "src/components/cup-customizer-shell.tsx"), "utf8");
+    expect(shell).toContain("return JSON.stringify({ ...configuration, artworkAssetId, quantity });");
+    expect(shell).not.toContain("previewScene, ...manufacturing");
   });
 
   it("shell UI no longer exposes artwork alignment selector copy", () => {

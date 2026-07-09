@@ -18,10 +18,10 @@ const TARGETS = [
   "ForgeOS_Product_Catalog_Draft_2026-07-01.xlsx"
 ];
 
-function profileFile(name: string) {
+async function profileFile(name: string) {
   const path = resolve(PRODUCTS_DIR, name);
   const buffer = readFileSync(path);
-  const parsed = parseSpreadsheet({
+  const parsed = await parseSpreadsheet({
     data: buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength),
     filename: name
   });
@@ -58,10 +58,10 @@ function profileFile(name: string) {
   });
 }
 
-function main() {
+async function main() {
   const report = {
     generatedAt: new Date().toISOString(),
-    sources: TARGETS.flatMap((name) => profileFileSafe(name))
+    sources: (await Promise.all(TARGETS.map((name) => profileFileSafe(name)))).flat()
   };
   const dir = resolve(process.cwd(), "scripts/data-preparation/reports");
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
@@ -69,9 +69,9 @@ function main() {
   console.log(`Wrote ${OUTPUT}`);
 }
 
-function profileFileSafe(name: string): ReturnType<typeof profileFile> {
+async function profileFileSafe(name: string): Promise<Awaited<ReturnType<typeof profileFile>>> {
   try {
-    return profileFile(name);
+    return await profileFile(name);
   } catch (error) {
     return [
       {
@@ -91,4 +91,7 @@ function profileFileSafe(name: string): ReturnType<typeof profileFile> {
   }
 }
 
-main();
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

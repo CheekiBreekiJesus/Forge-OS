@@ -59,7 +59,7 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     const bytes = Buffer.from(body.parsedFileBase64, "base64");
-    const parsed = parseSpreadsheet({
+    const parsed = await parseSpreadsheet({
       data: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
       filename: body.filename
     });

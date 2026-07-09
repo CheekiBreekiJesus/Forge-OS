@@ -1,5 +1,12 @@
-import * as XLSX from "xlsx";
 import type { ProductImportSourceType } from "@/domain/product-import-types";
+import {
+  assertSpreadsheetByteLimit,
+  extractSheetMatrix,
+  listSpreadsheetSheetNames,
+  loadSpreadsheetWorkbook,
+  pickDefaultSpreadsheetSheet,
+  SpreadsheetParseError
+} from "@/features/shared/spreadsheet/spreadsheet-parser";
 
 export type ParsedWorksheet = {
   name: string;
@@ -10,7 +17,7 @@ export type ParsedWorksheet = {
 };
 
 export type ParsedSpreadsheet = {
-  format: "xls" | "xlsx" | "csv";
+  format: "xlsx" | "csv";
   worksheets: ParsedWorksheet[];
   filename: string;
 };
@@ -20,47 +27,6 @@ export type ParseSpreadsheetOptions = {
   data: ArrayBuffer | string;
 };
 
-function cellToDisplayString(cell: XLSX.CellObject | undefined): string {
-  if (!cell) return "";
-  if (cell.w != null && cell.w !== "") return String(cell.w);
-  if (cell.v == null) return "";
-  if (cell.t === "n" && typeof cell.v === "number") {
-    return Number.isInteger(cell.v) ? String(cell.v) : String(cell.v);
-  }
-  return String(cell.v);
-}
-
-function sheetToRows(sheet: XLSX.WorkSheet): { headers: string[]; rows: string[][]; formulaWarnings: number } {
-  const ref = sheet["!ref"];
-  if (!ref) return { headers: [], rows: [], formulaWarnings: 0 };
-
-  let formulaWarnings = 0;
-  const range = XLSX.utils.decode_range(ref);
-  const matrix: string[][] = [];
-
-  for (let r = range.s.r; r <= range.e.r; r++) {
-    const row: string[] = [];
-    for (let c = range.s.c; c <= range.e.c; c++) {
-      const address = XLSX.utils.encode_cell({ r, c });
-      const cell = sheet[address] as XLSX.CellObject | undefined;
-      if (cell?.f) formulaWarnings += 1;
-      row.push(cellToDisplayString(cell));
-    }
-    matrix.push(row);
-  }
-
-  if (matrix.length === 0) return { headers: [], rows: [], formulaWarnings: 0 };
-
-  const headerRowIndex = findHeaderRowIndex(matrix);
-  const headers = matrix[headerRowIndex].map((cell) => cell.trim());
-  const rows = matrix
-    .slice(headerRowIndex + 1)
-    .filter((row) => row.some((cell) => cell.trim().length > 0))
-    .map((row) => headers.map((_, index) => row[index] ?? ""));
-
-  return { headers, rows, formulaWarnings };
-}
-
 function findHeaderRowIndex(matrix: string[][]): number {
   for (let i = 0; i < Math.min(matrix.length, 10); i++) {
     const nonEmpty = matrix[i].filter((cell) => cell.trim().length > 0).length;
@@ -69,17 +35,11 @@ function findHeaderRowIndex(matrix: string[][]): number {
   return 0;
 }
 
-function detectFormat(filename: string): "xls" | "xlsx" | "csv" {
-  const lower = filename.toLowerCase();
-  if (lower.endsWith(".csv")) return "csv";
-  if (lower.endsWith(".xls") && !lower.endsWith(".xlsx")) return "xls";
-  return "xlsx";
-}
+function matrixToWorksheet(name: string, matrix: string[][], formulaWarnings = 0): ParsedWorksheet {
+  if (matrix.length === 0) {
+    return { formulaWarnings, headers: [], hidden: false, name, rows: [] };
+  }
 
-function parseCsvString(content: string, delimiter?: string): ParsedWorksheet {
-  const lines = content.split(/\r?\n/).filter((line) => line.trim().length > 0);
-  const sep = delimiter ?? detectCsvDelimiter(lines[0] ?? "");
-  const matrix = lines.map((line) => parseCsvLine(line, sep));
   const headerRowIndex = findHeaderRowIndex(matrix);
   const headers = matrix[headerRowIndex].map((cell) => cell.trim());
   const rows = matrix
@@ -87,7 +47,23 @@ function parseCsvString(content: string, delimiter?: string): ParsedWorksheet {
     .filter((row) => row.some((cell) => cell.trim().length > 0))
     .map((row) => headers.map((_, index) => row[index] ?? ""));
 
-  return { formulaWarnings: 0, headers, hidden: false, name: "Sheet1", rows };
+  return { formulaWarnings, headers, hidden: false, name, rows };
+}
+
+function detectFormat(filename: string): "xlsx" | "csv" {
+  const lower = filename.toLowerCase();
+  if (lower.endsWith(".csv")) return "csv";
+  if (lower.endsWith(".xls") && !lower.endsWith(".xlsx")) {
+    throw new SpreadsheetParseError("unsupported_format", "Legacy .xls workbooks are not supported.");
+  }
+  return "xlsx";
+}
+
+function parseCsvString(content: string, delimiter?: string): ParsedWorksheet {
+  const lines = content.split(/\r?\n/).filter((line) => line.trim().length > 0);
+  const sep = delimiter ?? detectCsvDelimiter(lines[0] ?? "");
+  const matrix = lines.map((line) => parseCsvLine(line, sep));
+  return matrixToWorksheet("Sheet1", matrix);
 }
 
 function detectCsvDelimiter(line: string): string {
@@ -117,11 +93,12 @@ function parseCsvLine(line: string, delimiter: string): string[] {
   return cells;
 }
 
-export function parseSpreadsheet(options: ParseSpreadsheetOptions): ParsedSpreadsheet {
+export async function parseSpreadsheet(options: ParseSpreadsheetOptions): Promise<ParsedSpreadsheet> {
   const format = detectFormat(options.filename);
 
   if (format === "csv") {
-    const content = typeof options.data === "string" ? options.data : new TextDecoder("utf-8").decode(options.data);
+    const content =
+      typeof options.data === "string" ? options.data : new TextDecoder("utf-8").decode(options.data);
     return {
       filename: options.filename,
       format,
@@ -129,24 +106,31 @@ export function parseSpreadsheet(options: ParseSpreadsheetOptions): ParsedSpread
     };
   }
 
-  const workbook = XLSX.read(options.data, {
-    type: typeof options.data === "string" ? "string" : "array",
-    cellDates: false,
-    cellFormula: false,
-    cellNF: true,
-    cellText: true,
-    bookVBA: false,
-    bookSheets: false,
-    password: "",
-    WTF: false
-  });
+  const bytes =
+    typeof options.data === "string"
+      ? new TextEncoder().encode(options.data)
+      : new Uint8Array(options.data);
+  assertSpreadsheetByteLimit(bytes.byteLength);
 
-  const worksheets: ParsedWorksheet[] = workbook.SheetNames.map((name) => {
-    const sheet = workbook.Sheets[name];
-    const hidden = Boolean(sheet?.["!hidden"]);
-    const { headers, rows, formulaWarnings } = sheetToRows(sheet);
-    return { formulaWarnings, headers, hidden, name, rows };
-  });
+  const workbook = await loadSpreadsheetWorkbook(bytes.buffer as ArrayBuffer, "xlsx");
+  const sheetNames = listSpreadsheetSheetNames(workbook);
+  const worksheets: ParsedWorksheet[] = [];
+
+  for (const name of sheetNames) {
+    const extracted = extractSheetMatrix(workbook, name);
+    const formulaWarnings = extracted.warnings.filter((warning) =>
+      warning.code === "formula_stored_as_display"
+    ).length;
+    const hidden = extracted.warnings.some((warning) => warning.code === "hidden_sheet");
+    const worksheet = matrixToWorksheet(name, extracted.matrix, formulaWarnings);
+    worksheets.push({ ...worksheet, hidden });
+  }
+
+  if (worksheets.length === 0) {
+    const defaultSheet = pickDefaultSpreadsheetSheet(workbook);
+    const extracted = extractSheetMatrix(workbook, defaultSheet);
+    worksheets.push(matrixToWorksheet(defaultSheet, extracted.matrix));
+  }
 
   return { filename: options.filename, format, worksheets };
 }
