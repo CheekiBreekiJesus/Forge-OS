@@ -10,6 +10,7 @@ const databaseUrl = readIntegrationDatabaseUrl();
 const describeIf = databaseUrl ? describe : describe.skip;
 
 const TENANT_A = "11111111-1111-4111-8111-111111111111";
+const TENANT_B = "22222222-2222-4222-8222-222222222222";
 const WAREHOUSE_ID = "91000000-0000-0000-0000-000000000001";
 const LOCATION_A = "92000000-0000-0000-0000-000000000001";
 const LOCATION_B = "92000000-0000-0000-0000-000000000002";
@@ -90,6 +91,17 @@ describeIf("inventory runtime supabase integration", () => {
       [TENANT_A, itemId, LOCATION_A]
     );
     expect(Number(available.rows[0]?.qty)).toBe(5);
+  });
+
+  it("rejects stock movement when item belongs to another tenant", async () => {
+    await expect(
+      client.query(
+        `select public.inv_post_stock_movement(
+          $1::uuid, 'operator-b', 'rpc:cross-tenant', 'receipt', $2::uuid, $3::uuid, $4::uuid, 1
+        )`,
+        [TENANT_B, itemId, WAREHOUSE_ID, LOCATION_A]
+      )
+    ).rejects.toThrow(/inventory item not found/i);
   });
 
   it("rejects insufficient stock on issue", async () => {

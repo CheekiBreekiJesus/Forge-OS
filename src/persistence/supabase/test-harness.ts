@@ -25,12 +25,48 @@ export async function applySupabaseMigrations(connectionString: string): Promise
   }
 }
 
+export async function bootstrapSupabaseAuthStub(connectionString: string): Promise<void> {
+  const client = new Client({ connectionString });
+  await client.connect();
+  try {
+    await client.query(`
+      create schema if not exists auth;
+
+      create or replace function auth.uid()
+      returns uuid
+      language sql
+      stable
+      as $$
+        select null::uuid
+      $$;
+
+      do $$
+      begin
+        if not exists (select 1 from pg_roles where rolname = 'authenticated') then
+          create role authenticated nologin;
+        end if;
+        if not exists (select 1 from pg_roles where rolname = 'service_role') then
+          create role service_role nologin bypassrls;
+        end if;
+        if not exists (select 1 from pg_roles where rolname = 'anon') then
+          create role anon nologin;
+        end if;
+      end $$;
+    `);
+  } finally {
+    await client.end();
+  }
+}
+
 export async function resetPublicSchema(connectionString: string): Promise<void> {
   const client = new Client({ connectionString });
   await client.connect();
   try {
-    await client.query("drop schema if exists public cascade; create schema public;");
+    await client.query("drop schema if exists public cascade;");
+    await client.query("drop schema if exists auth cascade;");
+    await client.query("create schema public;");
     await client.query("create extension if not exists pgcrypto;");
+    await bootstrapSupabaseAuthStub(connectionString);
   } finally {
     await client.end();
   }
