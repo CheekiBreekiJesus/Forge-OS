@@ -53,7 +53,7 @@ test.describe("Outreach workflow", () => {
     page.once("dialog", (dialog) => dialog.accept());
     await page.getByRole("button", { name: "Simular envio" }).click();
 
-    await expect(page.getByText("Enviado", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("Envio simulado", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("Mensagem gerada")).toBeVisible();
   });
 
