@@ -13,11 +13,21 @@ import {
 } from "@/components/inventory-mobile/pending-sync-indicator";
 import type { InventoryItemMaster, InventoryTransaction } from "@/domain/inventory-product-types";
 import { resolveMobileBarcode } from "@/features/inventory-mobile/barcode-resolver";
-import { getInventoryMobileCopy } from "@/features/inventory-mobile/copy";
 import {
-  getItemStockContext,
-  listItemTransactions
-} from "@/features/inventory-mobile/item-context";
+  buildItemStockContextFromApi,
+  getDemoItemStockContext,
+  getDemoItemTransactions,
+  mapApiItemToMaster,
+  mapMovementHistoryToTransactions
+} from "@/features/inventory-mobile/server-context";
+import {
+  fetchMovementHistory,
+  fetchStockBalances,
+  fetchStockLocations,
+  resolveInventoryBarcode
+} from "@/lib/inventory/api-client";
+import { readClientInventoryRuntimeMode } from "@/lib/inventory/runtime";
+import { getInventoryMobileCopy } from "@/features/inventory-mobile/copy";
 import { useOfflineMovementSync } from "@/features/inventory-mobile/use-offline-sync";
 import { vibrateScanSuccess } from "@/features/inventory-mobile/scan-feedback";
 import { readPreviewRole } from "@/features/crud/role-preview";
@@ -30,6 +40,27 @@ import { getLocalizedModuleHref } from "@/modules/config";
 type InventoryScanShellProps = {
   dictionary: Dictionary;
   locale: Locale;
+};
+
+const EMPTY_SNAPSHOT: InventoryProductSnapshot = {
+  barcodes: [],
+  conversions: [],
+  entries: [],
+  importBatch: null,
+  importRows: [],
+  items: [],
+  labelPrintJobs: [],
+  labelTemplates: [],
+  locations: [],
+  lots: [],
+  packaging: [],
+  products: [],
+  reservations: [],
+  stockCounts: [],
+  transactions: [],
+  unitOfMeasures: [],
+  variants: [],
+  warehouses: []
 };
 
 type ScanView = "scanner" | "item" | "unknown" | "ambiguous";
@@ -49,7 +80,16 @@ export function InventoryScanShell({ dictionary, locale }: InventoryScanShellPro
   const [recentScans, setRecentScans] = useState<Array<{ code: string; itemName: string; at: string }>>([]);
   const [statusMessage, setStatusMessage] = useState(mobileCopy.scanner.scanStatus.idle);
 
-  const operatorId = useMemo(() => `mobile:${readPreviewRole()}`, []);
+  const runtimeMode = readClientInventoryRuntimeMode();
+  const isDemoRuntime = runtimeMode === "demo";
+  const operatorId = useMemo(
+    () => (isDemoRuntime ? `mobile:${readPreviewRole()}` : "authenticated"),
+    [isDemoRuntime]
+  );
+  const sessionScope = useMemo(
+    () => (isDemoRuntime ? `demo:${tenantId}` : "supabase-session"),
+    [isDemoRuntime, tenantId]
+  );
 
   const inventoryProduct =
     state.status === "ready" ? state.repos.inventoryProduct : null;
@@ -59,12 +99,15 @@ export function InventoryScanShell({ dictionary, locale }: InventoryScanShellPro
   }, [notifyDataChanged]);
 
   const { failedEntries, pendingCount, refresh, retryFailedSync, syncQueue, syncing } = useOfflineMovementSync(
-    tenantId,
+    sessionScope,
     inventoryProduct,
-    onSynced
+    onSynced,
+    isDemoRuntime ? operatorId : undefined,
+    isDemoRuntime ? tenantId : undefined
   );
 
   useEffect(() => {
+    if (!isDemoRuntime) return;
     if (state.status !== "ready") return;
     const repos = state.repos;
     let cancelled = false;
@@ -78,7 +121,7 @@ export function InventoryScanShell({ dictionary, locale }: InventoryScanShellPro
       if (cancelled) return;
       setSnapshot(next);
       if (resolvedItem) {
-        setTransactions(listItemTransactions(next, tenantId, resolvedItem.id));
+        setTransactions(getDemoItemTransactions(next, tenantId, resolvedItem.id));
       }
     }
 
@@ -86,9 +129,34 @@ export function InventoryScanShell({ dictionary, locale }: InventoryScanShellPro
     return () => {
       cancelled = true;
     };
-  }, [resolvedItem, state, tenantId]);
+  }, [isDemoRuntime, resolvedItem, state, tenantId]);
+
+  const [apiItemContext, setApiItemContext] = useState<ReturnType<typeof buildItemStockContextFromApi> | null>(null);
+
+  const reloadApiContext = useCallback(async (itemId: string) => {
+    const [locations, balances, movements] = await Promise.all([
+      fetchStockLocations(),
+      fetchStockBalances(itemId),
+      fetchMovementHistory(itemId)
+    ]);
+    const item = await fetch(`/api/inventory/items/${encodeURIComponent(itemId)}`, {
+      credentials: "include"
+    }).then(async (response) => {
+      const payload = (await response.json()) as { item?: { id: string } };
+      if (!response.ok || !payload.item) throw new Error("Item not found.");
+      return payload.item as import("@/application/inventory-service").InventoryItemSummary;
+    });
+    setApiItemContext(
+      buildItemStockContextFromApi({ balances, item, locations, tenantId: "server" })
+    );
+    setTransactions(mapMovementHistoryToTransactions(movements, "server"));
+  }, []);
 
   const reloadSnapshot = useCallback(async () => {
+    if (!isDemoRuntime) {
+      if (resolvedItem) await reloadApiContext(resolvedItem.id);
+      return;
+    }
     if (state.status !== "ready") return;
     let next = await state.repos.inventoryProduct.getSnapshot(tenantId);
     if (next.items.length === 0) {
@@ -97,27 +165,58 @@ export function InventoryScanShell({ dictionary, locale }: InventoryScanShellPro
     }
     setSnapshot(next);
     if (resolvedItem) {
-      setTransactions(listItemTransactions(next, tenantId, resolvedItem.id));
+      setTransactions(getDemoItemTransactions(next, tenantId, resolvedItem.id));
     }
-  }, [resolvedItem, state, tenantId]);
+  }, [isDemoRuntime, reloadApiContext, resolvedItem, state, tenantId]);
+
+  const demoSnapshot = snapshot ?? EMPTY_SNAPSHOT;
 
   const itemContext = useMemo(() => {
-    if (!snapshot || !resolvedItem) return null;
-    return getItemStockContext(snapshot, tenantId, resolvedItem.id);
-  }, [resolvedItem, snapshot, tenantId]);
+    if (!resolvedItem) return null;
+    if (!isDemoRuntime) return apiItemContext;
+    if (!snapshot) return null;
+    return getDemoItemStockContext(demoSnapshot, tenantId, resolvedItem.id);
+  }, [apiItemContext, demoSnapshot, isDemoRuntime, resolvedItem, snapshot, tenantId]);
 
   const handleCodeDetected = useCallback(
     async (code: string) => {
-      if (state.status !== "ready" || !snapshot) return;
       setResolving(true);
       setStatusMessage(mobileCopy.scanner.scanStatus.resolving);
       try {
-        const result = resolveMobileBarcode(snapshot, tenantId, code);
+        if (!isDemoRuntime) {
+          const result = await resolveInventoryBarcode(code);
+          vibrateScanSuccess();
+          if (result.status === "resolved") {
+            const item = mapApiItemToMaster(result.item, "server");
+            setResolvedItem(item);
+            setBarcodeValue(result.normalizedValue);
+            await reloadApiContext(item.id);
+            setRecentScans((current) =>
+              [{ at: new Date().toISOString(), code: result.normalizedValue, itemName: item.name }, ...current].slice(0, 5)
+            );
+            setView("item");
+            setStatusMessage(mobileCopy.scanner.scanStatus.detected);
+            return;
+          }
+          if (result.status === "ambiguous") {
+            setUnknownCode(result.scannedValue);
+            setAmbiguousMatchCount(result.matches.length);
+            setView("ambiguous");
+            setStatusMessage(mobileCopy.ambiguous.message);
+            return;
+          }
+          setUnknownCode(result.scannedValue);
+          setView("unknown");
+          return;
+        }
+
+        if (state.status !== "ready" || !snapshot) return;
+        const result = resolveMobileBarcode(demoSnapshot, tenantId, code);
         vibrateScanSuccess();
         if (result.status === "resolved") {
           setResolvedItem(result.item);
           setBarcodeValue(result.normalizedCode);
-          setTransactions(listItemTransactions(snapshot, tenantId, result.item.id));
+          setTransactions(getDemoItemTransactions(demoSnapshot, tenantId, result.item.id));
           setRecentScans((current) =>
             [{ at: new Date().toISOString(), code: result.normalizedCode, itemName: result.item.name }, ...current].slice(0, 5)
           );
@@ -138,7 +237,7 @@ export function InventoryScanShell({ dictionary, locale }: InventoryScanShellPro
         setResolving(false);
       }
     },
-    [mobileCopy.ambiguous.message, mobileCopy.scanner.scanStatus.detected, mobileCopy.scanner.scanStatus.resolving, snapshot, state.status, tenantId]
+    [isDemoRuntime, demoSnapshot, mobileCopy.ambiguous.message, mobileCopy.scanner.scanStatus.detected, mobileCopy.scanner.scanStatus.resolving, reloadApiContext, snapshot, state.status, tenantId]
   );
 
   function handleRescan() {
@@ -169,7 +268,7 @@ export function InventoryScanShell({ dictionary, locale }: InventoryScanShellPro
     setBarcodeValue(unknownCode);
     setView("item");
     if (snapshot) {
-      setTransactions(listItemTransactions(snapshot, tenantId, item.id));
+      setTransactions(getDemoItemTransactions(snapshot, tenantId, item.id));
     }
   }
 
@@ -204,9 +303,11 @@ export function InventoryScanShell({ dictionary, locale }: InventoryScanShellPro
           syncing={syncing}
         />
 
-        {loading || !snapshot ? (
+        {isDemoRuntime && (loading || !snapshot) ? (
           <LoadingState message={dictionary.inventoryModule.loading} />
-        ) : state.status !== "ready" ? (
+        ) : !isDemoRuntime && resolving && view === "scanner" ? (
+          <LoadingState message={dictionary.inventoryModule.loading} />
+        ) : state.status !== "ready" && isDemoRuntime ? (
           <LoadingState message={dictionary.inventoryModule.loading} />
         ) : view === "scanner" ? (
           <>
@@ -242,8 +343,8 @@ export function InventoryScanShell({ dictionary, locale }: InventoryScanShellPro
         ) : view === "unknown" ? (
           <InventoryUnknownBarcodePanel
             copy={mobileCopy}
-            inventoryProduct={state.repos.inventoryProduct}
-            items={snapshot.items}
+            inventoryProduct={inventoryProduct ?? undefined}
+            items={isDemoRuntime && snapshot ? demoSnapshot.items : []}
             onBarcodeLinked={() => void handleBarcodeLinked()}
             onRescan={handleRescan}
             onSelectItem={handleManualItemSelect}
@@ -256,7 +357,7 @@ export function InventoryScanShell({ dictionary, locale }: InventoryScanShellPro
             barcodeValue={barcodeValue}
             context={itemContext}
             copy={mobileCopy}
-            inventoryProduct={state.repos.inventoryProduct}
+            inventoryProduct={inventoryProduct}
             locale={locale}
             onPosted={() => void handlePosted()}
             onRescan={handleRescan}
