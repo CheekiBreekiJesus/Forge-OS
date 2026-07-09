@@ -1,15 +1,29 @@
 import type { ForgeOSSession, ForgeOSAuthRole } from "./types";
 import { ForgeOSAuthError, parseRoles } from "./types";
 import { resolvePermissionsForRoles } from "@/lib/auth/permissions";
+import {
+  resolveMembershipAccessForUser,
+  SELECTED_TENANT_COOKIE
+} from "@/lib/auth/membership";
 import { isSupabaseAuthConfigured } from "@/lib/supabase/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server-client";
 import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
-import {
-  listTenantMemberships,
-  mapMembershipRoleToForgeOSRole,
-  resolveTenantByKey,
-  resolveTenantUuidByKey
-} from "@/lib/supabase/tenant";
+import { resolveTenantByKey, resolveTenantUuidByKey } from "@/lib/supabase/tenant";
+
+export function readSelectedTenantIdFromRequest(request: Request): string | null {
+  const cookieHeader = request.headers.get("cookie");
+  if (!cookieHeader) return null;
+
+  for (const part of cookieHeader.split(";")) {
+    const [name, ...valueParts] = part.trim().split("=");
+    if (name === SELECTED_TENANT_COOKIE) {
+      const value = decodeURIComponent(valueParts.join("=").trim());
+      return value || null;
+    }
+  }
+
+  return null;
+}
 
 function readHeader(request: Request, key: string): string {
   return request.headers.get(key)?.trim() ?? "";
@@ -59,7 +73,23 @@ function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
+function membershipAccessError(
+  status: Exclude<Awaited<ReturnType<typeof resolveMembershipAccessForUser>>["status"], "active">
+): ForgeOSAuthError {
+  const message =
+    status === "multiple_active"
+      ? "Tenant selection required."
+      : status === "pending"
+        ? "Membership pending approval."
+        : status === "denied"
+          ? "Tenant access denied."
+          : "No tenant membership.";
+
+  return new ForgeOSAuthError("forbidden", message, 403);
+}
+
 async function resolveSupabaseSession(
+  request: Request,
   env: Record<string, string | undefined>
 ): Promise<ForgeOSSession> {
   const supabase = await createSupabaseServerClient();
@@ -69,47 +99,43 @@ async function resolveSupabaseSession(
     throw new ForgeOSAuthError("unauthenticated", "Authentication required.", 401);
   }
 
-  const service = createSupabaseServiceClient();
-  const memberships = await listTenantMemberships(service, data.user.id);
-  if (memberships.length === 0) {
-    throw new ForgeOSAuthError("forbidden", "No tenant membership.", 403);
-  }
-
   const configuredTenantKey = env.FORGEOS_ACTIVE_TENANT_KEY?.trim();
-  let membership = memberships[0];
+  const cookieTenantId = readSelectedTenantIdFromRequest(request);
+  let selectedTenantId = cookieTenantId;
 
   if (configuredTenantKey) {
+    const service = createSupabaseServiceClient();
     const tenant = await resolveTenantByKey(service, configuredTenantKey);
     if (!tenant) {
       throw new ForgeOSAuthError("forbidden", "Configured tenant not found.", 403);
     }
-    const match = memberships.find((row) => row.tenantId === tenant.id);
-    if (!match) {
-      throw new ForgeOSAuthError("forbidden", "Tenant access denied.", 403);
-    }
-    membership = match;
+    selectedTenantId = tenant.id;
   }
 
-  const mappedRole = mapMembershipRoleToForgeOSRole(membership.role);
-  if (!mappedRole) {
+  const access = await resolveMembershipAccessForUser(data.user, selectedTenantId);
+  if (access.status !== "active") {
+    throw membershipAccessError(access.status);
+  }
+
+  if (
+    cookieTenantId &&
+    !configuredTenantKey &&
+    cookieTenantId !== access.context.tenantId
+  ) {
+    throw new ForgeOSAuthError("forbidden", "Tenant access denied.", 403);
+  }
+
+  const roles: ForgeOSAuthRole[] = [...new Set(access.context.roles)];
+  if (roles.length === 0) {
     throw new ForgeOSAuthError("forbidden", "Invalid membership role.", 403);
   }
 
-  const roles: ForgeOSAuthRole[] = memberships
-    .filter((row) => row.tenantId === membership.tenantId)
-    .map((row) => mapMembershipRoleToForgeOSRole(row.role))
-    .filter((role): role is ForgeOSAuthRole => role !== null);
-
-  if (roles.length === 0) {
-    roles.push(mappedRole);
-  }
-
   return {
-    membershipId: membership.id,
-    permissions: resolvePermissionsForRoles(roles, membership.permissions),
-    userId: data.user.id,
-    tenantId: membership.tenantId,
-    roles: [...new Set(roles)],
+    membershipId: access.context.membershipId,
+    permissions: access.context.permissions,
+    userId: access.context.userId,
+    tenantId: access.context.tenantId,
+    roles,
     source: "supabase"
   };
 }
@@ -137,7 +163,7 @@ export async function resolveForgeOSSession(
   }
 
   if (isSupabaseAuthConfigured(env)) {
-    return resolveSupabaseSession(env);
+    return resolveSupabaseSession(request, env);
   }
 
   if (env.NODE_ENV === "production") {
