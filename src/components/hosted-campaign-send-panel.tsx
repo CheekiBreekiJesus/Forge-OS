@@ -88,8 +88,16 @@ export function HostedCampaignSendPanel({
   }, []);
 
   useEffect(() => {
-    void refreshHostedJobs();
-  }, [refreshHostedJobs]);
+    if (!tenantReady || !selectedHostedTenantId) return;
+    let cancelled = false;
+    void (async () => {
+      const jobs = await fetchHostedCampaignSendJobs(campaignId, selectedHostedTenantId);
+      if (!cancelled) setHostedJob(jobs[0] ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [campaignId, selectedHostedTenantId, tenantReady]);
 
   useHostedSendJobProcessor({
     enabled: tenantReady && Boolean(hostedJob),
