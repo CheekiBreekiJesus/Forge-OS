@@ -35,19 +35,19 @@ export class BrevoEmailDeliveryProvider implements EmailDeliveryProvider {
   async send(request: EmailDeliveryRequest): Promise<EmailDeliveryResponse> {
     const diagnostic = this.diagnostic();
     if (!diagnostic.configured) {
-      return blocked("configuration_missing", "Brevo email delivery is not fully configured.");
+      return blocked(request.mode, "configuration_missing", "Brevo email delivery is not fully configured.");
     }
-    if (request.mode !== "provider_test" && !this.config.realSendEnabled) {
-      return blocked("real_send_disabled", "Real email delivery is disabled.");
+    if (request.mode === "real_send" && !this.config.realSendEnabled) {
+      return blocked(request.mode, "real_send_disabled", "Real email delivery is disabled.");
     }
     if (request.mode === "provider_test" && !this.config.testSendEnabled) {
-      return blocked("test_send_disabled", "Protected test email delivery is disabled.");
+      return blocked(request.mode, "test_send_disabled", "Protected test email delivery is disabled.");
     }
     if (request.mode === "provider_test" && !isAllowlistedTestRecipient(this.config, request.toEmail)) {
-      return blocked("recipient_not_allowed", "The test recipient is not allowlisted.");
+      return blocked(request.mode, "recipient_not_allowed", "The test recipient is not allowlisted.");
     }
     if (!request.unsubscribeUrl?.trim()) {
-      return blocked("invalid_request", "Real provider delivery requires a valid unsubscribe URL.");
+      return blocked(request.mode, "invalid_request", "Real provider delivery requires a valid unsubscribe URL.");
     }
 
     const controller = new AbortController();
@@ -68,7 +68,7 @@ export class BrevoEmailDeliveryProvider implements EmailDeliveryProvider {
       const payload = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        return failed(response.status, payload as BrevoErrorPayload, this.config.brevoApiKey);
+        return failed(request.mode, response.status, payload as BrevoErrorPayload, this.config.brevoApiKey);
       }
 
       const success = payload as BrevoSuccessPayload;
@@ -151,12 +151,13 @@ function escapeHtml(value: string): string {
 }
 
 function blocked(
+  mode: EmailDeliveryRequest["mode"],
   errorCode: EmailDeliveryErrorCode,
   errorMessage: string
 ): EmailDeliveryResponse {
   return {
     provider: "brevo",
-    mode: "provider_test",
+    mode,
     status: "blocked",
     providerMessageId: null,
     retryable: false,
@@ -165,11 +166,16 @@ function blocked(
   };
 }
 
-function failed(status: number, payload: BrevoErrorPayload, apiKey: string): EmailDeliveryResponse {
+function failed(
+  mode: EmailDeliveryRequest["mode"],
+  status: number,
+  payload: BrevoErrorPayload,
+  apiKey: string
+): EmailDeliveryResponse {
   const mapped = mapBrevoError(status, payload.code);
   return {
     provider: "brevo",
-    mode: "provider_test",
+    mode,
     status: "failed",
     providerMessageId: null,
     retryable: mapped.retryable,

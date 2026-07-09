@@ -9,6 +9,7 @@ import { createCampaignWithSnapshot } from "@/application/campaign-segmentation-
 import {
   cancelJobThroughServer,
   getSendJobStatusThroughServer,
+  listCampaignSendJobsThroughServer,
   pauseJobThroughServer,
   processNextBatchThroughServer,
   queueCampaignThroughServer,
@@ -252,6 +253,53 @@ describe("send-job server mutation boundaries", () => {
 
     expect(retryResponse.status).toBe(409);
     expect(retryPayload.error.code).toBe("invalid_transition");
+  });
+
+  it("rejects Brevo queue requests when real send is not enabled", async () => {
+    const { campaign, repos: r } = await prepareApprovedCampaign(1);
+    const provider = new ScriptedProvider();
+    const handler = createSendJobRouteHandler(queueCampaignThroughServer, {
+      deps: { provider, repos: r }
+    });
+
+    const response = await handler(
+      trustedRequest({
+        batchSize: 1,
+        campaignId: campaign.id,
+        confirmation: "QUEUE BREVO",
+        deliveryMode: "brevo",
+        provider: "brevo"
+      })
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.error.code).toBe("unsupported_provider");
+    expect(await r.outreachSendJobs.listForCampaign(DEFAULT_TENANT_ID, campaign.id)).toHaveLength(0);
+  });
+
+  it("lists campaign send jobs for authorized actors", async () => {
+    const { campaign, repos: r } = await prepareApprovedCampaign(1);
+    const provider = new ScriptedProvider();
+    const deps = { provider, repos: r };
+    const queue = createSendJobRouteHandler(queueCampaignThroughServer, { deps });
+    const queuedResponse = await queue(
+      trustedRequest({ batchSize: 1, campaignId: campaign.id, confirmation: "QUEUE SIMULATION" })
+    );
+    const queuedPayload = await queuedResponse.json();
+    expect(queuedResponse.status).toBe(200);
+
+    const jobs = await listCampaignSendJobsThroughServer(deps, {
+      correlationId: "corr_server_test",
+      permissions: [],
+      roles: ["marketing_manager"],
+      source: "development_headers",
+      tenantId: DEFAULT_TENANT_ID,
+      userId: "user_server_test"
+    }, campaign.id);
+
+    expect(jobs.jobs).toHaveLength(1);
+    expect(jobs.jobs[0]?.id).toBe(queuedPayload.result.job.id);
   });
 
   it("keeps server errors sanitized and does not expose service-role values", async () => {

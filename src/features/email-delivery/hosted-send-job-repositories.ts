@@ -23,7 +23,7 @@ import type { ActivityEvent, CreateActivityEventInput } from "@/domain/types";
 import type { EmailSuppression } from "@/domain/suppression-types";
 import { readEmailDeliveryConfig } from "@/features/email-delivery/config";
 import { readDurableStoreConfig, type DurableStoreConfig } from "@/features/email-delivery/durable-outreach-store";
-import { SimulationEmailDeliveryProvider } from "@/features/email-delivery/simulation-provider";
+import { createEmailDeliveryProvider } from "@/features/email-delivery/provider";
 import { assertServerOnlyModule } from "@/features/email-delivery/server-only";
 import type { SendJobServerMutationDependencies } from "@/application/send-job-server-mutations";
 import type { LocalRepositoryBundle } from "@/persistence/interfaces";
@@ -68,14 +68,9 @@ export function createHostedSendJobServerDependencies(
   config: DurableStoreConfig | null = readDurableStoreConfig()
 ): SendJobServerMutationDependencies | null {
   if (!config) return null;
-  const deliveryConfig = {
-    ...readEmailDeliveryConfig(),
-    provider: "simulation" as const,
-    realSendEnabled: false,
-    testSendEnabled: false
-  };
+  const deliveryConfig = readEmailDeliveryConfig();
   return {
-    provider: new SimulationEmailDeliveryProvider(deliveryConfig),
+    provider: createEmailDeliveryProvider(deliveryConfig),
     repos: createHostedSendJobRepositoryBundle(config)
   };
 }

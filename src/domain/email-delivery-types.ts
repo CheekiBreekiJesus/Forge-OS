@@ -1,6 +1,6 @@
 export type EmailDeliveryProviderKey = "simulation" | "brevo";
 
-export type EmailDeliveryMode = "simulation" | "provider_test";
+export type EmailDeliveryMode = "simulation" | "provider_test" | "real_send";
 
 export type EmailDeliveryStatus =
   | "accepted"

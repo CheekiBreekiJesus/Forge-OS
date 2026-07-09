@@ -919,6 +919,32 @@ export type Dictionary = {
         reusedPrepared: string;
         states: Record<"not_prepared" | "loading" | "preparing" | "prepared" | "failed" | "stale", string>;
       };
+      hostedSend: {
+        title: string;
+        description: string;
+        authUnavailable: string;
+        persistenceNotice: string;
+        needsPreparation: string;
+        deliveryMode: string;
+        modes: Record<"simulation" | "brevo", string>;
+        brevoUnavailable: string;
+        brevoWarning: string;
+        batchSize: string;
+        intervalMinutes: string;
+        dailyLimit: string;
+        confirmationLabel: string;
+        queueSimulation: string;
+        queueBrevo: string;
+        queueing: string;
+        queued: string;
+        queueFailed: string;
+        refresh: string;
+        empty: string;
+        autoProcessingHint: string;
+        finalConfirmation: string;
+        simulationProvider: string;
+        unknownSender: string;
+      };
     };
     suppression: {
       title: string;
@@ -1108,6 +1134,7 @@ export type Dictionary = {
       sequencePanel: string;
       activityPanel: string;
       importSummary: string;
+      importSummaryUnavailable: string;
       noWebsiteContext: string;
       websiteContextAvailable: string;
       personalizationWarning: string;

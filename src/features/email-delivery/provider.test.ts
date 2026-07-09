@@ -234,6 +234,59 @@ describe("BrevoEmailDeliveryProvider", () => {
     expect(result.errorCode).toBe("invalid_request");
   });
 
+  it("allows real_send campaign delivery without allowlist when enabled", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ messageId: "<message@relay.example>" }), { status: 201 })
+    );
+    const provider = new BrevoEmailDeliveryProvider(
+      readEmailDeliveryConfig({
+        BREVO_API_KEY: "test-api-key",
+        BREVO_SENDER_EMAIL: "sender@example.com",
+        BREVO_SENDER_NAME: "ForgeOS",
+        EMAIL_DELIVERY_PROVIDER: "brevo",
+        FORGEOS_PUBLIC_BASE_URL: "https://forgeos.example",
+        OUTREACH_UNSUBSCRIBE_SECRET: "test-secret-with-enough-entropy-for-hmac-signing",
+        BREVO_WEBHOOK_SECRET: "test-webhook-secret-with-enough-entropy",
+        OUTREACH_REAL_SEND_ENABLED: "true",
+        OUTREACH_TEST_SEND_ENABLED: "false"
+      })
+    );
+
+    const result = await provider.send({
+      ...request,
+      mode: "real_send",
+      toEmail: "pilot@example.invalid"
+    });
+
+    expect(result.status).toBe("accepted");
+    expect(result.mode).toBe("real_send");
+  });
+
+  it("blocks real_send when OUTREACH_REAL_SEND_ENABLED is false", async () => {
+    const provider = new BrevoEmailDeliveryProvider(
+      readEmailDeliveryConfig({
+        BREVO_API_KEY: "test-api-key",
+        BREVO_SENDER_EMAIL: "sender@example.com",
+        BREVO_SENDER_NAME: "ForgeOS",
+        EMAIL_DELIVERY_PROVIDER: "brevo",
+        FORGEOS_PUBLIC_BASE_URL: "https://forgeos.example",
+        OUTREACH_UNSUBSCRIBE_SECRET: "test-secret-with-enough-entropy-for-hmac-signing",
+        BREVO_WEBHOOK_SECRET: "test-webhook-secret-with-enough-entropy",
+        OUTREACH_REAL_SEND_ENABLED: "false",
+        OUTREACH_TEST_SEND_ENABLED: "true"
+      })
+    );
+
+    const result = await provider.send({
+      ...request,
+      mode: "real_send",
+      toEmail: "pilot@example.invalid"
+    });
+
+    expect(result.status).toBe("blocked");
+    expect(result.errorCode).toBe("real_send_disabled");
+  });
+
   it("classifies Brevo timeouts as retryable failures", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(
       () =>

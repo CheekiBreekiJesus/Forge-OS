@@ -71,11 +71,11 @@ test.describe("Local MVP workflow", () => {
     await page.getByRole("button", { name: "Simular envio" }).click();
 
     await expect(page.getByText("Mensagem gerada")).toBeVisible();
-    await expect(page.getByText("Enviado", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("Envio simulado", { exact: true }).first()).toBeVisible();
 
     await page.reload();
     await waitForPersistence(page);
-    await expect(page.getByText("Enviado", { exact: true }).first()).toBeVisible({
+    await expect(page.getByText("Envio simulado", { exact: true }).first()).toBeVisible({
       timeout: 15000
     });
   });

@@ -492,12 +492,7 @@ export function LeadOpsDetailWorkspace({
           </Panel>
 
           <Panel title={dictionary.leadops.detailWorkspace.importSummary}>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <Field label={dictionary.leadops.detailWorkspace.importTotal} value="2,536" />
-              <Field label={dictionary.leadops.detailWorkspace.importValid} value="2,536" />
-              <Field label={dictionary.leadops.detailWorkspace.importReview} value="101" />
-              <Field label={dictionary.leadops.detailWorkspace.importReady} value="2" />
-            </div>
+            <p className="text-sm text-slate-400">{dictionary.leadops.detailWorkspace.importSummaryUnavailable}</p>
           </Panel>
         </div>
 

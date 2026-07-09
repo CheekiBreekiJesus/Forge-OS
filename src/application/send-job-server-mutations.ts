@@ -11,6 +11,7 @@ import {
   requireSendJobPermission,
   type SendJobPermission
 } from "@/features/email-delivery/send-job-authorization";
+import { isRealCampaignSendReady, readEmailDeliveryConfig } from "@/features/email-delivery/config";
 import type { TrustedSendJobActorContext } from "@/features/email-delivery/send-job-actor-types";
 import type { LocalRepositoryBundle } from "@/persistence/interfaces";
 import { PersistenceError } from "@/persistence/interfaces";
@@ -84,13 +85,13 @@ export class SendJobServerMutationError extends Error {
 
 type QueueRequest = {
   campaignId: string;
-  provider?: "simulation";
-  deliveryMode?: "simulation";
+  provider?: "simulation" | "brevo";
+  deliveryMode?: "simulation" | "brevo";
   batchSize?: number;
   delayMs?: number;
   dailyLimit?: number;
   maxRetries?: number;
-  confirmation: "QUEUE SIMULATION";
+  confirmation: "QUEUE SIMULATION" | "QUEUE BREVO";
 };
 
 type JobIdRequest = {
@@ -128,9 +129,9 @@ export async function queueCampaignThroughServer(
       confirmation: input.confirmation,
       dailyLimit: input.dailyLimit,
       delayMs: input.delayMs,
-      deliveryMode: "simulation",
+      deliveryMode: input.deliveryMode,
       maxRetries: input.maxRetries,
-      provider: "simulation",
+      provider: input.provider,
       tenantId: actor.tenantId
     })
   );
@@ -323,6 +324,22 @@ export async function getSendJobStatusThroughServer(
   return buildStatus(deps, actor, job);
 }
 
+export async function listCampaignSendJobsThroughServer(
+  deps: SendJobServerMutationDependencies,
+  actor: TrustedSendJobActorContext,
+  campaignId: string
+) {
+  await requirePermission(actor, "send_job:view", deps, undefined);
+  if (!campaignId.trim()) {
+    throw new SendJobServerMutationError("bad_request", "campaignId is required.", 400);
+  }
+  await assertCampaignVisible(deps, actor, campaignId);
+  const jobs = await deps.repos.outreachSendJobs.listForCampaign(actor.tenantId, campaignId);
+  return {
+    jobs: jobs.map((job) => summarizeJob(job))
+  };
+}
+
 async function buildStatus(
   deps: SendJobServerMutationDependencies,
   actor: TrustedSendJobActorContext,
@@ -480,22 +497,38 @@ function parseQueueRequest(input: unknown): QueueRequest {
   ]);
   const provider = optionalString(row.provider, "provider") ?? "simulation";
   const deliveryMode = optionalString(row.deliveryMode, "deliveryMode") ?? "simulation";
-  if (provider !== "simulation" || deliveryMode !== "simulation") {
-    throw new SendJobServerMutationError("unsupported_provider", "Only durable simulation is enabled in Step 7C.", 400);
+  if (provider !== deliveryMode) {
+    throw new SendJobServerMutationError("bad_request", "Provider and delivery mode must match.", 400);
+  }
+  if (provider === "brevo") {
+    if (!isRealCampaignSendReady(readEmailDeliveryConfig())) {
+      throw new SendJobServerMutationError(
+        "unsupported_provider",
+        "Real Brevo campaign sending is not enabled or fully configured.",
+        400
+      );
+    }
+  } else if (provider !== "simulation" || deliveryMode !== "simulation") {
+    throw new SendJobServerMutationError("unsupported_provider", "Only simulation or gated Brevo delivery is supported.", 400);
   }
   const confirmation = requiredString(row.confirmation, "confirmation");
-  if (confirmation !== "QUEUE SIMULATION") {
+  const expectedConfirmation = deliveryMode === "brevo" ? "QUEUE BREVO" : "QUEUE SIMULATION";
+  if (confirmation !== expectedConfirmation) {
     throw new SendJobServerMutationError("bad_request", "Queue confirmation is invalid.", 400);
   }
+  const dailyLimit =
+    deliveryMode === "brevo"
+      ? optionalNumber(row.dailyLimit, "dailyLimit", 1, 25) ?? 25
+      : optionalNumber(row.dailyLimit, "dailyLimit", 0, 1000);
   return {
     batchSize: optionalNumber(row.batchSize, "batchSize", 1, 100),
     campaignId: requiredId(row.campaignId, "campaignId"),
-    confirmation,
-    dailyLimit: optionalNumber(row.dailyLimit, "dailyLimit", 0, 1000),
+    confirmation: confirmation as QueueRequest["confirmation"],
+    dailyLimit,
     delayMs: optionalNumber(row.delayMs, "delayMs", 0, 5000),
-    deliveryMode,
+    deliveryMode: deliveryMode as QueueRequest["deliveryMode"],
     maxRetries: optionalNumber(row.maxRetries, "maxRetries", 0, 10),
-    provider
+    provider: provider as QueueRequest["provider"]
   };
 }
 
