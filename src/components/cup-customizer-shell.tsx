@@ -144,9 +144,7 @@ function resolveProductPreviewUrl(product: Product | null): string | null {
 }
 
 function configurationSignature(configuration: CustomizerConfiguration, quantity: number, artworkAssetId: string | null): string {
-  const { previewScene, ...manufacturing } = configuration;
-  void previewScene;
-  return JSON.stringify({ ...manufacturing, artworkAssetId, quantity });
+  return JSON.stringify({ ...configuration, artworkAssetId, quantity });
 }
 
 function buildPricingSnapshot(
@@ -280,6 +278,14 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
     [artworkTransformBase]
   );
 
+  const handlePreviewResolved = useCallback(
+    ({ sceneUrl, cupUrl }: { sceneUrl: string | null; cupUrl: string | null }) => {
+      setResolvedSceneUrl(sceneUrl);
+      setResolvedCupUrl(cupUrl);
+    },
+    []
+  );
+
   const pricing = useMemo(() => {
     if (!selectedProduct) return null;
     return buildPricingSnapshot(
@@ -365,6 +371,31 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
       setPreviewStale(true);
     }
   }, [artworkAssetId, configuration, previewSignature, quantity]);
+
+  useEffect(() => {
+    setConfiguration((current) => {
+      const clamped = clampArtworkOffsets(
+        {
+          ...artworkTransformBase,
+          artworkOffsetX: current.artworkOffsetX,
+          artworkOffsetY: current.artworkOffsetY
+        },
+        current.artworkOffsetX,
+        current.artworkOffsetY
+      );
+      if (
+        clamped.artworkOffsetX === current.artworkOffsetX &&
+        clamped.artworkOffsetY === current.artworkOffsetY
+      ) {
+        return current;
+      }
+      return {
+        ...current,
+        artworkOffsetX: clamped.artworkOffsetX,
+        artworkOffsetY: clamped.artworkOffsetY
+      };
+    });
+  }, [artworkTransformBase]);
 
   useEffect(() => {
     let cancelled = false;
@@ -929,7 +960,10 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
                       max={ARTWORK_ROTATION_MAX}
                       min={ARTWORK_ROTATION_MIN}
                       onChange={(event) =>
-                        setConfiguration({ ...configuration, artworkRotation: Number(event.target.value) })
+                        setConfiguration({
+                          ...configuration,
+                          artworkRotation: normalizeArtworkRotation(Number(event.target.value))
+                        })
                       }
                       step={1}
                       type="range"
@@ -1180,10 +1214,7 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
                   staleLabel: previewStale ? copy.preview.stale : null
                 }}
                 onArtworkOffsetChange={updateArtworkOffsets}
-                onPreviewResolved={({ sceneUrl, cupUrl }) => {
-                  setResolvedSceneUrl(sceneUrl);
-                  setResolvedCupUrl(cupUrl);
-                }}
+                onPreviewResolved={handlePreviewResolved}
                 previewScene={configuration.previewScene}
                 printArea={configuration.printArea}
               />
