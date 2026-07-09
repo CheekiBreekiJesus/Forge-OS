@@ -22,6 +22,7 @@ import {
 import type { ForgeOSSession } from "@/lib/auth/types";
 import { createSupabaseServiceClient } from "@/lib/supabase/service-client";
 import { PersistenceError } from "@/persistence/interfaces";
+import { writeProductImportAudit } from "@/application/inventory-service";
 
 const MAX_IMPORT_FILE_BYTES = 10 * 1024 * 1024;
 
@@ -135,6 +136,13 @@ export async function createProductImportJob(input: {
   if (error || !data) {
     throw new PersistenceError("unavailable", "Failed to create import job.");
   }
+
+  await writeProductImportAudit({
+    activityType: "product_import_uploaded",
+    entityId: data.id as string,
+    metadata: { filename: input.filename, file_format: fileFormat },
+    session: input.session
+  });
 
   return mapJobSummary(data);
 }
@@ -345,6 +353,13 @@ export async function approveProductImportJob(input: {
     throw new PersistenceError("unavailable", "Failed to approve import job.");
   }
 
+  await writeProductImportAudit({
+    activityType: "product_import_approved",
+    entityId: input.jobId,
+    metadata: { approved_rows: input.rowApprovals.length },
+    session: input.session
+  });
+
   return mapJobSummary(data);
 }
 
@@ -364,8 +379,21 @@ export async function applyProductImportJob(input: {
   });
 
   if (error) {
+    await writeProductImportAudit({
+      activityType: "product_import_failed",
+      entityId: input.jobId,
+      metadata: { error: error.message },
+      session: input.session
+    });
     throw new PersistenceError("unavailable", error.message);
   }
+
+  await writeProductImportAudit({
+    activityType: "product_import_applied",
+    entityId: input.jobId,
+    metadata: data as Record<string, unknown>,
+    session: input.session
+  });
 
   return (data as Record<string, unknown>) ?? {};
 }
@@ -428,6 +456,118 @@ export async function getProductImportJobRows(input: {
       warnings: issueBucket.warnings
     };
   });
+}
+
+export type ProductImportMappingProfile = {
+  id: string;
+  tenantId: string;
+  name: string;
+  sourceType: string;
+  sourceLabel: string;
+  worksheetPattern: string;
+  columnMappings: Record<string, ProductImportFieldKey>;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function listProductImportMappingProfiles(
+  session: ForgeOSSession
+): Promise<ProductImportMappingProfile[]> {
+  requireProductImportPermission(session);
+  const client = createSupabaseServiceClient();
+  const { data, error } = await client
+    .from("prod_import_mapping_profiles")
+    .select("id, tenant_id, name, source_type, source_label, worksheet_pattern, column_mappings, created_at, updated_at")
+    .eq("tenant_id", session.tenantId)
+    .order("updated_at", { ascending: false });
+
+  if (error) throw new PersistenceError("unavailable", "Failed to list mapping profiles.");
+  return (data ?? []).map(mapMappingProfile);
+}
+
+export async function createProductImportMappingProfile(input: {
+  session: ForgeOSSession;
+  name: string;
+  sourceType?: string;
+  sourceLabel?: string;
+  worksheetPattern?: string;
+  columnMappings: Record<string, ProductImportFieldKey>;
+}): Promise<ProductImportMappingProfile> {
+  requireProductImportPermission(input.session);
+  const client = createSupabaseServiceClient();
+  const { data, error } = await client
+    .from("prod_import_mapping_profiles")
+    .insert({
+      column_mappings: input.columnMappings,
+      name: input.name,
+      source_label: input.sourceLabel ?? "",
+      source_type: input.sourceType ?? "unknown",
+      tenant_id: input.session.tenantId,
+      worksheet_pattern: input.worksheetPattern ?? ""
+    })
+    .select("id, tenant_id, name, source_type, source_label, worksheet_pattern, column_mappings, created_at, updated_at")
+    .single();
+
+  if (error || !data) throw new PersistenceError("unavailable", "Failed to create mapping profile.");
+  return mapMappingProfile(data);
+}
+
+export async function updateProductImportMappingProfile(input: {
+  session: ForgeOSSession;
+  profileId: string;
+  name?: string;
+  sourceType?: string;
+  sourceLabel?: string;
+  worksheetPattern?: string;
+  columnMappings?: Record<string, ProductImportFieldKey>;
+}): Promise<ProductImportMappingProfile> {
+  requireProductImportPermission(input.session);
+  const client = createSupabaseServiceClient();
+  const { data, error } = await client
+    .from("prod_import_mapping_profiles")
+    .update({
+      column_mappings: input.columnMappings,
+      name: input.name,
+      source_label: input.sourceLabel,
+      source_type: input.sourceType,
+      updated_at: nowIso(),
+      worksheet_pattern: input.worksheetPattern
+    })
+    .eq("id", input.profileId)
+    .eq("tenant_id", input.session.tenantId)
+    .select("id, tenant_id, name, source_type, source_label, worksheet_pattern, column_mappings, created_at, updated_at")
+    .single();
+
+  if (error || !data) throw new PersistenceError("unavailable", "Failed to update mapping profile.");
+  return mapMappingProfile(data);
+}
+
+export async function deleteProductImportMappingProfile(input: {
+  session: ForgeOSSession;
+  profileId: string;
+}): Promise<void> {
+  requireProductImportPermission(input.session);
+  const client = createSupabaseServiceClient();
+  const { error } = await client
+    .from("prod_import_mapping_profiles")
+    .delete()
+    .eq("id", input.profileId)
+    .eq("tenant_id", input.session.tenantId);
+  if (error) throw new PersistenceError("unavailable", "Failed to delete mapping profile.");
+}
+
+function mapMappingProfile(row: Record<string, unknown>): ProductImportMappingProfile {
+  return {
+    columnMappings: (row.column_mappings as Record<string, ProductImportFieldKey>) ?? {},
+    createdAt: String(row.created_at ?? ""),
+    id: String(row.id),
+    name: String(row.name),
+    sourceLabel: String(row.source_label ?? ""),
+    sourceType: String(row.source_type ?? "unknown"),
+    tenantId: String(row.tenant_id),
+    updatedAt: String(row.updated_at ?? ""),
+    worksheetPattern: String(row.worksheet_pattern ?? "")
+  };
 }
 
 function mapJobSummary(row: Record<string, unknown>): ProductImportJobSummary {
