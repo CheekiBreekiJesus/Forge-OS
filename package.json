@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest run src",
-    "test:supabase:integration": "vitest run --maxWorkers=1 src/persistence/supabase/outreach-vertical.integration.test.ts src/persistence/supabase/inventory-foundation.integration.test.ts src/persistence/supabase/product-import.integration.test.ts",
+    "test:supabase:integration": "vitest run --maxWorkers=1 src/persistence/supabase/outreach-vertical.integration.test.ts src/persistence/supabase/inventory-foundation.integration.test.ts src/persistence/supabase/inventory-runtime.integration.test.ts src/persistence/supabase/product-import.integration.test.ts",
     "pretest:e2e": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/qa/prepare-playwright-tests.ps1 -TestPort 3012",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
