@@ -69,7 +69,7 @@ export function ProductImportApiShell({ dictionary, locale }: ProductImportApiSh
     setMessage(null);
     try {
       const buffer = await file.arrayBuffer();
-      const result = parseSpreadsheet({ data: buffer, filename: file.name });
+      const result = await parseSpreadsheet({ data: buffer, filename: file.name });
       setParsed(result);
       setFileBuffer(buffer);
       setFilename(file.name);

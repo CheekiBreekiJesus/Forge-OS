@@ -31,7 +31,7 @@ async function main() {
   const curatedPath = resolve(PRODUCTS_DIR, "ForgeOS_Product_Catalog_Draft_2026-07-01.xlsx");
   const buffer = readFileSync(curatedPath);
   const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer;
-  const parsed = parseSpreadsheet({ data: arrayBuffer, filename: "ForgeOS_Product_Catalog_Draft_2026-07-01.xlsx" });
+  const parsed = await parseSpreadsheet({ data: arrayBuffer, filename: "ForgeOS_Product_Catalog_Draft_2026-07-01.xlsx" });
   const worksheet = parsed.worksheets.find((ws) => ws.name === "Products_Import")?.name ?? parsed.worksheets[0].name;
   const ws = parsed.worksheets.find((w) => w.name === worksheet)!;
   const mappings = suggestFieldMapping(ws.headers);
