@@ -40,6 +40,7 @@ export function createSupabaseStubRepositories(): Pick<
   | "outreachSendJobRecipients"
   | "outreachSendJobAttempts"
   | "outreachSendJobDailyUsage"
+  | "productImport"
 > {
   return {
     leads: stubRepo(["list", "getById", "getByEmail", "create", "createMany", "update", "duplicate", "archive", "restore"]),
@@ -84,7 +85,13 @@ export function createSupabaseStubRepositories(): Pick<
     outreachSendJobs: stubRepo(["list", "getById", "create", "update", "listActive"]),
     outreachSendJobRecipients: stubRepo(["listForJob", "getById", "createMany", "update", "listQueued"]),
     outreachSendJobAttempts: stubRepo(["listForJob", "create"]),
-    outreachSendJobDailyUsage: stubRepo(["getForDate", "increment"])
+    outreachSendJobDailyUsage: stubRepo(["getForDate", "increment"]),
+    productImport: {
+      batches: stubRepo(["list", "getById", "getByFingerprint", "create", "update"]),
+      rows: stubRepo(["listByBatch", "getById", "createMany", "update", "deleteByBatch"]),
+      mappingProfiles: stubRepo(["list", "getById", "create", "update"]),
+      sourceReferences: stubRepo(["listByProduct", "listByBatch", "create"])
+    }
   } as unknown as Pick<
     LocalRepositoryBundle,
     | "leads"
@@ -114,5 +121,6 @@ export function createSupabaseStubRepositories(): Pick<
     | "outreachSendJobRecipients"
     | "outreachSendJobAttempts"
     | "outreachSendJobDailyUsage"
+    | "productImport"
   >;
 }

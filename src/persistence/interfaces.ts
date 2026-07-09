@@ -29,6 +29,7 @@ import type {
   UpdateCustomizerSimulationInput
 } from "@/domain/customizer-types";
 import type { CreateProductInput, Product, UpdateProductInput } from "@/domain/product-types";
+import type { ProductImportRepositoryBundle } from "@/persistence/indexeddb/product-import-repositories";
 import type {
   BarcodeRecord,
   ImportBatch,
@@ -418,6 +419,7 @@ export interface LocalRepositoryBundle {
   localAssets: LocalAssetRepository;
   products: ProductRepository;
   customizerSimulations: CustomizerSimulationRepository;
+  productImport: ProductImportRepositoryBundle;
   importBatches: ImportBatchRepository;
   importRows: ImportRowRepository;
   importMappingProfiles: ImportMappingProfileRepository;

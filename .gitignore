@@ -46,6 +46,11 @@ scripts/data-preparation/customer-config*.json
 scripts/data-preparation/customer-config*.yaml
 scripts/data-preparation/customer-config*.yml
 *_Lead_Database_Standardized.xlsx
+*lead*_standardized*.xlsx
+*Product_Catalog_Draft*.xlsx
+*artigos*.xls
+*artigos*.csv
+scripts/data-preparation/reports/product-private-profile.json
 # Private lead import/export working folders (local only)
 data/imports/
 qa/outreach/private-import-profile.raw.json
@@ -54,3 +59,4 @@ data/exports/
 
 # Customer PC local runtime artifacts (logs, PID files, diagnostics)
 .customer-pc/
+

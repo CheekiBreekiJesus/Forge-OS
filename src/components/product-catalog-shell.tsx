@@ -221,6 +221,12 @@ export function ProductCatalogShell({ dictionary, locale }: ProductCatalogShellP
             </Link>
           )
         )}
+        <Link
+          className="shrink-0 rounded-lg border border-[var(--forge-accent)] bg-[var(--forge-surface)] px-3 py-2 text-sm font-semibold text-[var(--forge-accent)] hover:bg-[var(--forge-hover-bg)]"
+          href={`/${locale}/products/import`}
+        >
+          {workspaceCopy.tabs.imports} (staging)
+        </Link>
       </div>
 
       {loading || dataLoading ? (

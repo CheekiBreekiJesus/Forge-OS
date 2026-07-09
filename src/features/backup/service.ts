@@ -5,6 +5,12 @@ import type {
   UserProfile
 } from "@/domain/profile-types";
 import type { Product } from "@/domain/product-types";
+import type {
+  ProductImportBatch,
+  ProductImportRow,
+  ProductMappingProfile,
+  ProductSourceReference
+} from "@/domain/product-import-types";
 import type { InventoryProductSnapshot } from "@/persistence/interfaces";
 import type {
   ActivityEvent,
@@ -66,6 +72,10 @@ export type ForgeOSBackup = {
     outreachSendJobRecipients: OutreachSendJobRecipient[];
     outreachSendJobAttempts: OutreachSendJobAttempt[];
     outreachSendJobDailyUsage: OutreachSendJobDailyUsage[];
+    productImportBatches?: ProductImportBatch[];
+    productImportRows?: ProductImportRow[];
+    productMappingProfiles?: ProductMappingProfile[];
+    productSourceReferences?: ProductSourceReference[];
   };
   localAssets?: Array<Omit<LocalAsset, "blob"> & { blobBase64: string }>;
 };
@@ -101,7 +111,9 @@ export async function exportBackup(
     outreachSendJobRecipients,
     outreachSendJobAttempts,
     outreachSendJobDailyUsage,
-    assets
+    assets,
+    productImportBatches,
+    productMappingProfiles
   ] = await Promise.all([
     repos.leads.list(tenantId),
     repos.customers.list(tenantId),
@@ -155,8 +167,19 @@ export async function exportBackup(
       );
       return rows.filter((row): row is OutreachSendJobDailyUsage => Boolean(row));
     }),
-    includeAssets ? repos.localAssets.list(tenantId) : Promise.resolve([])
+    includeAssets ? repos.localAssets.list(tenantId) : Promise.resolve([]),
+    repos.productImport.batches.list(tenantId),
+    repos.productImport.mappingProfiles.list(tenantId)
   ]);
+
+  const productImportRows: ProductImportRow[] = [];
+  const productSourceReferences: ProductSourceReference[] = [];
+  for (const batch of productImportBatches) {
+    const rows = await repos.productImport.rows.listByBatch(tenantId, batch.id);
+    productImportRows.push(...rows);
+    const refs = await repos.productImport.sourceReferences.listByBatch(tenantId, batch.id);
+    productSourceReferences.push(...refs);
+  }
 
   const backup: ForgeOSBackup = {
     exportedAt: new Date().toISOString(),
@@ -185,7 +208,11 @@ export async function exportBackup(
       outreachSendJobs,
       outreachSendJobRecipients,
       outreachSendJobAttempts,
-      outreachSendJobDailyUsage
+      outreachSendJobDailyUsage,
+      productImportBatches,
+      productImportRows,
+      productMappingProfiles,
+      productSourceReferences
     },
     tenantId,
     version: BACKUP_VERSION

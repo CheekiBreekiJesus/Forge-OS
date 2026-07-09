@@ -46,6 +46,7 @@ import {
   createUserProfileRepository
 } from "./profile-repositories";
 import { createProductRepository, demoProductToCreateInput } from "./product-repositories";
+import { createProductImportRepositoryBundle } from "./product-import-repositories";
 import { createCustomizerSimulationRepository } from "./customizer-repositories";
 import {
   campaignFromSeed,
@@ -1336,7 +1337,11 @@ export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
       db.outreachSendJobs,
       db.outreachSendJobRecipients,
       db.outreachSendJobAttempts,
-      db.outreachSendJobDailyUsage
+      db.outreachSendJobDailyUsage,
+      db.productImportBatches,
+      db.productImportRows,
+      db.productMappingProfiles,
+      db.productSourceReferences
     ],
     async () => {
       await db.meta.clear();
@@ -1388,6 +1393,10 @@ export async function resetDatabase(db: ForgeOSDatabase): Promise<void> {
       await db.outreachSendJobRecipients.clear();
       await db.outreachSendJobAttempts.clear();
       await db.outreachSendJobDailyUsage.clear();
+      await db.productImportBatches.clear();
+      await db.productImportRows.clear();
+      await db.productMappingProfiles.clear();
+      await db.productSourceReferences.clear();
     }
   );
 }
@@ -1426,7 +1435,11 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
       db.outreachSendJobs,
       db.outreachSendJobRecipients,
       db.outreachSendJobAttempts,
-      db.outreachSendJobDailyUsage
+      db.outreachSendJobDailyUsage,
+      db.productImportBatches,
+      db.productImportRows,
+      db.productMappingProfiles,
+      db.productSourceReferences
     ],
     async () => {
       await db.leads.bulkPut(tables.leads);
@@ -1453,6 +1466,18 @@ async function importBackupToDb(db: ForgeOSDatabase, backup: ForgeOSBackup): Pro
       await db.outreachSendJobRecipients.bulkPut(tables.outreachSendJobRecipients ?? []);
       await db.outreachSendJobAttempts.bulkPut(tables.outreachSendJobAttempts ?? []);
       await db.outreachSendJobDailyUsage.bulkPut(tables.outreachSendJobDailyUsage ?? []);
+      if (tables.productImportBatches?.length) {
+        await db.productImportBatches.bulkPut(tables.productImportBatches);
+      }
+      if (tables.productImportRows?.length) {
+        await db.productImportRows.bulkPut(tables.productImportRows);
+      }
+      if (tables.productMappingProfiles?.length) {
+        await db.productMappingProfiles.bulkPut(tables.productMappingProfiles);
+      }
+      if (tables.productSourceReferences?.length) {
+        await db.productSourceReferences.bulkPut(tables.productSourceReferences);
+      }
       if (localAssets) {
         for (const asset of localAssets) {
           const binary = atob(asset.blobBase64);
@@ -1533,6 +1558,7 @@ export function createLocalRepositoryBundle(db: ForgeOSDatabase) {
   const outreachSendJobRecipients = createOutreachSendJobRecipientRepository(db);
   const outreachSendJobAttempts = createOutreachSendJobAttemptRepository(db);
   const outreachSendJobDailyUsage = createOutreachSendJobDailyUsageRepository(db);
+  const productImport = createProductImportRepositoryBundle(db);
 
   return {
     meta,
@@ -1566,6 +1592,7 @@ export function createLocalRepositoryBundle(db: ForgeOSDatabase) {
     outreachSendJobRecipients,
     outreachSendJobAttempts,
     outreachSendJobDailyUsage,
+    productImport,
     async reset() {
       await resetDatabase(db);
     },
