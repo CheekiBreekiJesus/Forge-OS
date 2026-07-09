@@ -18,7 +18,7 @@
 | Select recipients | OK | Segmentation + inclusion |
 | Approve content | OK | Per-recipient approval required |
 | Test email | OK | Protected Brevo test when env configured |
-| Schedule/initiate send | Partial | Local simulation queue only in browser MVP |
+| Schedule/initiate send | Partial | Local simulation in browser; hosted durable queue in Advanced when prepared |
 | Monitor delivery | Partial | Send-job panel; provider events when Supabase |
 | Opens/clicks/bounces | Partial | Webhook ingestion exists; UI surfacing limited |
 | Pause/stop | OK | Pause/cancel on send jobs |
@@ -31,14 +31,15 @@
 - Removed hardcoded fake import summary on lead detail
 - `providerStates.sent` relabeled to simulated delivery (EN/PT)
 - Suppression panel locale-aware links (removed hardcoded `pt-PT`)
+- **Hosted durable send queue** panel in Advanced (gated `QUEUE BREVO`, Supabase persistence)
 
 ## Remaining blockers
 
 | Severity | Finding |
 |----------|---------|
 | Blocker | Dual workflows (lead detail vs campaign bulk) diverge |
-| Blocker | Local queue processor only runs while page is open |
-| High | Hosted Brevo batch queue not exposed in campaign UI yet |
+| Blocker | Local IndexedDB queue still only runs while page open (hosted path is durable) |
+| High | Campaign authoring still IndexedDB-local |
 | High | IndexedDB vs Supabase operator confusion |
 | Medium | Queue requires 100% approval before send |
 | Medium | Validation messages in `delivery-validation.ts` not fully i18n |
