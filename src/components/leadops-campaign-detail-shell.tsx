@@ -11,6 +11,7 @@ import {
   resumeSendJob
 } from "@/application/campaign-send-job-service";
 import { CampaignQueueSendPanel } from "@/components/campaign-queue-send-panel";
+import { HostedCampaignSendPanel } from "@/components/hosted-campaign-send-panel";
 import { CampaignTemplateDraftsPanel } from "@/components/campaign-template-drafts-panel";
 import {
   CampaignWorkflowStepper,
@@ -86,6 +87,7 @@ export function LeadOpsCampaignDetailShell({
   const [hostedPreparationUiState, setHostedPreparationUiState] =
     useState<HostedPreparationUiState>("loading");
   const [hostedPreparationMessage, setHostedPreparationMessage] = useState<string | null>(null);
+  const [senderLabel, setSenderLabel] = useState("");
 
   useEffect(() => {
     if (state.status !== "ready") return;
@@ -202,6 +204,19 @@ export function LeadOpsCampaignDetailShell({
       cancellation.cancelled = true;
     };
   }, [campaign, campaignId, selectedHostedTenantId, refreshHostedPreparationStatus]);
+
+  useEffect(() => {
+    if (state.status !== "ready" || !campaign) return;
+    let cancelled = false;
+    void (async () => {
+      const senderContext = await loadSenderContext(state.repos, tenantId, campaign);
+      if (cancelled) return;
+      setSenderLabel(senderContext.sender.displayName || senderContext.sender.fromEmail || "");
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [campaign, state, tenantId]);
 
   const included = useMemo(() => recipients.filter((row) => row.status === "included"), [recipients]);
   const excluded = useMemo(() => recipients.filter((row) => row.status === "excluded"), [recipients]);
@@ -861,6 +876,17 @@ export function LeadOpsCampaignDetailShell({
                   {hostedPreparationCopy.refresh}
                 </button>
               </section>
+
+              <HostedCampaignSendPanel
+                approvedCount={approvedIncludedRecipients.length}
+                campaignId={campaignId}
+                canQueue={derivedCampaignStatus === "approved" && staleApprovedRecipients.length === 0}
+                dictionary={dictionary}
+                isPrepared={effectiveHostedPreparationUiState === "prepared"}
+                selectedHostedTenantId={selectedHostedTenantId}
+                senderLabel={senderLabel}
+                tenantReady={hostedMemberships.length > 0 && Boolean(selectedHostedTenantId)}
+              />
             </div>
           ) : null}
         </section>

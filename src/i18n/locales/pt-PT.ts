@@ -1306,6 +1306,41 @@ export const dictionary: Dictionary = {
           preparing: "A preparar",
           stale: "Fotografia desatualizada / invalida"
         }
+      },
+      hostedSend: {
+        title: "Fila de envio duravel alojada",
+        description:
+          "Coloca destinatarios aprovados na fila Supabase. A simulacao permanece predefinida; Brevo exige configuracao explicita e confirmacao escrita.",
+        authUnavailable: "Autenticacao alojada ou membership de tenant indisponivel nesta sessao.",
+        persistenceNotice:
+          "Este percurso persiste filas de envio no Supabase. O estado sobrevive a atualizacao. O processamento corre automaticamente com esta pagina aberta.",
+        needsPreparation: "Prepare a campanha para envio no servidor antes de colocar em fila.",
+        deliveryMode: "Modo de entrega",
+        modes: {
+          simulation: "Simulacao alojada",
+          brevo: "Brevo (envio real)"
+        },
+        brevoUnavailable:
+          "O envio real Brevo requer OUTREACH_REAL_SEND_ENABLED=true, remetente verificado, URL publica e segredo de unsubscribe.",
+        brevoWarning:
+          "Envios reais Brevo contactam destinatarios reais. Reveja conteudo e aprovacoes antes de colocar em fila.",
+        batchSize: "Tamanho do lote",
+        intervalMinutes: "Intervalo entre emails (minutos)",
+        dailyLimit: "Limite diario de envio real",
+        confirmationLabel: 'Escreva "{phrase}" para confirmar',
+        queueSimulation: "Colocar simulacao alojada em fila",
+        queueBrevo: "Colocar envio Brevo em fila",
+        queueing: "A colocar em fila…",
+        queued: "Fila de envio alojada criada",
+        queueFailed: "Nao foi possivel colocar a fila alojada em fila.",
+        refresh: "Atualizar fila alojada",
+        empty: "Nenhuma fila de envio alojada foi criada para esta campanha.",
+        autoProcessingHint:
+          "O processamento alojado corre automaticamente com esta pagina aberta e servidor acessivel.",
+        finalConfirmation:
+          "Confirmar envio alojado?\nFornecedor: {provider}\nRemetente: {sender}\nDestinatarios: {count}\nEsta acao cria filas de envio duraveis.",
+        simulationProvider: "Simulacao alojada",
+        unknownSender: "Remetente configurado"
       }
     },
     suppression: {

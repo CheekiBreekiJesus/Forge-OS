@@ -1299,6 +1299,41 @@ export const dictionary: Dictionary = {
           preparing: "Preparing",
           stale: "Stale / invalid snapshot"
         }
+      },
+      hostedSend: {
+        title: "Hosted durable send queue",
+        description:
+          "Queue approved recipients into the Supabase-backed send job. Simulation stays default; Brevo requires explicit configuration and typed confirmation.",
+        authUnavailable: "Hosted authentication or tenant membership is not available in this session.",
+        persistenceNotice:
+          "This path persists send jobs in Supabase. State survives refresh. Processing runs automatically while this page is open.",
+        needsPreparation: "Prepare the campaign for server sending before queueing.",
+        deliveryMode: "Delivery mode",
+        modes: {
+          simulation: "Hosted simulation",
+          brevo: "Brevo (real send)"
+        },
+        brevoUnavailable:
+          "Brevo real send requires OUTREACH_REAL_SEND_ENABLED=true, verified sender, public base URL, and unsubscribe secret.",
+        brevoWarning:
+          "Real Brevo sends contact actual recipients. Review content and approvals before queueing.",
+        batchSize: "Batch size",
+        intervalMinutes: "Interval between emails (minutes)",
+        dailyLimit: "Daily real-send cap",
+        confirmationLabel: 'Type "{phrase}" to confirm',
+        queueSimulation: "Queue hosted simulation",
+        queueBrevo: "Queue Brevo send",
+        queueing: "Queueing…",
+        queued: "Hosted send queue created",
+        queueFailed: "Could not queue hosted send job.",
+        refresh: "Refresh hosted job",
+        empty: "No hosted send job has been queued for this campaign.",
+        autoProcessingHint:
+          "Hosted batch processing runs automatically while this page is open and the server is reachable.",
+        finalConfirmation:
+          "Confirm hosted send?\nProvider: {provider}\nSender: {sender}\nRecipients: {count}\nThis action queues durable send jobs.",
+        simulationProvider: "Hosted simulation",
+        unknownSender: "Configured sender"
       }
     },
     suppression: {

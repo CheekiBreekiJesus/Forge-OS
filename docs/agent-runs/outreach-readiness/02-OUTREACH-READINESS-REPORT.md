@@ -32,13 +32,19 @@ Five send paths coexist:
 - Suppression hardcoded `pt-PT` links
 - Test-send route auth in Supabase mode
 
+### Fixed (this branch, continued)
+
+- **Hosted send panel** — `HostedCampaignSendPanel` exposes gated `QUEUE BREVO` / hosted simulation via Supabase API
+- **Server batch processor** — `useHostedSendJobProcessor` processes batches through `/api/outreach/send-jobs/process` (state survives refresh)
+- **Campaign jobs API** — `GET /api/outreach/send-jobs/campaign?campaignId=` lists durable jobs after refresh
+
 ## 3. Real vs simulated
 
 | Capability | Status |
 |------------|--------|
 | Simulation | Default everywhere |
 | Protected test Brevo | Implemented — env + allowlist + `SEND TEST` |
-| Hosted Brevo batch (`real_send`) | **Server path wired** — `QUEUE BREVO` + gates |
+| Hosted Brevo batch (`real_send`) | **UI + server path wired** — prepare → `QUEUE BREVO` → hosted processor |
 | Local browser Brevo batch | Blocked (must use hosted API) |
 | Legacy `server-delivery.ts` Brevo | Still blocked (test workflow only) |
 
@@ -85,18 +91,18 @@ New tests: `real_send` provider gates, `build-campaign-delivery-request`, Brevo 
 |-------|---------|
 | Stage 0 — Simulation | **Supported** |
 | Stage 1 — Internal protected test | **Ready** when env configured |
-| Stage 2 — Small pilot (10–25) | **API ready** — needs hosted UI wiring + human approval |
+| Stage 2 — Small pilot (10–25) | **Ready when hosted env configured** — UI + API; human approval required |
 | Stage 3 — Limited operational | Not ready |
 
 ## 8. Final verdict
 
 **Ready for internal test** (Stage 1 protected Brevo send).
 
-**Stage 2 server infrastructure is in place** but requires hosted deployment configuration, campaign UI for `QUEUE BREVO`, and a controlled human-approved pilot send.
+**Stage 2 infrastructure and UI are in place** for hosted deployment. Configure Brevo env, prepare campaign, run protected test (Stage 1), then queue ≤25 recipients with typed `QUEUE BREVO` confirmation.
 
 ## 9. Best next action
 
-Configure Stage 1 env on hosted ForgeOS, run one protected test send to an allowlisted internal address, verify webhook in `outreach_provider_events`, then add hosted campaign UI for gated `QUEUE BREVO` and execute Stage 2 with ≤25 manually reviewed recipients.
+Deploy hosted ForgeOS with Brevo env, run Stage 1 protected test, then execute Stage 2 with prepared campaign + hosted send panel (≤25 recipients, monitor `outreach_provider_events`).
 
 ## Related audits
 

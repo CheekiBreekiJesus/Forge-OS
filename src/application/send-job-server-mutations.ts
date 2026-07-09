@@ -324,6 +324,22 @@ export async function getSendJobStatusThroughServer(
   return buildStatus(deps, actor, job);
 }
 
+export async function listCampaignSendJobsThroughServer(
+  deps: SendJobServerMutationDependencies,
+  actor: TrustedSendJobActorContext,
+  campaignId: string
+) {
+  await requirePermission(actor, "send_job:view", deps, undefined);
+  if (!campaignId.trim()) {
+    throw new SendJobServerMutationError("bad_request", "campaignId is required.", 400);
+  }
+  await assertCampaignVisible(deps, actor, campaignId);
+  const jobs = await deps.repos.outreachSendJobs.listForCampaign(actor.tenantId, campaignId);
+  return {
+    jobs: jobs.map((job) => summarizeJob(job))
+  };
+}
+
 async function buildStatus(
   deps: SendJobServerMutationDependencies,
   actor: TrustedSendJobActorContext,
