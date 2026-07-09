@@ -17,7 +17,8 @@ import {
   listQueuedMovements,
   markMovementFailed,
   markMovementSynced,
-  resetMovementForRetry
+  resetMovementForRetry,
+  setOfflineQueueSessionScope
 } from "@/features/inventory-mobile/offline-queue";
 import { destroyDatabaseForTests } from "@/persistence/registry";
 import { getDatabase } from "@/persistence/db";
@@ -144,36 +145,72 @@ describe("inventory mobile movement service", () => {
 });
 
 describe("offline queue", () => {
-  beforeEach(() => clearOfflineQueue(DEFAULT_TENANT_ID));
+  beforeEach(() => {
+    clearOfflineQueue("test-scope");
+    setOfflineQueueSessionScope("test-scope");
+  });
 
   it("queues movements with idempotency keys", () => {
     const request = movementRequest();
-    enqueueMovement(DEFAULT_TENANT_ID, "receipt", request);
-    const queue = listQueuedMovements(DEFAULT_TENANT_ID);
+    enqueueMovement(
+      "receipt",
+      {
+        itemId: request.itemId,
+        locationId: request.locationId,
+        quantity: request.quantity,
+        warehouseId: request.warehouseId
+      },
+      request.idempotencyKey
+    );
+    const queue = listQueuedMovements();
     expect(queue).toHaveLength(1);
     expect(queue[0]?.idempotencyKey).toBe(request.idempotencyKey);
   });
 
   it("prevents duplicate queue entries for the same idempotency key", () => {
     const request = movementRequest();
-    enqueueMovement(DEFAULT_TENANT_ID, "receipt", request);
-    enqueueMovement(DEFAULT_TENANT_ID, "receipt", request);
-    expect(listQueuedMovements(DEFAULT_TENANT_ID)).toHaveLength(1);
+    const payload = {
+      itemId: request.itemId,
+      locationId: request.locationId,
+      quantity: request.quantity,
+      warehouseId: request.warehouseId
+    };
+    enqueueMovement("receipt", payload, request.idempotencyKey);
+    enqueueMovement("receipt", payload, request.idempotencyKey);
+    expect(listQueuedMovements()).toHaveLength(1);
   });
 
   it("removes synced movements from queue", () => {
     const request = movementRequest();
-    enqueueMovement(DEFAULT_TENANT_ID, "receipt", request);
-    markMovementSynced(DEFAULT_TENANT_ID, request.idempotencyKey);
-    expect(listQueuedMovements(DEFAULT_TENANT_ID)).toHaveLength(0);
+    enqueueMovement(
+      "receipt",
+      {
+        itemId: request.itemId,
+        locationId: request.locationId,
+        quantity: request.quantity,
+        warehouseId: request.warehouseId
+      },
+      request.idempotencyKey
+    );
+    markMovementSynced(request.idempotencyKey);
+    expect(listQueuedMovements()).toHaveLength(0);
   });
 
   it("resets failed movements for retry", () => {
     const request = movementRequest();
-    enqueueMovement(DEFAULT_TENANT_ID, "receipt", request);
-    markMovementFailed(DEFAULT_TENANT_ID, request.idempotencyKey, "network error");
-    resetMovementForRetry(DEFAULT_TENANT_ID, request.idempotencyKey);
-    const entry = listQueuedMovements(DEFAULT_TENANT_ID)[0];
+    enqueueMovement(
+      "receipt",
+      {
+        itemId: request.itemId,
+        locationId: request.locationId,
+        quantity: request.quantity,
+        warehouseId: request.warehouseId
+      },
+      request.idempotencyKey
+    );
+    markMovementFailed(request.idempotencyKey, "network error");
+    resetMovementForRetry(request.idempotencyKey);
+    const entry = listQueuedMovements()[0];
     expect(entry?.status).toBe("pending");
     expect(entry?.lastError).toBeUndefined();
   });
