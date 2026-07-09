@@ -108,3 +108,71 @@ export async function linkInventoryBarcode(input: {
   }>(response);
   return payload.result;
 }
+
+export async function postInventoryDesktopMovement(input: {
+  kind: "receipt" | "issue" | "transfer" | "adjust_increase" | "adjust_decrease";
+  itemId: string;
+  warehouseId: string;
+  locationId: string;
+  destinationLocationId?: string;
+  quantity: number;
+  unitCode?: string;
+  stockCondition?: string;
+  destinationStockCondition?: string;
+  lotId?: string | null;
+  reasonCode?: string;
+  notes?: string;
+  allowNegative?: boolean;
+  overrideReason?: string;
+  idempotencyKey: string;
+}): Promise<{ transactionId: string; idempotencyKey: string; idempotent: boolean }> {
+  const response = await fetch("/api/inventory/mobile/movement", {
+    body: JSON.stringify(input),
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    method: "POST"
+  });
+  const payload = await parseJson<{
+    result: { transactionId: string; idempotencyKey: string; idempotent: boolean };
+  }>(response);
+  return payload.result;
+}
+
+export async function postInventoryReservation(input: {
+  itemId: string;
+  warehouseId: string;
+  locationId: string;
+  quantity: number;
+  unitCode?: string;
+  sourceDocumentType?: string;
+  sourceDocumentId?: string;
+  lotId?: string | null;
+  idempotencyKey: string;
+}): Promise<{ reservationId: string; idempotent: boolean }> {
+  const response = await fetch("/api/inventory/reservations", {
+    body: JSON.stringify({ action: "create", ...input }),
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    method: "POST"
+  });
+  const payload = await parseJson<{
+    result: { reservationId: string; idempotent: boolean };
+  }>(response);
+  return payload.result;
+}
+
+export async function releaseInventoryReservation(input: {
+  reservationId: string;
+  status?: "released" | "consumed";
+}): Promise<{ reservationId: string; status: string; idempotent: boolean }> {
+  const response = await fetch("/api/inventory/reservations", {
+    body: JSON.stringify({ action: "release", ...input }),
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    method: "POST"
+  });
+  const payload = await parseJson<{
+    result: { reservationId: string; status: string; idempotent: boolean };
+  }>(response);
+  return payload.result;
+}

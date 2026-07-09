@@ -16,7 +16,7 @@ import {
   type PreviewRole
 } from "@/features/crud/role-preview";
 import type { InventoryProductSnapshot } from "@/persistence/interfaces";
-import { usePersistence } from "@/persistence/provider";
+import type { DesktopWorkflowHandlers } from "@/lib/inventory/desktop-workflows";
 
 type WorkflowKind = "receipt" | "issue" | "transfer" | "adjustment";
 
@@ -24,12 +24,12 @@ type Props = {
   locale: Locale;
   section: "stock" | "receipts" | "transfers" | "adjustments" | "reservations";
   snapshot: InventoryProductSnapshot;
-  onSnapshotChange: (snapshot: InventoryProductSnapshot) => Promise<void>;
+  onSnapshotChange: () => Promise<unknown>;
+  workflows: DesktopWorkflowHandlers;
 };
 
-export function InventoryWorkflowPanels({ locale, onSnapshotChange, section, snapshot }: Props) {
+export function InventoryWorkflowPanels({ locale, onSnapshotChange, section, snapshot, workflows }: Props) {
   const copy = getInventoryProductCopy(locale);
-  const { notifyDataChanged, state: persistenceState, tenantId } = usePersistence();
   const [previewRole, setPreviewRole] = useState<PreviewRole>(() => readPreviewRole());
   const [message, setMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +58,6 @@ export function InventoryWorkflowPanels({ locale, onSnapshotChange, section, sna
   const history = useMemo(() => listMovementHistory(snapshot), [snapshot]);
 
   async function runWorkflow(kind: WorkflowKind, direction?: "increase" | "decrease") {
-    if (persistenceState.status !== "ready") return;
     setSubmitting(true);
     setError(null);
     try {
@@ -81,22 +80,15 @@ export function InventoryWorkflowPanels({ locale, onSnapshotChange, section, sna
         operatorId: `preview:${previewRole}`,
         quantity,
         reasonCode,
-        tenantId,
         unitOfMeasureId: defaultUnit?.id ?? "uom_unit",
         warehouseId: defaultLocation?.warehouseId ?? snapshot.warehouses[0]?.id ?? "wh_main"
       };
-      if (kind === "receipt") await persistenceState.repos.inventoryProduct.receiveStock(tenantId, request);
-      if (kind === "issue") await persistenceState.repos.inventoryProduct.issueStock(tenantId, request);
-      if (kind === "transfer") await persistenceState.repos.inventoryProduct.transferStock(tenantId, request);
-      if (kind === "adjustment") {
-        await persistenceState.repos.inventoryProduct.adjustStock(
-          tenantId,
-          request,
-          direction ?? "increase"
-        );
+      if (kind === "issue") {
+        await workflows.runWorkflow("issue", request);
+      } else {
+        await workflows.runWorkflow(kind, request, direction);
       }
-      await onSnapshotChange(await persistenceState.repos.inventoryProduct.getSnapshot(tenantId));
-      notifyDataChanged();
+      await onSnapshotChange();
       setMessage(
         kind === "receipt"
           ? copy.messages.receiptPosted
@@ -113,21 +105,21 @@ export function InventoryWorkflowPanels({ locale, onSnapshotChange, section, sna
 
   async function handleReservation(event: FormEvent) {
     event.preventDefault();
-    if (persistenceState.status !== "ready") return;
     setSubmitting(true);
     setError(null);
     try {
       assertInventoryPermission(inventoryRole, "receive");
-      await persistenceState.repos.inventoryProduct.createReservation(tenantId, {
+      await workflows.createReservation({
         itemId,
+        locationId,
+        lotId: lotId || null,
         quantity: reservationQty,
         sourceDocumentId: reservationDoc,
         sourceDocumentType: "sales_order",
         unitOfMeasureId: defaultUnit?.id ?? "uom_unit",
         warehouseId: defaultLocation?.warehouseId ?? snapshot.warehouses[0]?.id ?? "wh_main"
       });
-      await onSnapshotChange(await persistenceState.repos.inventoryProduct.getSnapshot(tenantId));
-      notifyDataChanged();
+      await onSnapshotChange();
       setMessage("Reservation created.");
     } catch (reservationError) {
       setError(reservationError instanceof Error ? reservationError.message : "Reservation failed.");
@@ -288,18 +280,11 @@ export function InventoryWorkflowPanels({ locale, onSnapshotChange, section, sna
                   </span>
                   <button
                     className="text-xs font-semibold text-[var(--forge-accent-orange)]"
-                    disabled={submitting || persistenceState.status !== "ready"}
+                    disabled={submitting}
                     onClick={() =>
                       void (async () => {
-                        if (persistenceState.status !== "ready") return;
-                        await persistenceState.repos.inventoryProduct.releaseReservation(
-                          tenantId,
-                          reservation.id
-                        );
-                        await onSnapshotChange(
-                          await persistenceState.repos.inventoryProduct.getSnapshot(tenantId)
-                        );
-                        notifyDataChanged();
+                        await workflows.releaseReservation(reservation.id);
+                        await onSnapshotChange();
                       })()
                     }
                     type="button"
