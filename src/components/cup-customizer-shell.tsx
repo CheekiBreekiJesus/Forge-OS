@@ -373,6 +373,7 @@ export function CupCustomizerShell({ dictionary, locale }: CupCustomizerShellPro
   }, [artworkAssetId, configuration, previewSignature, quantity]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reclamp offsets when transform bounds change
     setConfiguration((current) => {
       const clamped = clampArtworkOffsets(
         {

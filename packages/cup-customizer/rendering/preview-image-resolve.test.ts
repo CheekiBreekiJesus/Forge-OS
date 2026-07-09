@@ -2,7 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 import { resolvePreviewImageUrl } from "./preview-image-resolve";
 
 function mockFetch(responses: Record<string, { ok: boolean }>) {
-  return vi.fn(async (url: string) => {
+  return vi.fn(async (input: RequestInfo | URL) => {
+    const url =
+      typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     const entry = responses[url];
     if (!entry) {
       throw new Error(`unexpected fetch: ${url}`);

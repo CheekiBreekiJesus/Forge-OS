@@ -82,7 +82,9 @@ export function CupPreview({
     null
   );
 
-  onPreviewResolvedRef.current = onPreviewResolved;
+  useEffect(() => {
+    onPreviewResolvedRef.current = onPreviewResolved;
+  }, [onPreviewResolved]);
 
   const [sceneUrl, setSceneUrl] = useState<string | null>(null);
   const [cupUrl, setCupUrl] = useState<string | null>(null);
