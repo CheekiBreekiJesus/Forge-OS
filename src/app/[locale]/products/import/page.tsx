@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { ProductImportShell } from "@/components/product-import-shell";
+import { ProductImportRuntimeShell } from "@/components/product-import-runtime-shell";
 import { isSupportedLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 
@@ -15,5 +15,5 @@ export default async function ProductImportPage({
   const { locale } = await params;
   if (!isSupportedLocale(locale)) notFound();
   const dictionary = await getDictionary(locale);
-  return <ProductImportShell dictionary={dictionary} locale={locale} />;
+  return <ProductImportRuntimeShell dictionary={dictionary} locale={locale} />;
 }

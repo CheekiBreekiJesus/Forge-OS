@@ -23,8 +23,9 @@ describe.skipIf(!databaseUrl)("inventory foundation supabase integration", () =>
          order by tablename`
       );
       expect(tables.rows.map((row) => row.tablename)).toEqual([
-        "inv_activity_log",
-        "inv_item_masters",
+      "inv_activity_log",
+      "inv_barcode_records",
+      "inv_item_masters",
         "inv_ledger_entries",
         "inv_lots",
         "inv_reservations",

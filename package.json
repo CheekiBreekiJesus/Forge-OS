@@ -8,11 +8,11 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest run src",
-    "test:supabase:integration": "vitest run --maxWorkers=1 src/persistence/supabase/outreach-vertical.integration.test.ts src/persistence/supabase/inventory-foundation.integration.test.ts src/persistence/supabase/product-import.integration.test.ts",
-    "pretest:e2e": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/qa/prepare-playwright-tests.ps1 -TestPort 3012",
+    "test:supabase:integration": "vitest run --maxWorkers=1 src/persistence/supabase/outreach-vertical.integration.test.ts src/persistence/supabase/inventory-foundation.integration.test.ts src/persistence/supabase/inventory-runtime.integration.test.ts src/persistence/supabase/product-import.integration.test.ts",
+    "pretest:e2e": "node scripts/qa/prepare-playwright-tests.mjs --port 3012",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "pretest:acceptance": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/qa/prepare-playwright-tests.ps1 -TestPort 3001",
+    "pretest:acceptance": "node scripts/qa/prepare-playwright-tests.mjs --port 3001",
     "test:acceptance": "playwright test --config playwright.acceptance.config.ts",
     "test:acceptance:headed": "playwright test --config playwright.acceptance.config.ts --headed",
     "test:acceptance:ui": "playwright test --config playwright.acceptance.config.ts --ui",
@@ -40,7 +40,7 @@
     "next": "^16.2.9",
     "react": "19.0.0",
     "react-dom": "19.0.0",
-    "xlsx": "^0.18.5",
+    "exceljs": "^4.4.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

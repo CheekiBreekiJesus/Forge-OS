@@ -4,6 +4,7 @@ on:
   pull_request:
   push:
     branches:
+      - main
       - release/**
       - integration/**
 
@@ -12,8 +13,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  validate:
+  validate-core:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Print Node and npm versions
+        run: |
+          node --version
+          npm --version
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  validate-e2e:
+    runs-on: ubuntu-latest
+    needs: validate-core
+    if: |
+      startsWith(github.ref, 'refs/heads/release/') ||
+      startsWith(github.ref, 'refs/heads/integration/') ||
+      (github.event_name == 'pull_request' && (
+        startsWith(github.base_ref, 'release/') ||
+        startsWith(github.base_ref, 'integration/')
+      ))
     env:
       FORGEOS_E2E: "true"
       FORGEOS_TEST_AUTH_ENABLED: "true"
@@ -31,14 +58,6 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-      - name: Print Node and npm versions
-        run: |
-          node --version
-          npm --version
       - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run build
       - run: npx playwright install chromium --with-deps
       - run: npm run test:e2e -- e2e/outreach-workflow.spec.ts e2e/campaign-send-job-simulation.spec.ts e2e/acceptance/03-leads-import-outreach.spec.ts

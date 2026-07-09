@@ -24,6 +24,8 @@ import { vibrateScanError, vibrateScanSuccess } from "@/features/inventory-mobil
 import { readPreviewRole } from "@/features/crud/role-preview";
 import type { InventoryProductRepository } from "@/persistence/interfaces";
 import type { MobileMovementKind } from "@/features/inventory-mobile/offline-queue";
+import { postInventoryMobileMovement } from "@/lib/inventory/api-client";
+import { readClientInventoryRuntimeMode } from "@/lib/inventory/runtime";
 
 type InventoryItemStockPanelProps = {
   copy: InventoryMobileCopy;
@@ -33,7 +35,7 @@ type InventoryItemStockPanelProps = {
   transactions: InventoryTransaction[];
   tenantId: string;
   operatorId: string;
-  inventoryProduct: InventoryProductRepository;
+  inventoryProduct?: InventoryProductRepository | null;
   onPosted: () => void;
   onRescan: () => void;
 };
@@ -65,6 +67,7 @@ export function InventoryItemStockPanel({
   const [success, setSuccess] = useState<string | null>(null);
 
   const parsedQuantity = Number(quantity);
+  const runtimeMode = readClientInventoryRuntimeMode();
   const previewRole = useMemo(() => readPreviewRole(), []);
 
   const locationOptions = useMemo(
@@ -133,24 +136,23 @@ export function InventoryItemStockPanel({
     setError(null);
     setSuccess(null);
 
-    const request = {
+    const movementKey = idempotencyKey || createMovementIdempotencyKey(action);
+    const queuePayload = {
       destinationLocationId: action === "transfer" ? destinationLocationId : undefined,
-      idempotencyKey: idempotencyKey || createMovementIdempotencyKey(action),
       itemId: context.item.id,
       locationId,
       lotId: null,
       notes: notes.trim(),
-      operatorId,
       quantity: parsedQuantity,
       reasonCode: reasonCode.trim() || "mobile_scan",
-      tenantId,
-      unitOfMeasureId: context.item.baseUnitOfMeasureId,
+      stockCondition: "available" as const,
+      unitCode: context.item.baseUnitOfMeasureId,
       warehouseId: context.warehouseId
     };
 
     try {
       if (!isBrowserOnline()) {
-        enqueueMovement(tenantId, action, request);
+        enqueueMovement(action, queuePayload, movementKey);
         setSuccess(copy.transaction.queued);
         vibrateScanSuccess();
         setConfirmOpen(false);
@@ -158,8 +160,25 @@ export function InventoryItemStockPanel({
         return;
       }
 
-      await postMobileMovement(inventoryProduct, tenantId, action, request);
-      markMovementSynced(tenantId, request.idempotencyKey);
+      if (runtimeMode === "supabase") {
+        await postInventoryMobileMovement({
+          ...queuePayload,
+          idempotencyKey: movementKey,
+          kind: action
+        });
+      } else if (inventoryProduct) {
+        await postMobileMovement(inventoryProduct, tenantId, action, {
+          ...queuePayload,
+          destinationLocationId: queuePayload.destinationLocationId,
+          idempotencyKey: movementKey,
+          operatorId,
+          tenantId,
+          unitOfMeasureId: context.item.baseUnitOfMeasureId
+        });
+      } else {
+        throw new Error("Demo inventory repository is not available.");
+      }
+      markMovementSynced(movementKey);
       setSuccess(copy.transaction.success);
       vibrateScanSuccess();
       setConfirmOpen(false);

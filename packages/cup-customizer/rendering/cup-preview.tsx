@@ -21,6 +21,7 @@ import {
   pointerDeltaToOffsetDelta,
   type ArtworkTransformInput
 } from "./artwork-layout";
+import { resolvePreviewImageUrl } from "./preview-image-resolve";
 
 export type CupPreviewMetadataItem = {
   label: string;
@@ -54,31 +55,6 @@ type CupPreviewProps = {
   }) => void;
 };
 
-async function resolveImageUrl(primaryUrl: string, fallbackUrl: string): Promise<{
-  url: string;
-  missing: boolean;
-}> {
-  try {
-    const response = await fetch(primaryUrl, { method: "HEAD" });
-    if (response.ok) {
-      return { url: primaryUrl, missing: false };
-    }
-  } catch {
-    // try fallback below
-  }
-
-  try {
-    const response = await fetch(fallbackUrl, { method: "HEAD" });
-    if (response.ok) {
-      return { url: fallbackUrl, missing: true };
-    }
-  } catch {
-    // no asset available
-  }
-
-  return { url: fallbackUrl, missing: true };
-}
-
 export function CupPreview({
   cupSize,
   previewScene = DEFAULT_PREVIEW_BACKGROUND,
@@ -100,9 +76,15 @@ export function CupPreview({
   const scenePath = resolvePreviewSceneAssetPath(scene);
   const cupPath = resolveReusablePPCupAssetPath(sizeMl);
   const frameRef = useRef<HTMLDivElement>(null);
+  const artworkLayerRef = useRef<HTMLDivElement>(null);
+  const onPreviewResolvedRef = useRef(onPreviewResolved);
   const dragRef = useRef<{ pointerId: number; startX: number; startY: number; originX: number; originY: number } | null>(
     null
   );
+
+  useEffect(() => {
+    onPreviewResolvedRef.current = onPreviewResolved;
+  }, [onPreviewResolved]);
 
   const [sceneUrl, setSceneUrl] = useState<string | null>(null);
   const [cupUrl, setCupUrl] = useState<string | null>(null);
@@ -133,8 +115,8 @@ export function CupPreview({
 
     async function loadLayers() {
       const [sceneResult, cupResult] = await Promise.all([
-        resolveImageUrl(scenePath, SCENE_IMAGE_FALLBACK_URL),
-        resolveImageUrl(cupPath, CUP_IMAGE_FALLBACK_URL)
+        resolvePreviewImageUrl(scenePath, SCENE_IMAGE_FALLBACK_URL),
+        resolvePreviewImageUrl(cupPath, CUP_IMAGE_FALLBACK_URL)
       ]);
 
       if (cancelled) return;
@@ -151,7 +133,7 @@ export function CupPreview({
         warnMissingCupCustomizerAsset("reusable PP cup", cupPath, process.env.NODE_ENV === "development");
       }
 
-      onPreviewResolved?.({
+      onPreviewResolvedRef.current?.({
         sceneUrl: sceneResult.missing ? null : sceneResult.url,
         cupUrl: cupResult.missing ? null : cupResult.url
       });
@@ -161,7 +143,7 @@ export function CupPreview({
     return () => {
       cancelled = true;
     };
-  }, [cupPath, onPreviewResolved, scenePath]);
+  }, [cupPath, scenePath]);
 
   const clipRegionStyle: CSSProperties = {
     height: `${printableRegion.heightPercent}%`,
@@ -198,9 +180,12 @@ export function CupPreview({
   );
 
   const endDrag = useCallback((event: PointerEvent) => {
-    if (dragRef.current?.pointerId === event.pointerId) {
-      dragRef.current = null;
+    if (dragRef.current?.pointerId !== event.pointerId) return;
+    const artworkLayer = artworkLayerRef.current;
+    if (artworkLayer?.hasPointerCapture(event.pointerId)) {
+      artworkLayer.releasePointerCapture(event.pointerId);
     }
+    dragRef.current = null;
   }, []);
 
   const handlePointerMove = useCallback(
@@ -305,6 +290,7 @@ export function CupPreview({
               className={`absolute inset-0 ${artworkDraggable ? "cursor-grab active:cursor-grabbing" : ""}`}
               data-testid="cup-preview-artwork"
               onPointerDown={handleArtworkPointerDown}
+              ref={artworkLayerRef}
               role={artworkDraggable ? "button" : undefined}
               style={{
                 ...artworkStyle,

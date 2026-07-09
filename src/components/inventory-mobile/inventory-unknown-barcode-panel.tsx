@@ -9,6 +9,8 @@ import {
   mapPreviewRoleToInventoryRole
 } from "@/features/inventory-product/operations";
 import { linkBarcodeToItem } from "@/features/inventory-mobile/movement-service";
+import { linkInventoryBarcode } from "@/lib/inventory/api-client";
+import { readClientInventoryRuntimeMode } from "@/lib/inventory/runtime";
 import { readPreviewRole } from "@/features/crud/role-preview";
 import type { InventoryProductRepository } from "@/persistence/interfaces";
 
@@ -18,7 +20,7 @@ type InventoryUnknownBarcodePanelProps = {
   items: InventoryItemMaster[];
   tenantId: string;
   operatorId: string;
-  inventoryProduct: InventoryProductRepository;
+  inventoryProduct?: InventoryProductRepository;
   onRescan: () => void;
   onSelectItem: (item: InventoryItemMaster) => void;
   onBarcodeLinked: () => void;
@@ -72,12 +74,17 @@ export function InventoryUnknownBarcodePanel({
     setError(null);
     setMessage(null);
     try {
-      await linkBarcodeToItem(inventoryProduct, {
-        itemId: selected.id,
-        operatorId,
-        scannedValue: scannedCode,
-        tenantId
-      });
+      if (readClientInventoryRuntimeMode() === "supabase") {
+        await linkInventoryBarcode({ itemId: selected.id, scannedValue: scannedCode });
+      } else {
+        if (!inventoryProduct) throw new Error(copy.unknown.linkFailure);
+        await linkBarcodeToItem(inventoryProduct, {
+          itemId: selected.id,
+          operatorId,
+          scannedValue: scannedCode,
+          tenantId
+        });
+      }
       setMessage(copy.unknown.linkSuccess);
       onBarcodeLinked();
     } catch (linkError) {

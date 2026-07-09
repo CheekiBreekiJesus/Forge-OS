@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { AppFrame, panelClass, panelMutedClass } from "@/components/app-frame";
 import { InventoryWorkflowPanels } from "@/components/inventory-workflow-panels";
 import type { Locale } from "@/i18n/config";
@@ -17,9 +17,8 @@ import {
 } from "@/features/inventory-product/ledger";
 import { getInventoryProductCopy } from "@/features/inventory-product/copy";
 import { getInventoryMobileCopy } from "@/features/inventory-mobile/copy";
-import { createInventoryProductDemoState } from "@/features/inventory-product/demo";
+import { useInventoryWorkspaceData } from "@/lib/inventory/use-inventory-workspace-data";
 import { usePersistence } from "@/persistence/provider";
-import type { InventoryProductSnapshot } from "@/persistence/interfaces";
 
 export type InventoryProductSection =
   | "overview"
@@ -71,37 +70,20 @@ const inventorySections: InventoryProductSection[] = [
 export function InventoryProductWorkspaceShell({ dictionary, locale, mode, section }: Props) {
   const copy = getInventoryProductCopy(locale);
   const mobileCopy = getInventoryMobileCopy(locale);
-  const { notifyDataChanged, state: persistenceState, tenantId } = usePersistence();
-  const [state, setState] = useState<InventoryProductSnapshot>(() => createInventoryProductDemoState());
+  const {
+    canPersistLabels,
+    error: workspaceError,
+    loading,
+    refresh,
+    setSnapshot,
+    snapshot: state,
+    tenantId,
+    workflows
+  } = useInventoryWorkspaceData();
+  const { notifyDataChanged, state: persistenceState } = usePersistence();
   const [barcodeInput, setBarcodeInput] = useState("05601234001005");
   const [message, setMessage] = useState(copy.messages.noPrivateData);
   const [zplContent, setZplContent] = useState("");
-
-  useEffect(() => {
-    if (persistenceState.status !== "ready") return;
-
-    let cancelled = false;
-    async function loadSnapshot() {
-      if (persistenceState.status !== "ready") return;
-      let snapshot = await persistenceState.repos.inventoryProduct.getSnapshot(tenantId);
-      if (snapshot.items.length === 0) {
-        await persistenceState.repos.inventoryProduct.seedDemoFoundation(tenantId);
-        snapshot = await persistenceState.repos.inventoryProduct.getSnapshot(tenantId);
-      }
-      if (cancelled) return;
-      setState(snapshot);
-    }
-
-    void loadSnapshot().catch((error) => {
-      if (!cancelled) {
-        setMessage(error instanceof Error ? error.message : copy.messages.noPrivateData);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [copy.messages.noPrivateData, persistenceState, tenantId]);
 
   const activeSections = mode === "products" ? productSections : inventorySections;
   const balances = useMemo(
@@ -112,7 +94,25 @@ export function InventoryProductWorkspaceShell({ dictionary, locale, mode, secti
   const available = balances.reduce((sum, row) => sum + row.availableStock, 0);
   const reserved = balances.reduce((sum, row) => sum + row.reservedStock, 0);
   const quarantine = balances.reduce((sum, row) => sum + row.quarantinedStock, 0);
-  const template = state.labelTemplates[0]!;
+  const template = state.labelTemplates[0] ?? {
+    active: true,
+    barcodeSymbology: "code128" as const,
+    createdAt: "",
+    customerId: null,
+    dpi: 203,
+    height: 35,
+    id: "label_fallback",
+    layout: { barcodeField: "barcode", subtitleField: "subtitle", titleField: "title" },
+    measurementUnit: "mm" as const,
+    name: "Label",
+    orientation: "landscape" as const,
+    purpose: "item" as const,
+    supportedFields: ["title", "subtitle", "barcode", "lot"],
+    tenantId,
+    updatedAt: "",
+    version: 1,
+    width: 70
+  };
   const labelData = {
     barcode: state.barcodes[0]?.value ?? "05601234001005",
     lot: state.lots[0]?.internalLotNumber,
@@ -140,9 +140,9 @@ export function InventoryProductWorkspaceShell({ dictionary, locale, mode, secti
       "operator_preview"
     );
     await mockPrintTransport();
-    if (persistenceState.status === "ready") {
+    if (canPersistLabels && persistenceState.status === "ready") {
       await persistenceState.repos.inventoryProduct.recordLabelPrintJob(tenantId, job);
-      setState(await persistenceState.repos.inventoryProduct.getSnapshot(tenantId));
+      setSnapshot(await persistenceState.repos.inventoryProduct.getSnapshot(tenantId));
       notifyDataChanged();
     }
     setMessage(`${copy.cards.zplDownload}: ${job.status}`);
@@ -195,7 +195,12 @@ export function InventoryProductWorkspaceShell({ dictionary, locale, mode, secti
         </nav>
 
         <div className={panelMutedClass}>
-          <p className="text-sm font-semibold text-[var(--forge-text-primary)]">{message}</p>
+          <p className="text-sm font-semibold text-[var(--forge-text-primary)]">
+            {workspaceError ?? message}
+          </p>
+          {loading ? (
+            <p className="mt-1 text-xs text-[var(--forge-text-muted)]">{copy.messages.noPrivateData}</p>
+          ) : null}
         </div>
 
         <section className="grid gap-3 md:grid-cols-4">
@@ -269,11 +274,10 @@ export function InventoryProductWorkspaceShell({ dictionary, locale, mode, secti
           >
             <InventoryWorkflowPanels
               locale={locale}
-              onSnapshotChange={async (snapshot) => {
-                setState(snapshot);
-              }}
+              onSnapshotChange={refresh}
               section={section}
               snapshot={state}
+              workflows={workflows}
             />
           </Panel>
         ) : null}

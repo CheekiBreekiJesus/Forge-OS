@@ -26,7 +26,7 @@ describe("product import integration", () => {
     const tenantId = DEFAULT_TENANT_ID;
 
     const curatedCsv = readFileSync(resolve(fixturesDir, "synthetic_curated_products.csv"), "utf8");
-    const parsedCurated = parseSpreadsheet({
+    const parsedCurated = await parseSpreadsheet({
       data: curatedCsv,
       filename: "synthetic_curated_products.csv"
     });
@@ -77,7 +77,7 @@ describe("product import integration", () => {
     expect(reloaded?.name).toContain("Synthetic Cup Alpha");
 
     const invoiceCsv = readFileSync(resolve(fixturesDir, "synthetic_invoice_export.csv"), "utf8");
-    const parsedInvoice = parseSpreadsheet({
+    const parsedInvoice = await parseSpreadsheet({
       data: invoiceCsv,
       filename: "synthetic_invoice_export.csv"
     });

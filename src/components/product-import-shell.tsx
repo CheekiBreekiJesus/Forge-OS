@@ -86,7 +86,7 @@ export function ProductImportShell({ dictionary, locale }: ProductImportShellPro
     setMessage(null);
     try {
       const buffer = await file.arrayBuffer();
-      const result = parseSpreadsheet({ data: buffer, filename: file.name });
+      const result = await parseSpreadsheet({ data: buffer, filename: file.name });
       setParsed(result);
       setFileBuffer(buffer);
       setWorksheetName(result.worksheets.find((ws) => !ws.hidden)?.name ?? result.worksheets[0]?.name ?? "");

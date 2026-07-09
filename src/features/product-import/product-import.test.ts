@@ -52,18 +52,18 @@ describe("product import normalize", () => {
 });
 
 describe("product import parsing", () => {
-  it("parses synthetic curated CSV", () => {
+  it("parses synthetic curated CSV", async () => {
     const csv = readFileSync(resolve(fixturesDir, "synthetic_curated_products.csv"), "utf8");
-    const parsed = parseSpreadsheet({ data: csv, filename: "synthetic_curated_products.csv" });
+    const parsed = await parseSpreadsheet({ data: csv, filename: "synthetic_curated_products.csv" });
     expect(parsed.format).toBe("csv");
     expect(parsed.worksheets[0].rows.length).toBe(5);
     const mapping = suggestFieldMapping(parsed.worksheets[0].headers);
     expect(Object.values(mapping)).toContain("internalReference");
   });
 
-  it("parses synthetic invoice CSV with semicolon delimiter", () => {
+  it("parses synthetic invoice CSV with semicolon delimiter", async () => {
     const csv = readFileSync(resolve(fixturesDir, "synthetic_invoice_export.csv"), "utf8");
-    const parsed = parseSpreadsheet({ data: csv, filename: "synthetic_invoice_export.csv" });
+    const parsed = await parseSpreadsheet({ data: csv, filename: "synthetic_invoice_export.csv" });
     expect(parsed.worksheets[0].rows.length).toBe(4);
   });
 });
