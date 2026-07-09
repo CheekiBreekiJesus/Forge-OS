@@ -1,4 +1,3 @@
-import { createRecordId } from "@/domain/ids";
 import type {
   ImportExistingItem,
   ProductImportBatchStatus,
@@ -187,7 +186,7 @@ export async function parseProductImportJob(input: {
     if (status === "duplicate") duplicateRows += 1;
     if (status === "conflict") conflictRows += 1;
 
-    const rowId = createRecordId("pimprow");
+    const rowId = crypto.randomUUID();
     const row: ProductImportJobRow = {
       approvedAction: null,
       conflictFields: analysis.conflictFields,
