@@ -245,7 +245,7 @@ export function LeadOpsCampaignDetailShell({
   const hostedPreparationCopy = sendJobCopy.hostedPreparation;
   const canPrepareForHostedSending =
     Boolean(campaign) &&
-    campaign?.status === "approved" &&
+    derivedCampaignStatus === "approved" &&
     campaign?.deliveryMode === "simulation" &&
     approvedIncludedRecipients.length > 0 &&
     staleApprovedRecipients.length === 0 &&
@@ -828,7 +828,7 @@ export function LeadOpsCampaignDetailShell({
                         {canPrepareForHostedSending ? hostedPreparationCopy.eligible : hostedPreparationCopy.notEligible}
                       </span>
                     </p>
-                    {campaign.status !== "approved" ? <p>{hostedPreparationCopy.needsApproval}</p> : null}
+                    {derivedCampaignStatus !== "approved" ? <p>{hostedPreparationCopy.needsApproval}</p> : null}
                     {staleApprovedRecipients.length > 0 ? <p>{hostedPreparationCopy.hasStaleApprovals}</p> : null}
                     {approvedIncludedRecipients.length === 0 ? <p>{hostedPreparationCopy.emptySnapshot}</p> : null}
                   </div>
