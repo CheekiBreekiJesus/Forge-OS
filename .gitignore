@@ -60,3 +60,5 @@ data/exports/
 # Customer PC local runtime artifacts (logs, PID files, diagnostics)
 .customer-pc/
 
+# Vercel local project metadata
+.vercel/
